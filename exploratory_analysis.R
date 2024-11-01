@@ -137,6 +137,12 @@ append_to_file(sprintf("Number of natura habitats: %s\n", number_of_habitats_nat
 number_of_known_habitats_within_buffer_natura <- length(colnames(fractions_natura))
 append_to_file(sprintf("Number of known natura habitats within buffer: %s\n", 
                        number_of_known_habitats_within_buffer_natura), file)
+# Corine habitats
+number_of_habitats_corine <- length(unique(corine_raster)[,1])
+append_to_file(sprintf("Number of corine habitats: %s\n", number_of_habitats_corine), file)
+number_of_known_habitats_within_buffer_corine <- length(colnames(fractions_corine))
+append_to_file(sprintf("Number of known corine habitats within buffer: %s\n", 
+                       number_of_known_habitats_within_buffer_corine), file)
 
 
 
@@ -176,6 +182,7 @@ hist(transect_efforts$Effort, main = "Histogram of transect lengths")
 
 # Produce data
 transect_natura_data_list <- list()
+transect_corine_data_list <- list()
 for (habitat_data_type in habitat_data_types) {
     natura_data_on_transects <- get_transect_habitat_data(buffer_width, 
                                                           natura_raster, 
@@ -183,6 +190,12 @@ for (habitat_data_type in habitat_data_types) {
                                                           names_natura,
                                                           habitat_data_type)
     transect_natura_data_list[[habitat_data_type]] <- natura_data_on_transects
+    corine_data_on_transects <- get_transect_habitat_data(buffer_width,
+                                                          corine_raster,
+                                                          transects_shp,
+                                                          names_corine,
+                                                          habitat_data_type)
+    transect_corine_data_list[[habitat_data_type]] <- corine_data_on_transects
 }
 transect_species_data_list <- list()
 for (species_data_type in species_data_types) {
