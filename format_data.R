@@ -110,6 +110,13 @@ names_natura <- data.frame(value = natura_classification$Value, name = natura_cl
 observations$Transect <- as.character(observations$Transect)
 
 
+
+
+
+
+
+
+
 # FORMAT COMMUNITY DATA Y 
 # Rows are samples. Columns are abundances or occurrences
 
@@ -147,6 +154,7 @@ abundance[abundance == 0] <- NA
 
 
 
+
 # FORMAT SPATIOTEMPORAL CONTEXT S
 
 # Calculate spatial coordinates for transects
@@ -162,6 +170,12 @@ spatiotemporal_context <- data.frame(Sample = sample_id,
                                      Year = abundance_samples$Year,
                                      x = transect_coordinates[abundance_samples$Transect, "x"],
                                      y = transect_coordinates[abundance_samples$Transect, "y"])
+
+
+
+
+
+
 
 
 
@@ -204,7 +218,6 @@ natura_diversities <- get_transect_habitat_data(buffer_width,
                                                 names_natura,
                                                 "landscapemetrics")
 
-
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
@@ -212,6 +225,15 @@ env_data_natura <- data.frame(fractions_natura,
                               Diversity = natura_diversities$PatchDensity)
 colnames(env_data_natura) <- make.names(colnames(env_data_natura))
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
+
+
+
+
+
+
+
+
+
 
 
 
@@ -246,7 +268,18 @@ rownames(trait_data) <- trait_data$Species
 trait_data <- trait_data[observed_species,]
 
 
+
+
+
+
+
 # FORMAT PHYLOGENETIC DATA C
+
+
+
+
+
+
 
 # SAVE DATA
 
@@ -274,3 +307,4 @@ save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
 save(abundance, file = file.path(dir_data, "abundance.RData"))
 save(occurrence, file = file.path(dir_data, "occurrence.RData"))
 save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context.RData"))
+save(trait_data, file = file.path(dir_data, "trait_data.RData"))
