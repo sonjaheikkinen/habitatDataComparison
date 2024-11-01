@@ -16,7 +16,11 @@ load(file = file.path(dir_data, "occurrence_raw.RData")) # occurrence
 load(file = file.path(dir_data, "natura_raster.RData")) # natura_raster
 load(file = file.path(dir_data, "fractions_natura.RData")) # fractions_natura
 
+
+
 # BASIC NUMBERS ON RAW DATA
+
+
 # Occurrence
 number_of_species <- length(colnames(occurrence))
 append_to_file(sprintf("Number of species: %s\n", number_of_species), file)
@@ -26,6 +30,37 @@ append_to_file(sprintf("Number of natura habitats: %s\n", number_of_habitats_nat
 number_of_known_habitats_within_buffer_natura <- length(colnames(fractions_natura))
 append_to_file(sprintf("Number of known natura habitats within buffer: %s\n", 
                        number_of_known_habitats_within_buffer_natura), file)
+
+
+
+# BASIC PLOTS FROM RAW DATA
+
+# On how many years was each transect visited 
+transect_visits <- aggregate(SampleEvent ~ Transect, data = observations,
+                             FUN = function(x) length(unique(x)))
+plot(as.factor(transect_visits$Transect), 
+     transect_visits$SampleEvent, 
+     type="l",
+     main="Number of visits for each transect")
+hist(transect_visits$SampleEvent, main = "Histogram for number of visits per transect")
+
+# Plot amount of transects that was visited each year
+year_transect_amounts <- aggregate(Transect ~ Year, data = observations,
+                                   FUN = function(x) length(unique(x)))
+plot(year_transect_amounts$Year, year_transect_amounts$Transect, type="h")
+hist(year_transect_amounts$Transect, main = "Histogram for number of transects visited each year")
+
+# Plot transect lengths
+transect_names <- unique(observations
+                         $Transect)
+transect_lengths <- c()
+for (transect in transect_names) {
+    transect_lengths <- c(transect_lengths, mean(observations
+                                                 [observations
+                                                     $Transect == transect, "Effort"]))
+}
+transect_efforts <- data.frame(Transect = transect_names, Effort = transect_lengths)
+hist(transect_efforts$Effort, main = "Histogram of transect lengths")
 
 
 
