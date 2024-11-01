@@ -9,6 +9,7 @@
 # differs between species, what can explain these differences?
 
 # SETTINGS FOR RUNNING THE SCRIPT
+run_preprocess <- TRUE
 
 # DIRECTORY PATHS
 current_computer <- "main"
@@ -28,6 +29,9 @@ library(readxl) # For excel files
 #################################################################################################################
 
 # PREPROCESS DATA
+if (run_preprocess) {
+    source(file = "preprocess_data.R")
+}
 
 # READ IN DATA
 natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
