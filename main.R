@@ -36,18 +36,6 @@ if (run_preprocess_data) {
     source(file = "preprocess_data.R")
 }
 
-# READ IN DATA
-natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
-natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls"))
-observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"), sep = ";")
-observations$Transect <- as.character(observations$Transect)
-transects_shp <- vect(file.path(dir_data, "transects_preprocessed.shp"))
-species_traits <- read_excel(file.path(dir_data, "BirdTraits21112018.xlsx"))
-species_alternative_names <- read.csv(file.path(dir_data, "speciesAlternativeNames.txt"), sep = ";")
-taxonomy <- read.tree(file.path(dir_data, "tree.txt")) #TO DO: CHOOSE RANDOMLY FROM LIST OF TREES?
-temperature_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "temperature")
-rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rainfall")
-
 # FORMAT DATA
 if (run_format_data) {
     source("format_data.R")
