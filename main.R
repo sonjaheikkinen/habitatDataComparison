@@ -32,6 +32,9 @@ library(readxl) # For excel files
 library(ape) # For phylogenetic trees
 library(landscapemetrics) # For calculating landscape metrics 
 library(vegan) # For species diversities
+library(dendextend) # For clustering
+library(pheatmap) # For heatmaps
+library(ggplot2) # For plotting
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")

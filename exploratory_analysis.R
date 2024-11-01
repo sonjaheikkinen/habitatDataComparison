@@ -101,6 +101,33 @@ get_species_presence_data <- function(data_for_transect, species_list, transect)
 }
 
 
+# FUNCTIONS | OTHER
+
+cluster_data <- function(data_types, transect_data_list, cluster_amount, category) {
+    
+    for (data_type in data_types) {
+        data_on_transects <- transect_data_list[[data_type]]
+        data_on_transects$Cluster <- NULL
+        if (data_type == "landscapemetrics" || data_type == "diversity") {
+            data_on_transects <- scale_between_zero_and_one(data_on_transects)
+        }
+        clustering <- hclust(dist(data_on_transects), method = "complete")
+        cluster_groups <- cutree(tree = as.dendrogram(clustering), k = cluster_amount)
+        annotation <- data.frame(cluster_groups)
+        rownames(annotation) <- rownames(data_on_transects)
+        pheatmap(data_on_transects,
+                 annotation_row = annotation,
+                 main = sprintf("%s %s on transects, buffer: %f m", 
+                                category, 
+                                data_type, 
+                                buffer_width))
+        data_on_transects$Cluster <- cluster_groups
+        transect_data_list[[data_type]] <- data_on_transects
+    }
+    return(transect_data_list)
+}
+
+
 
 
 
@@ -203,6 +230,41 @@ for (species_data_type in species_data_types) {
                                                            species_data_type)
     transect_species_data_list[[species_data_type]] <- species_data_on_transects
 }
+
+
+# Cluster data
+# TO DO: fix the rest of the code so cluster groups can be saved as column
+# Linnustoklusterit lintulajeille (columns)
+transect_natura_data_list <- cluster_data(habitat_data_types, 
+                                          transect_natura_data_list,
+                                          10,
+                                          "Habitat")
+transect_corine_data_list <- cluster_data(habitat_data_types, 
+                                          transect_corine_data_list,
+                                          10,
+                                          "Habitat")
+transect_species_data_list <- cluster_data(species_data_types,
+                                           transect_species_data_list,
+                                           5,
+                                           "Species")
+number_of_transects <- length(rownames(transect_natura_data_list[["fraction"]]))
+ordered_transects <- rownames(transect_natura_data_list[["fraction"]])[order(transect_natura_data_list[["fraction"]]$Cluster)]
+natura_cluster <- transect_natura_data_list[["fraction"]][ordered_transects,]$Cluster
+corine_cluster <- transect_corine_data_list[["fraction"]][ordered_transects,]$Cluster
+cluster_plot_data <- data.frame(transect = factor(c(ordered_transects, ordered_transects), 
+                                                  levels = ordered_transects),
+                                cluster = c(natura_cluster, corine_cluster),
+                                data = c(rep("natura", times = number_of_transects),
+                                         rep("corine", times = number_of_transects)))
+
+ggplot(cluster_plot_data, aes(x = transect, y = cluster, color = data)) +
+    geom_point(alpha = 0.7) +
+    labs(title = "Transect natura and corine clusters",
+         x = "Transect",
+         y = "Cluster") +
+    theme_minimal() +
+    scale_color_manual(values = c("natura" = "blue", "corine" = "red")) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 
 

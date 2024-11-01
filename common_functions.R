@@ -15,6 +15,13 @@ append_to_file <- function(text, file, sep="") {
     cat(text, file = file, sep = sep, append = TRUE)
 } 
 
+scale_between_zero_and_one <- function(data) {
+    scaled_data <- apply(data, 
+                         MARGIN = 2, # Apply to columns
+                         FUN = function(X) (X - min(X))/diff(range(X)))
+    return(as.data.frame(scaled_data))
+}
+
 
 
 # FUNCTIONS | TRANSECTS AND HABITATS DATA
