@@ -22,6 +22,23 @@ scale_between_zero_and_one <- function(data) {
     return(as.data.frame(scaled_data))
 }
 
+# FUNCTIONS | DATA READING
+
+read_climate_data <- function(folder, type) {
+    prefix <- ''
+    if (type == "temperature") {
+        prefix <- "tmon"
+    }
+    if (type == "rainfall") {
+        prefix <- "rrmon"
+    }
+    raster_files <- list.files(folder, pattern = sprintf("^%s", prefix), full.names = TRUE)
+    rasters <- c()
+    for (filename in raster_files) {
+        rasters <- c(rasters, rast(filename))
+    }
+    return(rasters)
+}
 
 
 # FUNCTIONS | TRANSECTS AND HABITATS DATA

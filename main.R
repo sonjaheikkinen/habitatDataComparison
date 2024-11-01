@@ -11,7 +11,7 @@
 # SETTINGS FOR RUNNING THE SCRIPT
 
 run_preprocess_data <- FALSE
-run_format_data <- FALSE
+run_format_data <- TRUE
 run_exploratory_analysis <- TRUE
 
 buffer_width <- 25
@@ -44,6 +44,12 @@ source(file = "common_functions.R")
 
 # SCRIPT STARTS
 
+
+# Read in rasters
+natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
+corine_raster <- rast(file.path(dir_data, "Clc2018_FI20m_2393.tif"))
+temperature_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "temperature")
+rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rainfall")
 
 
 

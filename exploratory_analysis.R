@@ -195,7 +195,7 @@ file <- file.path(dir_results, "exploratory_analysis.txt")
 
 # LOAD RAW DATA
 load(file = file.path(dir_data, "occurrence_raw.RData")) # occurrence
-load(file = file.path(dir_data, "natura_raster.RData")) # natura_raster
+#load(file = file.path(dir_data, "natura_raster.RData")) # natura_raster
 load(file = file.path(dir_data, "fractions_natura.RData")) # fractions_natura
 
 
