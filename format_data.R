@@ -41,6 +41,53 @@ get_transect_temperature_data <- function(buffer_width,
     return(transect_temperature_data)
 }
 
+format_observations_for_hmsc <- function(observations) {
+    species_list <- unique(observations$Species)
+    observation_data_list <- list()
+    for (year in unique(observations$Year)) {
+        observations_for_year <- observations[observations$Year == year,]
+        transect_species_data_list <- list()
+        for (transect in unique(observations_for_year$Transect)) {
+            observations_for_transect <- observations_for_year[observations_for_year$Transect == transect,]
+            data_for_transect <- get_species_abundance_for_transect(observations_for_transect,
+                                                                    transect,
+                                                                    species_list)
+            transect_species_data_list <- append(transect_species_data_list,
+                                                 list(data_for_transect))
+        }
+        transect_species_data_for_year <- do.call(rbind, transect_species_data_list)
+        transect_species_data_for_year$Year <- year
+        observation_data_list <- append(observation_data_list,
+                                        list(transect_species_data_for_year))
+    } 
+    observation_data <- do.call(rbind, observation_data_list)
+    return(observation_data)
+}
+
+get_species_abundance_for_transect <- function(data_for_transect, 
+                                               transect, 
+                                               species_list) {
+    abundance_data <- data.frame(Transect = c(transect))
+    for (species in species_list) {
+        if (species %in% unique(data_for_transect$Species)) {
+            abundance_data[,species] <- sum(data_for_transect[data_for_transect$Species == species, "Abundance"])
+        } else {
+            abundance_data[,species] <- 0
+        }
+    }
+    return(abundance_data)
+}
+
+match_to_birdtree <- function(species_names, column_to_match) {
+    # Get the index of each species name in the alternative names df
+    # Index is NA if name is not found in the specified column (no alternative names)
+    match_indices <- match(species_names, species_alternative_names[[column_to_match]])
+    # Get alternative names based on the match
+    birdtree_species_names <- species_alternative_names$birdtree[match_indices]
+    # Replace NA values with the original species names
+    birdtree_species_names[is.na(birdtree_species_names)] <- species_names[is.na(birdtree_species_names)]
+    return (birdtree_species_names)
+}
 
 
 # SCRIPT STARTS
@@ -108,18 +155,42 @@ env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
                               Temperature = transect_temperatures,
                               Diversity = natura_diversities$PatchDensity)
+colnames(env_data_natura) <- make.names(env_data_natura)
 
 
 
 
 
 # FORMAT COMMUNITY DATA Y
+# Rows are samples. Columns are abundances or occurrences
+
+# First generate abundances for each species.
+# Separate abundances for each combination of year and transect
+abundance_samples <- format_observations_for_hmsc(observations)
+
+# Rename species with names used in birdtree phylogenies
+colnames(abundance_samples) <- match_to_birdtree(colnames(abundance_samples), "observations")
+
+# Get the names of included species for new phylogeny if needed
+writeLines(colnames(abundance_samples), file.path(dir_data, "species.txt"))
+
+# Match the writing format of species names to that of birdtree
+colnames(abundance_samples) <- gsub(" ", "_", colnames(abundance_samples))
+
+# Give each sample a unique id
+sample_id <- as.factor(1:nrow(abundance_samples))
+rownames(abundance_samples) <- sample_id
+
+
 
 # FORMAT TRAIT DATA T
 
 # FORMAT PHYLOGENETIC DATA C
 
 # FORMAT SPATIOTEMPORAL CONTEXT S
+
+# ORDER ALL DATA IN SAMPLE ORDER
+
 
 # SAVE DATA
 
@@ -139,6 +210,7 @@ save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 save(transcet_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))
+save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
 
 # Save HMSC data
 save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
