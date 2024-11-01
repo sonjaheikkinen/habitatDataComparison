@@ -90,6 +90,16 @@ match_to_birdtree <- function(species_names, column_to_match) {
 }
 
 
+get_fractions <- function(buffer_width, raster, transects_shp, names) {
+    fractions <- get_transect_habitat_data(buffer_width, 
+                                           raster, 
+                                           transects_shp,
+                                           names,
+                                           "fraction")
+    fractions <- fractions[,!is.na(colnames(fractions))]
+    fractions <- fractions[,sapply(fractions, function(x) var(x, na.rm = TRUE) != 0)]
+}
+
 
 
 
@@ -109,11 +119,15 @@ species_alternative_names <- read.csv(file.path(dir_data, "speciesAlternativeNam
 taxonomy <- read.tree(file.path(dir_data, "tree.txt")) #TO DO: CHOOSE RANDOMLY FROM LIST OF TREES?
 temperature_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "temperature")
 rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rainfall")
+corine_raster <- rast(file.path(dir_data, "Clc2018_FI20m_2393.tif"))
+corine_classification <- read_excel(file.path(dir_data, "CorineMaanpeite2018Luokat.xls"))
+
 
 
 
 # GENERAL REFORMATTING OF RAW DATA
 names_natura <- data.frame(value = natura_classification$Value, name = natura_classification$NaturaTyyppi)
+names_corine <- data.frame(value = corine_classification$Value, name = corine_classification$Level4Suo)
 observations$Transect <- as.character(observations$Transect)
 
 
@@ -191,13 +205,8 @@ spatiotemporal_context <- data.frame(Sample = sample_id,
 # Rows: samples, columns: env data of each sample
 
 # Get fractions of each habitat type on each transect
-fractions_natura <- get_transect_habitat_data(buffer_width, 
-                                              natura_raster, 
-                                              transects_shp,
-                                              names_natura,
-                                              "fraction")
-fractions_natura <- fractions_natura[,!is.na(colnames(fractions_natura))]
-fractions_natura <- fractions_natura[,sapply(fractions_natura, function(x) var(x, na.rm = TRUE) != 0)]
+fractions_natura <- get_fractions(buffer_width, natura_raster, transects_shp, names_natura)
+fractions_corine <- get_fractions(buffer_width, corine_raster, transects_shp, names_corine)
 
 # Get transect names
 transect_names <- rownames(fractions_natura)
@@ -222,6 +231,11 @@ natura_diversities <- get_transect_habitat_data(buffer_width,
                                                 transects_shp,
                                                 names_natura,
                                                 "landscapemetrics")
+corine_diversities <- get_transect_habitat_data(buffer_width,
+                                                corine_raster,
+                                                transects_shp,
+                                                names_corine,
+                                                "landscapemetrics")
 
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
@@ -230,6 +244,12 @@ env_data_natura <- data.frame(fractions_natura,
                               Diversity = natura_diversities$PatchDensity)
 colnames(env_data_natura) <- make.names(colnames(env_data_natura))
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
+env_data_corine <- data.frame(fractions_corine,
+                              Effort = transect_lengths,
+                              Temperature = transect_temperatures,
+                              Diversity = corine_diversities$PatchDensity)
+colnames(env_data_corine) <- make.names(colnames(env_data_corine))
+env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
 
 
 
@@ -291,6 +311,7 @@ phylogeny_data <- taxonomy
 # Save raw data
 save(natura_raster, file = file.path(dir_data, "natura_raster.RData"))
 save(names_natura, file = file.path(dir_data, "names_natura.RData"))
+save(names_corine, file = file.path(dir_data, "names_corine.RData"))
 save(observations, file = file.path(dir_data, "observations.RData"))
 save(transects_shp, file = file.path(dir_data, "transects_shp.RData"))
 save(species_traits, file = file.path(dir_data, "species_traits.RData"))
@@ -301,16 +322,20 @@ save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 
 # Save formatted data
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
+save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 save(transect_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))
+save(corine_diversities, file = file.path(dir_data, "corine_diversities.RData"))
 save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
 save(transect_coordinates, file = file.path(dir_data, "transect_coordinates.RData"))
 
 # Save HMSC data
 save(env_data_natura, file = file.path(dir_data, "env_data_natura_raw.RData"))
+save(env_data_corine, file = file.path(dir_data, "env_data_corine_raw.RData"))
 save(abundance, file = file.path(dir_data, "abundance_raw.RData"))
 save(occurrence, file = file.path(dir_data, "occurrence_raw.RData"))
 save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
 save(trait_data, file = file.path(dir_data, "trait_data_raw.RData"))
 save(phylogeny_data, file = file.path(dir_data, "phylogeny_data_raw.RData"))
+
