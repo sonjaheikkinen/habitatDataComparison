@@ -24,7 +24,6 @@ read_climate_data <- function(folder, type) {
 natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
 natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls"))
 observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"), sep = ";")
-observations$Transect <- as.character(observations$Transect)
 transects_shp <- vect(file.path(dir_data, "transects_preprocessed.shp"))
 species_traits <- read_excel(file.path(dir_data, "BirdTraits21112018.xlsx"))
 species_alternative_names <- read.csv(file.path(dir_data, "speciesAlternativeNames.txt"), sep = ";")
@@ -33,7 +32,21 @@ temperature_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "t
 rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rainfall")
 
 
+# GENERAL REFORMATTING OF RAW DATA
+names_natura <- data.frame(value = natura_classification$Value, name = natura_classification$NaturaTyyppi)
+observations$Transect <- as.character(observations$Transect)
+
+
+
 # FORMAT ENVIRONMENTAL DATA X
+# Rows: samples, columns: env data of each sample
+
+# Get fractions of each habitat type on each transect
+fractions_natura <- get_transect_habitat_data(buffer_width, 
+                                              natura_raster, 
+                                              transects_shp,
+                                              names_natura,
+                                              "fraction")
 
 # FORMAT COMMUNITY DATA Y
 
@@ -44,3 +57,4 @@ rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rain
 # FORMAT SPATIOTEMPORAL CONTEXT S
 
 # SAVE DATA
+# Save also raw data as .RData

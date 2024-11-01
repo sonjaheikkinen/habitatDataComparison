@@ -9,8 +9,11 @@
 # differs between species, what can explain these differences?
 
 # SETTINGS FOR RUNNING THE SCRIPT
+
 run_preprocess_data <- FALSE
 run_format_data <- TRUE
+
+buffer_width <- 25
 
 # DIRECTORY PATHS
 current_computer <- "main"
@@ -40,6 +43,8 @@ if (run_preprocess_data) {
 if (run_format_data) {
     source("format_data.R")
 }
+
+# READ IN FORMATTED DATA
 
 # EXPLORATORY ANALYSIS
 
