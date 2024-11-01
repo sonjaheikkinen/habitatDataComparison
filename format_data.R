@@ -50,6 +50,23 @@ fractions_natura <- get_transect_habitat_data(buffer_width,
 fractions_natura <- fractions_natura[,!is.na(colnames(fractions_natura))]
 fractions_natura <- fractions_natura[,sapply(fractions_natura, function(x) var(x, na.rm = TRUE) != 0)]
 
+
+# Calculate transect lengths 
+transect_names <- rownames(fractions_natura)
+transect_lengths <- c()
+for (transect in transect_names) {
+    transect_lengths <- c(transect_lengths, 
+                          mean(observations[observations$Transect == transect, "Effort"]))
+}
+names(transect_lengths) <- transect_names
+
+
+# Create environmental data X for natura
+env_data_natura <- data.frame(fractions_natura,
+                              Effort = transect_lengths)
+
+
+
 # FORMAT COMMUNITY DATA Y
 
 # FORMAT TRAIT DATA T
@@ -73,5 +90,6 @@ save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 
 # Save formatted data
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
+save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 
 # Save HMSC data
