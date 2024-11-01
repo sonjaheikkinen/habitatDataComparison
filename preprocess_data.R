@@ -25,10 +25,27 @@ get_transects_that_overlap_raster <- function(transects, raster) {
 # READ DATA
 transects_shp <- vect(file.path(dir_data, "bird_transects.shp"))
 observations <- read.csv(file.path(dir_data, "birdtransects_toRecbase.csv"))
+id_mapping <- read.csv(file.path(dir_data, "All_GIS_Routes_LinjaRouteID_Matched.csv"), sep = ";")
+
 
 # LIMIT DATA TO STUDY AREA
+
+# Limit transects to study area
 transects_shp$ID <- 1:nrow(transects_shp) # Adding numerical id, because existing chr identifier caused issues
 transects_that_overlap_natura_raster <- get_transects_that_overlap_raster(transects_shp, natura_raster)
+
+# Limit observations to study area
+# Transects are numbered differently in observations and transects shp
+# First the transect numbers from shp need to be added for observations
+# This is done using the id mapping file which contains the matching numbers from both numbering systems
+transect_numbers_in_observations_data <- observations$SiteID
+transect_number_list_observation <- id_mapping$RouteID_REC
+transect_number_list_transect_shp <- id_mapping$GIS_route
+transect_number_indices_in_id_mapping <- match(transect_numbers_in_observations_data, 
+                                               transect_number_list_observation)
+observations$Transect <- transect_number_list_transect_shp[transect_number_indices_in_id_mapping]
+
+
 
 # CLEAN DATA
 
