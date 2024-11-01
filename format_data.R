@@ -3,7 +3,7 @@
 # FUNCTIONS | DATA READING
 
 read_climate_data <- function(folder, type) {
-    orefix <- ''
+    prefix <- ''
     if (type == "temperature") {
         prefix <- "tmon"
     }
@@ -205,9 +205,7 @@ names(transect_lengths) <- transect_names
 
 
 # Calculate transect temperature values
-transect_temperatures <- get_transect_temperature_data(buffer_width,
-                                                       temperature_data,
-                                                       transects_shp)
+transect_temperatures <- get_transect_temperature_data(buffer_width, temperature_data,transects_shp)
 names(transect_temperatures) <- transect_names
 
 
@@ -297,10 +295,10 @@ save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 # Save formatted data
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
-save(transcet_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
+save(transect_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))
 save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
-save(transcet_coordinates, file = file.path(dir_data, "transect_coordinates.RData"))
+save(transect_coordinates, file = file.path(dir_data, "transect_coordinates.RData"))
 
 # Save HMSC data
 save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
