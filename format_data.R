@@ -210,7 +210,9 @@ env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
                               Temperature = transect_temperatures,
                               Diversity = natura_diversities$PatchDensity)
-colnames(env_data_natura) <- make.names(env_data_natura)
+colnames(env_data_natura) <- make.names(colnames(env_data_natura))
+env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
+
 
 
 
