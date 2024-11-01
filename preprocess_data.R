@@ -4,6 +4,7 @@
 
 
 # FUNCTIONS FOR PREPROCESSING
+
 get_transects_that_overlap_raster <- function(transects, raster) {
     raster_values_for_transects <- extract(raster, transects)
     transects_with_no_NA_values <- c()
@@ -17,6 +18,13 @@ get_transects_that_overlap_raster <- function(transects, raster) {
                                  transects$ID %in% transects_with_no_NA_values)
     
     return(filtered_transects)
+}
+
+get_observations_from_given_transects <- function(transects, observations) {
+    transects_to_keep <- transects$Numero
+    filtered_observations <- observations[observations$Transect %in% transects_to_keep,]
+    
+    return(filtered_observations)
 }
 
 # SCRIPT STARTS
@@ -44,6 +52,9 @@ transect_number_list_transect_shp <- id_mapping$GIS_route
 transect_number_indices_in_id_mapping <- match(transect_numbers_in_observations_data, 
                                                transect_number_list_observation)
 observations$Transect <- transect_number_list_transect_shp[transect_number_indices_in_id_mapping]
+# Remove observations that are from transects that do not overlap natura data
+observations_from_study_area <- get_observations_from_given_transects(transects_that_overlap_natura_raster, 
+                                                                      observations)
 
 
 
