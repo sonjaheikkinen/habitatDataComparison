@@ -54,8 +54,7 @@ transect_number_indices_in_id_mapping <- match(transect_numbers_in_observations_
                                                transect_number_list_observation)
 observations$Transect <- transect_number_list_transect_shp[transect_number_indices_in_id_mapping]
 # Remove observations that are from transects that do not overlap natura data
-observations_from_study_area <- get_observations_from_given_transects(transects_that_overlap_natura_raster, 
-                                                                      observations)
+observations_from_study_area <- get_observations_from_given_transects(transects, observations)
 observations <- observations_from_study_area
 
 
