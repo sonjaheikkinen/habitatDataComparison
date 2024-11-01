@@ -7,16 +7,14 @@
 
 get_transects_that_overlap_raster <- function(transects, raster) {
     raster_values_for_transects <- extract(raster, transects)
-    transects_with_no_NA_values <- c()
+    transects_overlapping_raster <- c()
     for (transect_id in unique(raster_values_for_transects$ID)) {
         values_for_transect <- raster_values_for_transects[raster_values_for_transects$ID == transect_id,]$natura_2393
-        if (sum(is.na(values_for_transect)) < 0.1 * length(values_for_transect)) {
-            transects_with_no_NA_values <- c(transects_with_no_NA_values, transect_id)
+        if (!all(is.na(values_for_transect))) {
+            transects_overlapping_raster <- c(transects_overlapping_raster, transect_id)
         }
     }
-    filtered_transects <- subset(transects,
-                                 transects$ID %in% transects_with_no_NA_values)
-    
+    filtered_transects <- transects[transects$ID %in% transects_overlapping_raster]
     return(filtered_transects)
 }
 
