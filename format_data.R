@@ -90,8 +90,14 @@ match_to_birdtree <- function(species_names, column_to_match) {
 }
 
 
+
+
+
+
+
 # SCRIPT STARTS
-###################################################################################################################
+
+
 
 # READ IN DATA
 natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
@@ -103,6 +109,7 @@ species_alternative_names <- read.csv(file.path(dir_data, "speciesAlternativeNam
 taxonomy <- read.tree(file.path(dir_data, "tree.txt")) #TO DO: CHOOSE RANDOMLY FROM LIST OF TREES?
 temperature_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "temperature")
 rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rainfall")
+
 
 
 # GENERAL REFORMATTING OF RAW DATA

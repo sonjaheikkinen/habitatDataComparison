@@ -32,8 +32,23 @@ library(landscapemetrics) # For calculating landscape metrics
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")
 
+
+
+
+
+
+
+
+
+
+
 # SCRIPT STARTS
-#################################################################################################################
+
+
+
+
+
+
 
 # PREPROCESS DATA
 if (run_preprocess_data) {
@@ -62,7 +77,6 @@ if (run_format_data) {
 # COMPARE MODEL FITS
 
 # EXPLORE REASONS FOR DIFFERENCES
-
 
 
 
