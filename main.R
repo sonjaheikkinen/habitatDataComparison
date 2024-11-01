@@ -20,7 +20,7 @@ dir_models <- file.path(dir_base, "Models")
 dir_results <- file.path(dir_base, "Results")
 
 # ALL NECESSARY LIBRARIES
-library(terra) # For rasters
+library(terra) # For rasters and shapefiles
 library(readxl) # For excel files
 
 # GLOBALLY USED FUNCTIONS

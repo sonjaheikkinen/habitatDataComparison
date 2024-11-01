@@ -9,6 +9,7 @@
 ###################################################################################################################
 
 # READ DATA
+transects_shp <- vect(file.path(dir_data, "bird_transects.shp"))
 
 # LIMIT DATA TO STUDY AREA
 
