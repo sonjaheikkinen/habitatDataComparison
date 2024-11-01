@@ -110,6 +110,61 @@ names_natura <- data.frame(value = natura_classification$Value, name = natura_cl
 observations$Transect <- as.character(observations$Transect)
 
 
+# FORMAT COMMUNITY DATA Y 
+# Rows are samples. Columns are abundances or occurrences
+
+# First generate abundances for each species.
+# Separate abundances for each combination of year and transect
+abundance_samples <- format_observations_for_hmsc(observations)
+
+# Rename species with names used in birdtree phylogenies
+colnames(abundance_samples) <- match_to_birdtree(colnames(abundance_samples), "observations")
+
+# Get the names of included species for new phylogeny if needed
+writeLines(colnames(abundance_samples), file.path(dir_data, "species.txt"))
+
+# Match the writing format of species names to that of birdtree
+colnames(abundance_samples) <- gsub(" ", "_", colnames(abundance_samples))
+
+# Give each sample a unique id
+sample_id <- as.factor(1:nrow(abundance_samples))
+rownames(abundance_samples) <- sample_id
+
+# Create community matrix Y for just abundances
+abundance <- abundance_samples
+abundance$Transect <- NULL
+abundance$Year <- NULL
+abundance <- as.matrix(abundance)
+
+# Creato community matrix Y for occurrences
+occurrence <- 1 * (abundance > 0)
+
+# Set abundance to NA where 0 for hurdle model approach
+abundance[abundance == 0] <- NA
+
+
+
+
+
+
+# FORMAT SPATIOTEMPORAL CONTEXT S
+
+# Calculate spatial coordinates for transects
+# First define center points for each transect which acts as their location
+transect_center_points <- centroids(transects_shp)
+# Get coordinates of center points.
+transect_coordinates <- crds(transect_center_points, df = TRUE)
+rownames(transect_coordinates) <- transect_center_points$Numero
+
+# Save the spatiotemporal context of each sample  
+spatiotemporal_context <- data.frame(Sample = sample_id,
+                                     Transect = abundance_samples$Transect,
+                                     Year = abundance_samples$Year,
+                                     x = transect_coordinates[abundance_samples$Transect, "x"],
+                                     y = transect_coordinates[abundance_samples$Transect, "y"])
+
+
+
 
 # FORMAT ENVIRONMENTAL DATA X
 # Rows: samples, columns: env data of each sample
@@ -159,49 +214,9 @@ colnames(env_data_natura) <- make.names(env_data_natura)
 
 
 
-
-
-# FORMAT COMMUNITY DATA Y 
-# Rows are samples. Columns are abundances or occurrences
-
-# First generate abundances for each species.
-# Separate abundances for each combination of year and transect
-abundance_samples <- format_observations_for_hmsc(observations)
-
-# Rename species with names used in birdtree phylogenies
-colnames(abundance_samples) <- match_to_birdtree(colnames(abundance_samples), "observations")
-
-# Get the names of included species for new phylogeny if needed
-writeLines(colnames(abundance_samples), file.path(dir_data, "species.txt"))
-
-# Match the writing format of species names to that of birdtree
-colnames(abundance_samples) <- gsub(" ", "_", colnames(abundance_samples))
-
-# Give each sample a unique id
-sample_id <- as.factor(1:nrow(abundance_samples))
-rownames(abundance_samples) <- sample_id
-
-# Create community matrix Y for just abundances
-abundance <- abundance_samples
-abundance$Transect <- NULL
-abundance$Year <- NULL
-abundance <- as.matrix(abundance)
-
-# Creato community matrix Y for occurrences
-occurrence <- 1 * (abundance > 0)
-
-# Set abundance to NA where 0 for hurdle model approach
-abundance[abundance == 0] <- NA
-
-
 # FORMAT TRAIT DATA T
 
 # FORMAT PHYLOGENETIC DATA C
-
-# FORMAT SPATIOTEMPORAL CONTEXT S
-
-# ORDER ALL DATA IN SAMPLE ORDER
-
 
 # SAVE DATA
 
@@ -222,8 +237,10 @@ save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 save(transcet_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))
 save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
+save(transcet_coordinates, file = file.path(dir_data, "transect_coordinates.RData"))
 
 # Save HMSC data
 save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
 save(abundance, file = file.path(dir_data, "abundance.RData"))
 save(occurrence, file = file.path(dir_data, "occurrence.RData"))
+save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context.RData"))
