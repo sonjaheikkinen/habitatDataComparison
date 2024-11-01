@@ -269,6 +269,93 @@ ggplot(cluster_plot_data, aes(x = transect, y = cluster, color = data)) +
 
 
 
+# Plot transects sampling years and species richness for each transect species combination
+all_years <- rev(sort(unique(observations$Year)))
+all_transects <- unique(observations$Transect)
+sampling_years <- data.frame(years = all_years)
+species_richnesses <- data.frame(years = all_years)
+transect_lengths <- data.frame(years = all_years)
+transect_clusters_natura <- data.frame(years = all_years)
+transect_clusters_corine <- data.frame(years = all_years)
+for (transect in unique(observations$Transect)) {
+    transect_years <- unique(observations[observations$Transect == transect, ]$Year)
+    transect_sampling_years <- c()
+    transect_species_richness <- c()
+    transect_effort <- c()
+    transect_cluster_natura <- c()
+    transect_cluster_corine <- c()
+    for (year in all_years) {
+        transect_sampling_years <- c(transect_sampling_years, year %in% transect_years)
+        transect_species_richness <- c(transect_species_richness, 
+                                       length(unique(observations[observations$Transect == transect & observations$Year == year,]$Species)))
+        if (year %in% transect_years) {
+            transect_effort <- c(transect_effort, 
+                                 transect_efforts[transect_efforts$Transect == transect,]$Effort)
+            natura_fractions <- transect_natura_data_list[["fraction"]]
+            corine_fractions <- transect_corine_data_list[["fraction"]]
+            transect_cluster_natura <- c(transect_cluster_natura,
+                                         natura_fractions[transect,]$Cluster)
+            transect_cluster_corine <- c(transect_cluster_corine,
+                                         corine_fractions[transect,]$Cluster)
+        } else {
+            transect_effort <- c(transect_effort, 0)
+            transect_cluster_natura <- c(transect_cluster_natura, 0)
+            transect_cluster_corine <- c(transect_cluster_corine, 0)
+        }
+        
+    }
+    sampling_years[,transect] <- transect_sampling_years
+    species_richnesses[,transect] <- transect_species_richness
+    transect_lengths[,transect] <- transect_effort
+    transect_clusters_natura[,transect] <- transect_cluster_natura
+    transect_clusters_corine[,transect] <- transect_cluster_corine
+}
+numeric_sampling_years <- as.data.frame(sapply(sampling_years[-1], as.numeric)) # Exclude the 'years' column
+rownames(numeric_sampling_years) <- sampling_years$years
+species_richnesses_matrix <- as.matrix(species_richnesses[-1]) # Exclude the first column (years)
+rownames(species_richnesses_matrix) <- species_richnesses$years
+transect_lengths_matrix <- as.matrix(transect_lengths[-1])
+rownames(transect_lengths_matrix) <- transect_lengths$years
+transect_clusters_matrix <- as.matrix(transect_clusters_natura[-1])
+rownames(transect_clusters_matrix) <- transect_clusters_natura$years
+transect_clusters_corine_matrix <- as.matrix(transect_clusters_corine[-1])
+rownames(transect_clusters_corine_matrix) <- transect_clusters_corine$years
+species_richnesses_matrix <- species_richnesses_matrix[, sort(colnames(numeric_sampling_years))]
+transect_lengths_matrix <- transect_lengths_matrix[, sort(colnames(numeric_sampling_years))]
+transect_clusters_matrix <- transect_clusters_matrix[, sort(colnames(numeric_sampling_years))]
+transect_clusters_corine_matrix <- transect_clusters_corine_matrix[, sort(colnames(numeric_sampling_years))]
+pheatmap(numeric_sampling_years,
+         cluster_rows = FALSE,
+         cluster_columns = FALSE,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         main = "Sampling years for each transect")
+pheatmap(species_richnesses_matrix,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         main = "Species richness for each sample")
+pheatmap(transect_lengths_matrix,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         main = "Transect lengths for each sample")
+pheatmap(transect_clusters_matrix,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         main = "Natura type clusters for each sample")
+pheatmap(transect_clusters_corine_matrix,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         main = "Corine land cover clusters for each sample")
+
+
 
 
 
