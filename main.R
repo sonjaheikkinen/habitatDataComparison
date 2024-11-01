@@ -27,6 +27,7 @@ dir_results <- file.path(dir_base, "Results")
 library(terra) # For rasters and shapefiles
 library(readxl) # For excel files
 library(ape) # For phylogenetic trees
+library(landscapemetrics) # For calculating landscape metrics 
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")

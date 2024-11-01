@@ -95,10 +95,20 @@ transect_temperatures <- get_transect_temperature_data(buffer_width,
 names(transect_temperatures) <- transect_names
 
 
+# Create diversity data
+natura_diversities <- get_transect_habitat_data(buffer_width,
+                                                natura_raster,
+                                                transects_shp,
+                                                names_natura,
+                                                "landscapemetrics")
+
+
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
-                              Temperature = transect_temperatures)
+                              Temperature = transect_temperatures,
+                              Diversity = natura_diversities$PatchDensity)
+
 
 
 
@@ -128,6 +138,7 @@ save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 save(transcet_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
+save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))
 
 # Save HMSC data
 save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
