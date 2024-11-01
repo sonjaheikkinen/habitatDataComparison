@@ -90,6 +90,11 @@ match_to_birdtree <- function(species_names, column_to_match) {
 }
 
 
+
+
+
+
+
 # SCRIPT STARTS
 
 
@@ -274,7 +279,7 @@ trait_data <- trait_data[observed_species,]
 
 
 # FORMAT PHYLOGENETIC DATA C
-
+phylogeny_data <- taxonomy
 
 
 
@@ -308,3 +313,4 @@ save(abundance, file = file.path(dir_data, "abundance_raw.RData"))
 save(occurrence, file = file.path(dir_data, "occurrence_raw.RData"))
 save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
 save(trait_data, file = file.path(dir_data, "trait_data_raw.RData"))
+save(phylogeny_data, file = file.path(dir_data, "phylogeny_data_raw.RData"))
