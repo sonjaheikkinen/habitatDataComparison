@@ -18,7 +18,9 @@ load(file = file.path(dir_data, "occurrence_raw.RData")) # occurrence
 # Occurrence
 number_of_species <- length(colnames(occurrence))
 append_to_file(sprintf("Number of species: %s\n", number_of_species), file)
-
+# Natura raster
+number_of_habitats_natura <- length(unique(habitat_types_raster)[,1])
+append_to_file(sprintf("Number of natura habitats: %s\n", number_of_habitats_natura), file)
 
 
 
