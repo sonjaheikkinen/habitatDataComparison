@@ -19,7 +19,8 @@ dir_models <- file.path(dir_base, "Models")
 dir_results <- file.path(dir_base, "Results")
 
 # ALL NECESSARY LIBRARIES
-library(terra) # For reading rasters
+library(terra) # For rasters
+library(readxl) # For excel files
 
 # GLOBALLY USED FUNCTIONS
 
@@ -29,7 +30,8 @@ library(terra) # For reading rasters
 # PREPROCESS DATA
 
 # READ IN DATA
-habitat_types_raster <- rast(file.path(dir_data, "natura_2393.tif"))
+natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
+natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls"))
 
 # FORMAT DATA
 
