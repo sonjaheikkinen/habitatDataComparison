@@ -101,7 +101,7 @@ get_species_presence_data <- function(data_for_transect, species_list, transect)
 }
 
 
-# FUNCTIONS | PLOTS
+# FUNCTIONS | OTHER
 
 
 
@@ -123,9 +123,6 @@ plot_all_habitat_counts <- function(habitat_raster, habitat_names) {
             las = 1)
 }
 
-
-
-# FUNCTIONS | OTHER
 
 cluster_data <- function(data_types, transect_data_list, cluster_amount, category) {
     
@@ -151,6 +148,33 @@ cluster_data <- function(data_types, transect_data_list, cluster_amount, categor
     return(transect_data_list)
 }
 
+
+compare_habitats_and_species <- function(habitat_data_types,
+                                         transect_habitat_data_list,
+                                         transect_species_data_list) {
+    for (habitat_data_type in habitat_data_types) {
+        habitat_data_on_transects <- transect_habitat_data_list[[habitat_data_type]]
+        habitat_data_on_transects$Cluster <- NULL
+        if (habitat_data_type == "landscapemetrics") {
+            habitat_data_on_transects <- scale_between_zero_and_one(habitat_data_on_transects)
+        }
+        habitat_heatmap <- pheatmap(habitat_data_on_transects, 
+                                    main = sprintf("Comparison: Habitat %s, buffer: %f m", habitat_data_type, buffer_width))
+        row_order_of_heatmap_data <- habitat_heatmap$tree_row$order
+        transect_names_in_order_of_heatmap_data <- rownames(habitat_data_on_transects)[row_order_of_heatmap_data]
+        for (species_data_type in species_data_types) {
+            species_data_on_transects <- transect_species_data_list[[species_data_type]]
+            species_data_on_transects$Cluster <- NULL
+            if (species_data_type == "diversity") {
+                species_data_on_transects <- scale_between_zero_and_one(species_data_on_transects)
+            }
+            species_data_on_transects_ordered <- species_data_on_transects[transect_names_in_order_of_heatmap_data,]
+            pheatmap(species_data_on_transects_ordered, 
+                     cluster_rows = FALSE,
+                     main = sprintf("Comparison: Species %s, buffer: %f m", species_data_type, buffer_width))
+        }
+    }
+}
 
 
 
@@ -383,6 +407,15 @@ pheatmap(transect_clusters_corine_matrix,
 # Plot habitat counts
 plot_all_habitat_counts(natura_raster, names_natura)
 plot_all_habitat_counts(corine_raster, names_corine)
+
+
+
+compare_habitats_and_species(habitat_data_types, 
+                             transect_natura_data_list, 
+                             transect_species_data_list)
+compare_habitats_and_species(habitat_data_types, 
+                             transect_corine_data_list, 
+                             transect_species_data_list)
 
 
 
