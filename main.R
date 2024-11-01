@@ -31,6 +31,7 @@ library(terra) # For rasters and shapefiles
 library(readxl) # For excel files
 library(ape) # For phylogenetic trees
 library(landscapemetrics) # For calculating landscape metrics 
+library(vegan) # For species diversities
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")

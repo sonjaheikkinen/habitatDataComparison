@@ -1,3 +1,110 @@
+# FUNCTIONS | TRANSECTS AND SPECIES DATA
+
+get_transect_species_data <- function(observations, type) {
+    species_list <- unique(observations$Species)
+    transect_species_data_list <- list()
+    for (transect in unique(observations$Transect)) {
+        observations_for_transect <- observations[observations$Transect == transect,]
+        data_for_transect <- get_species_data_for_transect(observations_for_transect,
+                                                           transect,
+                                                           type,
+                                                           species_list)
+        transect_species_data_list <- append(transect_species_data_list,
+                                             list(data_for_transect))
+    }
+    transect_species_data <- do.call(rbind, transect_species_data_list)
+    rownames(transect_species_data) <- transect_species_data$Transect
+    transect_species_data$Transect <- NULL
+    
+    return(transect_species_data)
+}
+
+
+get_species_data_for_transect <- function(data_for_transect, 
+                                          transect, 
+                                          type, 
+                                          species_list) {
+    
+    if (type == "fraction") {
+        data_for_transect <- get_species_fractions_data(data_for_transect, 
+                                                        species_list,
+                                                        transect)
+    } else if (type == "diversity") {
+        data_for_transect <- get_species_diversity_data(data_for_transect, 
+                                                        transect)
+    } else if (type == "presence") {
+        data_for_transect <- get_species_presence_data(data_for_transect, 
+                                                       species_list,
+                                                       transect)
+    }
+    
+    return(data_for_transect)
+}
+
+
+
+get_species_fractions_data <- function(transect_observations, species_list, transect) {
+    species_abundances <- aggregate(Abundance ~ Species, 
+                                    data = transect_observations, 
+                                    FUN = sum)
+    abundance_fractions <- frequencies_to_fractions(species_abundances$Abundance)
+    transposed_abundances <- as.data.frame(t(species_abundances[,c("Abundance"), drop = FALSE]))
+    colnames(transposed_abundances) <- species_abundances$Species
+    transposed_abundances <- rbind(transposed_abundances, Fraction = abundance_fractions)
+    for (species in species_list) {
+        if (!species %in% colnames(transposed_abundances)) {
+            transposed_abundances[,species] <- 0
+        }
+    }
+    transposed_abundances$Transect <- transect
+    species_fractions_data <- transposed_abundances["Fraction",, drop = FALSE]
+    
+    return(species_fractions_data)
+}
+
+
+get_species_diversity_data <- function(data_for_transect, transect) {
+    
+    species_table <- xtabs(Abundance ~ Species, data_for_transect)
+    genus_table <- xtabs(Abundance ~ Genus, data_for_transect)
+    species_in_transect <- unique(data_for_transect$Species)
+    richness <- c(length(unique(data_for_transect$Species)))
+    richness_genus <- c(length(unique(data_for_transect$Species)))
+    simpsons_diversity <-  diversity(species_table, "simpson")
+    simpsons_diversity_genus <- diversity(genus_table, "simpson")
+    shannons_diversity <- diversity(species_table, "shannon")
+    shannons_diversity_genus <- diversity(genus_table, "shannon")
+    data_for_transect <- data.frame(Transect = c(transect), 
+                                    Richness = richness,
+                                    RichnessGenus = richness_genus,
+                                    SimpsonsDiversity = simpsons_diversity,
+                                    SimpsonsDiversityGenus = simpsons_diversity_genus,
+                                    ShannonsDiversity = shannons_diversity,
+                                    ShannonsDiversityGenus = shannons_diversity_genus)
+    
+    return(data_for_transect)
+}
+
+
+get_species_presence_data <- function(data_for_transect, species_list, transect) {
+    presence_data <- data.frame(Transect = c(transect))
+    for (species in species_list) {
+        if (species %in% unique(data_for_transect$Species)) {
+            presence_data[,species] <- 1
+        } else {
+            presence_data[,species] <- 0
+        }
+    }
+    data_for_transect <- presence_data
+    
+    return(data_for_transect)
+}
+
+
+
+
+
+
 # EXPLORE RAW DATA
 
 # Check that landscape is suitable for the metrics
@@ -79,8 +186,7 @@ for (habitat_data_type in habitat_data_types) {
 }
 transect_species_data_list <- list()
 for (species_data_type in species_data_types) {
-    species_data_on_transects <- get_transect_species_data(species_traits,
-                                                           observations,
+    species_data_on_transects <- get_transect_species_data(observations,
                                                            species_data_type)
     transect_species_data_list[[species_data_type]] <- species_data_on_transects
 }
