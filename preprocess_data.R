@@ -57,7 +57,17 @@ observations_from_study_area <- get_observations_from_given_transects(transects_
                                                                       observations)
 
 
-
 # CLEAN DATA
+
+# Remove species that are not birds
+not_birds <- c("Myodes rufocanus")
+observations <- observations[!observations$Species %in% not_birds,]
+#Remove species that do not have full species names TO DO: could these somehow be incorporated?
+observations <- observations[sapply(strsplit(observations$Species, " "), length) == 2, ]
+# Filter out transects that do not have any observations
+transects_that_have_observations <- unique(observations_from_study_area$Transect)
+ylalappi_transects_that_have_observations_shp <- subset(transects_overlapping_habitats_shp,
+                                                        transects_overlapping_habitats_shp$Numero %in% transect_numbers_that_have_observations_list)
+
 
 # SAVE PREPROCESSED DATA
