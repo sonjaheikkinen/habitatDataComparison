@@ -19,6 +19,7 @@ dir_models <- file.path(dir_base, "Models")
 dir_results <- file.path(dir_base, "Results")
 
 # ALL NECESSARY LIBRARIES
+library(terra) # For reading rasters
 
 # GLOBALLY USED FUNCTIONS
 
@@ -28,6 +29,7 @@ dir_results <- file.path(dir_base, "Results")
 # PREPROCESS DATA
 
 # READ IN DATA
+habitat_types_raster <- rast(file.path(dir_data, "natura_2393.tif"))
 
 # FORMAT DATA
 
