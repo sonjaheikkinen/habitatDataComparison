@@ -90,11 +90,6 @@ match_to_birdtree <- function(species_names, column_to_match) {
 }
 
 
-
-
-
-
-
 # SCRIPT STARTS
 
 
@@ -308,8 +303,8 @@ save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
 save(transect_coordinates, file = file.path(dir_data, "transect_coordinates.RData"))
 
 # Save HMSC data
-save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
-save(abundance, file = file.path(dir_data, "abundance.RData"))
-save(occurrence, file = file.path(dir_data, "occurrence.RData"))
-save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context.RData"))
-save(trait_data, file = file.path(dir_data, "trait_data.RData"))
+save(env_data_natura, file = file.path(dir_data, "env_data_natura_raw.RData"))
+save(abundance, file = file.path(dir_data, "abundance_raw.RData"))
+save(occurrence, file = file.path(dir_data, "occurrence_raw.RData"))
+save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
+save(trait_data, file = file.path(dir_data, "trait_data_raw.RData"))
