@@ -10,7 +10,12 @@
 
 # SETTINGS FOR RUNNING THE SCRIPT
 
-# DIRECTORY PATHS
+# DIRECTORY PATHScurrent_computer <- "main"
+paths_df <- read.csv("filepath_config.txt", sep = ";")
+dir_base <- paths_df[paths_df$computer == current_computer & paths_df$path_name == "base", ]$path
+dir_data <- file.path(dir_base, "Data")
+dir_models <- file.path(dir_base, "Models")
+dir_results <- file.path(dir_base, "Results")
 
 # ALL NECESSARY LIBRARIES
 
