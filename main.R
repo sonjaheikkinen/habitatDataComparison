@@ -11,7 +11,8 @@
 # SETTINGS FOR RUNNING THE SCRIPT
 
 run_preprocess_data <- FALSE
-run_format_data <- TRUE
+run_format_data <- FALSE
+run_exploratory_analysis <- TRUE
 
 buffer_width <- 25
 
@@ -35,17 +36,7 @@ source(file = "common_functions.R")
 
 
 
-
-
-
-
-
-
-
 # SCRIPT STARTS
-
-
-
 
 
 
@@ -60,9 +51,10 @@ if (run_format_data) {
     source("format_data.R")
 }
 
-# READ IN FORMATTED DATA
-
 # EXPLORATORY ANALYSIS
+if (run_exploratory_analysis) {
+    source("exploratory_analysis.R")
+}
 
 # SELECT DATA
 
