@@ -101,6 +101,30 @@ get_species_presence_data <- function(data_for_transect, species_list, transect)
 }
 
 
+# FUNCTIONS | PLOTS
+
+
+
+
+plot_all_habitat_counts <- function(habitat_raster, habitat_names) {
+    habitat_counts <- freq(habitat_raster)
+    habitat_counts_with_names <- merge(habitat_counts, 
+                                       habitat_names, 
+                                       by.x = "value", 
+                                       by.y = "value",
+                                       all.x = TRUE)
+    par(mai=c(1,2,1,1))
+    barplot(habitat_counts_with_names$count,
+            horiz = TRUE,
+            names.arg = habitat_counts_with_names$name,
+            cex.names = 0.8,
+            main = "Habitat type counts",
+            xlab = "Count",
+            las = 1)
+}
+
+
+
 # FUNCTIONS | OTHER
 
 cluster_data <- function(data_types, transect_data_list, cluster_amount, category) {
@@ -355,6 +379,10 @@ pheatmap(transect_clusters_corine_matrix,
          show_colnames = TRUE,
          main = "Corine land cover clusters for each sample")
 
+
+# Plot habitat counts
+plot_all_habitat_counts(natura_raster, names_natura)
+plot_all_habitat_counts(corine_raster, names_corine)
 
 
 
