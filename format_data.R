@@ -161,7 +161,7 @@ colnames(env_data_natura) <- make.names(env_data_natura)
 
 
 
-# FORMAT COMMUNITY DATA Y
+# FORMAT COMMUNITY DATA Y 
 # Rows are samples. Columns are abundances or occurrences
 
 # First generate abundances for each species.
@@ -181,6 +181,17 @@ colnames(abundance_samples) <- gsub(" ", "_", colnames(abundance_samples))
 sample_id <- as.factor(1:nrow(abundance_samples))
 rownames(abundance_samples) <- sample_id
 
+# Create community matrix Y for just abundances
+abundance <- abundance_samples
+abundance$Transect <- NULL
+abundance$Year <- NULL
+abundance <- as.matrix(abundance)
+
+# Creato community matrix Y for occurrences
+occurrence <- 1 * (abundance > 0)
+
+# Set abundance to NA where 0 for hurdle model approach
+abundance[abundance == 0] <- NA
 
 
 # FORMAT TRAIT DATA T
@@ -214,3 +225,5 @@ save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
 
 # Save HMSC data
 save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
+save(abundance, file = file.path(dir_data, "abundance.RData"))
+save(occurrence, file = file.path(dir_data, "occurrence.RData"))
