@@ -11,6 +11,10 @@ frequencies_to_fractions <- function(frequencies) {
     return(fractions)
 } 
 
+append_to_file <- function(text, file, sep="") {
+    cat(text, file = file, sep = sep, append = TRUE)
+} 
+
 
 
 # FUNCTIONS | TRANSECTS AND HABITATS DATA
