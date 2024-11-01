@@ -9,7 +9,8 @@
 # differs between species, what can explain these differences?
 
 # SETTINGS FOR RUNNING THE SCRIPT
-run_preprocess <- FALSE
+run_preprocess_data <- FALSE
+run_format_data <- TRUE
 
 # DIRECTORY PATHS
 current_computer <- "main"
@@ -31,15 +32,14 @@ source(file = "common_functions.R")
 #################################################################################################################
 
 # PREPROCESS DATA
-if (run_preprocess) {
+if (run_preprocess_data) {
     source(file = "preprocess_data.R")
 }
 
 # READ IN DATA
 natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
 natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls"))
-observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"),
-                         sep = ";")
+observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"), sep = ";")
 observations$Transect <- as.character(observations$Transect)
 transects_shp <- vect(file.path(dir_data, "transects_preprocessed.shp"))
 species_traits <- read_excel(file.path(dir_data, "BirdTraits21112018.xlsx"))
@@ -49,6 +49,9 @@ temperature_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "t
 rainfall_data <- read_climate_data(file.path(dir_data, "ilmastoaineisto"), "rainfall")
 
 # FORMAT DATA
+if (run_format_data) {
+    source("format_data.R")
+}
 
 # EXPLORATORY ANALYSIS
 

@@ -1,0 +1,20 @@
+# THIS SCRIPTS FORMATS THE DATA IN SUITABLE FORM FOR HMSC ANALYSES
+
+# FUNCTIONS
+
+# SCRIPT STARTS
+###################################################################################################################
+
+# READ IN DATA
+
+# FORMAT ENVIRONMENTAL DATA X
+
+# FORMAT COMMUNITY DATA Y
+
+# FORMAT TRAIT DATA T
+
+# FORMAT PHYLOGENETIC DATA C
+
+# FORMAT SPATIOTEMPORAL CONTEXT S
+
+# SAVE DATA
