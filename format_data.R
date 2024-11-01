@@ -215,6 +215,34 @@ colnames(env_data_natura) <- make.names(env_data_natura)
 
 
 # FORMAT TRAIT DATA T
+# Rows: species, columns: traits
+
+trait_data <- species_traits
+
+# Write species names to trait data in the format of the taxonomy tree
+trait_data$Species <- gsub(" ", "_", trait_data$Sp_Lat)
+
+# Check that all species have traits
+observed_species <- colnames(abundance)
+for (species in observed_species) {
+    found <- species %in% unique(trait_data$Species)
+    if (found == FALSE) {
+        print(species)
+    }
+}
+
+# Include only observed species in trait data
+trait_data <- as.data.frame(trait_data[trait_data$Species %in% observed_species,])
+
+# Transform mass into logmass
+trait_data$LogMass <- log(trait_data$Mass)
+
+# Name rows based on species
+rownames(trait_data) <- trait_data$Species
+
+# Order species to same order as they are in observation data
+trait_data <- trait_data[observed_species,]
+
 
 # FORMAT PHYLOGENETIC DATA C
 
