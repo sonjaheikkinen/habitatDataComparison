@@ -65,5 +65,28 @@ hist(transect_efforts$Effort, main = "Histogram of transect lengths")
 
 
 
+
+
+# Produce data
+transect_natura_data_list <- list()
+for (habitat_data_type in habitat_data_types) {
+    natura_data_on_transects <- get_transect_habitat_data(buffer_width, 
+                                                          natura_raster, 
+                                                          transects_shp,
+                                                          names_natura,
+                                                          habitat_data_type)
+    transect_natura_data_list[[habitat_data_type]] <- natura_data_on_transects
+}
+transect_species_data_list <- list()
+for (species_data_type in species_data_types) {
+    species_data_on_transects <- get_transect_species_data(species_traits,
+                                                           observations,
+                                                           species_data_type)
+    transect_species_data_list[[species_data_type]] <- species_data_on_transects
+}
+
+
+
+
 # Close pdf
 dev.off()

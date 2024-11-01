@@ -15,6 +15,8 @@ run_format_data <- FALSE
 run_exploratory_analysis <- TRUE
 
 buffer_width <- 25
+habitat_data_types <- c("fraction", "landscapemetrics")
+species_data_types <- c("fraction", "diversity", "presence")
 
 # DIRECTORY PATHS
 current_computer <- "main"
