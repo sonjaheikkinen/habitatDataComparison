@@ -47,6 +47,8 @@ fractions_natura <- get_transect_habitat_data(buffer_width,
                                               transects_shp,
                                               names_natura,
                                               "fraction")
+fractions_natura <- fractions_natura[,!is.na(colnames(fractions_natura))]
+fractions_natura <- fractions_natura[,sapply(fractions_natura, function(x) var(x, na.rm = TRUE) != 0)]
 
 # FORMAT COMMUNITY DATA Y
 
