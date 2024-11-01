@@ -59,4 +59,19 @@ fractions_natura <- fractions_natura[,sapply(fractions_natura, function(x) var(x
 # FORMAT SPATIOTEMPORAL CONTEXT S
 
 # SAVE DATA
-# Save also raw data as .RData
+
+# Save raw data
+save(natura_raster, file = file.path(dir_data, "natura_raster.RData"))
+save(names_natura, file = file.path(dir_data, "names_natura.RData"))
+save(observations, file = file.path(dir_data, "observations.RData"))
+save(transects_shp, file = file.path(dir_data, "transects_shp.RData"))
+save(species_traits, file = file.path(dir_data, "species_traits.RData"))
+save(species_alternative_names, file = file.path(dir_data, "species_alternative_names.RData"))
+save(taxonomy, file = file.path(dir_data, "taxonomy.RData"))
+save(temperature_data, file = file.path(dir_data, "temperature_data.RData"))
+save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
+
+# Save formatted data
+save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
+
+# Save HMSC data
