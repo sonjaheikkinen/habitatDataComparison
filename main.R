@@ -22,6 +22,7 @@ dir_results <- file.path(dir_base, "Results")
 # ALL NECESSARY LIBRARIES
 library(terra) # For rasters and shapefiles
 library(readxl) # For excel files
+library(ape) # For phylogenetic trees
 
 # GLOBALLY USED FUNCTIONS
 
@@ -40,6 +41,9 @@ observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"),
                          sep = ";")
 observations$Transect <- as.character(observations$Transect)
 transects_shp <- vect(file.path(dir_data, "transects_preprocessed.shp"))
+species_traits <- read_excel(file.path(dir_data, "BirdTraits21112018.xlsx"))
+species_alternative_names <- read.csv(file.path(dir_data, "speciesAlternativeNames.txt"), sep = ";")
+taxonomy <- read.tree(file.path(dir_data, "tree.txt")) #TO DO: CHOOSE RANDOMLY FROM LIST OF TREES?
 
 # FORMAT DATA
 
