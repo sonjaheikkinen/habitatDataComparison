@@ -10,6 +10,7 @@
 
 # READ DATA
 transects_shp <- vect(file.path(dir_data, "bird_transects.shp"))
+observations <- read.csv(file.path(dir_data, "birdtransects_toRecbase.csv"))
 
 # LIMIT DATA TO STUDY AREA
 
