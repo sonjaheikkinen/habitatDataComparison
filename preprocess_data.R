@@ -41,6 +41,7 @@ id_mapping <- read.csv(file.path(dir_data, "All_GIS_Routes_LinjaRouteID_Matched.
 # Limit transects to study area
 transects_shp$ID <- 1:nrow(transects_shp) # Adding numerical id, because existing chr identifier caused issues
 transects_that_overlap_natura_raster <- get_transects_that_overlap_raster(transects_shp, natura_raster)
+transects <- transects_that_overlap_natura_raster
 
 # Limit observations to study area
 # Transects are numbered differently in observations and transects shp
@@ -55,6 +56,7 @@ observations$Transect <- transect_number_list_transect_shp[transect_number_indic
 # Remove observations that are from transects that do not overlap natura data
 observations_from_study_area <- get_observations_from_given_transects(transects_that_overlap_natura_raster, 
                                                                       observations)
+observations <- observations_from_study_area
 
 
 # CLEAN DATA
@@ -65,9 +67,17 @@ observations <- observations[!observations$Species %in% not_birds,]
 #Remove species that do not have full species names TO DO: could these somehow be incorporated?
 observations <- observations[sapply(strsplit(observations$Species, " "), length) == 2, ]
 # Filter out transects that do not have any observations
-transects_that_have_observations <- unique(observations_from_study_area$Transect)
-ylalappi_transects_that_have_observations_shp <- subset(transects_overlapping_habitats_shp,
-                                                        transects_overlapping_habitats_shp$Numero %in% transect_numbers_that_have_observations_list)
+transect_numbers_that_have_observations <- unique(observations$Transect)
+transects <- subset(transects,
+                    transects$Numero %in% transect_numbers_that_have_observations)
 
 
 # SAVE PREPROCESSED DATA
+# Save preprocessed data
+writeVector(transects, 
+            file.path(dir_data, "transects_preprocessed.shp"),
+            overwrite = TRUE)
+write.table(observations, 
+            file.path(dir_data, "observations_preprocessed.csv"), 
+            sep = ";",
+            row.names = FALSE)
