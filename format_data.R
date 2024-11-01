@@ -1,6 +1,7 @@
 # THIS SCRIPTS FORMATS THE DATA IN SUITABLE FORM FOR HMSC ANALYSES
 
-# FUNCTIONS
+# FUNCTIONS | DATA READING
+
 read_climate_data <- function(folder, type) {
     orefix <- ''
     if (type == "temperature") {
@@ -16,6 +17,31 @@ read_climate_data <- function(folder, type) {
     }
     return(rasters)
 }
+
+# FUNCTIONS | DATA FORMATTING
+
+get_transect_temperature_data <- function(buffer_width,
+                                          temperature_rasters,
+                                          transects) {
+    transect_temperature_data <- c()
+    for (i in 1:length(transects$Numero)) {
+        transect <- transects[i,]
+        transect_number <- transect$Numero[1]
+        buffer_polygon_around_transect <- buffer(transect, width = buffer_width)
+        all_temp_values <- c()
+        for (raster in temperature_rasters) {
+            temps_in_buffer <- na.omit(extract(raster, buffer_polygon_around_transect))
+            colnames(temps_in_buffer) <- c("id", "value")
+            all_temp_values <- c(all_temp_values, unique(temps_in_buffer$value))
+        }
+        mean_temperature <- mean(all_temp_values)
+        transect_temperature_data <- c(transect_temperature_data, mean_temperature)
+        
+    }
+    return(transect_temperature_data)
+}
+
+
 
 # SCRIPT STARTS
 ###################################################################################################################
@@ -50,9 +76,10 @@ fractions_natura <- get_transect_habitat_data(buffer_width,
 fractions_natura <- fractions_natura[,!is.na(colnames(fractions_natura))]
 fractions_natura <- fractions_natura[,sapply(fractions_natura, function(x) var(x, na.rm = TRUE) != 0)]
 
+# Get transect names
+transect_names <- rownames(fractions_natura)
 
 # Calculate transect lengths 
-transect_names <- rownames(fractions_natura)
 transect_lengths <- c()
 for (transect in transect_names) {
     transect_lengths <- c(transect_lengths, 
@@ -61,9 +88,18 @@ for (transect in transect_names) {
 names(transect_lengths) <- transect_names
 
 
+# Calculate transect temperature values
+transect_temperatures <- get_transect_temperature_data(buffer_width,
+                                                       temperature_data,
+                                                       transects_shp)
+names(transect_temperatures) <- transect_names
+
+
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
-                              Effort = transect_lengths)
+                              Effort = transect_lengths,
+                              Temperature = transect_temperatures)
+
 
 
 
@@ -91,5 +127,7 @@ save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 # Save formatted data
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
+save(transcet_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 
 # Save HMSC data
+save(env_data_natura, file = file.path(dir_data, "env_data_natura.RData"))
