@@ -39,6 +39,7 @@ natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls")
 observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"),
                          sep = ";")
 observations$Transect <- as.character(observations$Transect)
+transects_shp <- vect(file.path(dir_data, "transects_preprocessed.shp"))
 
 # FORMAT DATA
 
