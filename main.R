@@ -9,7 +9,7 @@
 # differs between species, what can explain these differences?
 
 # SETTINGS FOR RUNNING THE SCRIPT
-run_preprocess <- TRUE
+run_preprocess <- FALSE
 
 # DIRECTORY PATHS
 current_computer <- "main"
@@ -36,6 +36,9 @@ if (run_preprocess) {
 # READ IN DATA
 natura_raster <- rast(file.path(dir_data, "natura_2393.tif"))
 natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls"))
+observations <- read.csv(file.path(dir_data, "observations_preprocessed.csv"),
+                         sep = ";")
+observations$Transect <- as.character(observations$Transect)
 
 # FORMAT DATA
 
