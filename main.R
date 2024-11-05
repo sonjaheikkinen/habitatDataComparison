@@ -15,6 +15,7 @@ run_format_data <- FALSE
 run_exploratory_analysis <- FALSE
 run_select_data <- FALSE
 run_define_models <- FALSE
+run_fit_models <- FALSE
 
 buffer_width <- 25
 habitat_data_types <- c("fraction", "landscapemetrics")
@@ -82,6 +83,9 @@ if (run_define_models) {
 }
 
 # FIT MODELS
+if (run_fit_models) {
+    sourec("fit_models.R")
+}
 
 # CHECK MODEL CONVERGENCE
 
