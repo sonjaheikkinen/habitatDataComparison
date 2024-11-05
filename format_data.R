@@ -173,14 +173,14 @@ transect_center_points <- centroids(transects_shp)
 # Get coordinates of center points.
 transect_coordinates <- crds(transect_center_points, df = TRUE)
 rownames(transect_coordinates) <- transect_center_points$Numero
-# Calculate spatiotemporal coordinate
-spatiotemporal_coordinates <- sprintf("%s%s", abundance_samples$Year, abundance_samples$Transect)
+# Calculate spatiotemporal id
+spatiotemporal_id <- sprintf("%s%s", abundance_samples$Year, abundance_samples$Transect)
 
 # Save the spatiotemporal context of each sample  
 spatiotemporal_context <- data.frame(Sample = sample_id,
                                      Transect = abundance_samples$Transect,
                                      Year = abundance_samples$Year,
-                                     YearTransect = spatiotemporal_coordinates,
+                                     YearTransect = spatiotemporal_id,
                                      x = transect_coordinates[abundance_samples$Transect, "x"],
                                      y = transect_coordinates[abundance_samples$Transect, "y"])
 
