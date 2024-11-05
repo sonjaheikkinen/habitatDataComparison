@@ -12,7 +12,7 @@
 
 run_preprocess_data <- FALSE
 run_format_data <- TRUE
-run_exploratory_analysis <- TRUE
+run_exploratory_analysis <- FALSE
 
 buffer_width <- 25
 habitat_data_types <- c("fraction", "landscapemetrics")

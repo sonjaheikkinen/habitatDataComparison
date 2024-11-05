@@ -82,6 +82,19 @@ get_fractions <- function(buffer_width, raster, transects_shp, names) {
     fractions <- fractions[,sapply(fractions, function(x) var(x, na.rm = TRUE) != 0)]
 }
 
+get_transect_data_percentages <- function(transects_shp, raster, data_type_names, buffer_width) {
+    percentages <- c()
+    for (i in 1:length(transects_shp)) {
+        transect <- transects_shp[i,]
+        transect_number <- transect$Numero[1]
+        buffer_polygon_around_transect <- buffer(transect, width = buffer_width)
+        habitats_in_buffer <- extract(raster, buffer_polygon_around_transect)
+        data_exists <- !is.na(habitats_in_buffer[,2]) & as.integer(habitats_in_buffer[,2]) %in% data_type_names$value 
+        percentage <- sum(data_exists) / length(data_exists)
+        percentages <- c(percentages, percentage)
+    }
+    return(percentages)
+}
 
 
 
@@ -213,17 +226,34 @@ corine_diversities <- get_transect_habitat_data(buffer_width,
                                                 names_corine,
                                                 "landscapemetrics")
 
+# Calculate the percentage of transect over which there is existing habitat type data
+transect_natura_data_percentages <- get_transect_data_percentages(transects_shp, 
+                                                                  natura_raster, 
+                                                                  names_natura,
+                                                                  buffer_width)
+names(transect_natura_data_percentages) <- transect_names
+transect_corine_data_percentages <- get_transect_data_percentages(transects_shp, 
+                                                                  corine_raster, 
+                                                                  names_corine,
+                                                                  buffer_width)
+names(transect_corine_data_percentages) <- transect_names
+
+
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
                               Temperature = transect_temperatures,
-                              Diversity = natura_diversities$PatchDensity)
+                              Diversity = natura_diversities$PatchDensity,
+                              NaturaPercentage = transect_natura_data_percentages,
+                              CorinePercentage = transect_corine_data_percentages)
 colnames(env_data_natura) <- make.names(colnames(env_data_natura))
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
                               Temperature = transect_temperatures,
-                              Diversity = corine_diversities$PatchDensity)
+                              Diversity = corine_diversities$PatchDensity,
+                              NaturaPercentage = transect_natura_data_percentages,
+                              CorinePercentage = transect_corine_data_percentages)
 colnames(env_data_corine) <- make.names(colnames(env_data_corine))
 env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
 
@@ -304,6 +334,8 @@ save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 save(transect_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))
 save(corine_diversities, file = file.path(dir_data, "corine_diversities.RData"))
+save(transect_natura_data_percentages, file = file.path(dir_data, "transect_natura_data_percentages.RData"))
+save(transect_corine_data_percentages, file = file.path(dir_data, "transect_corine_data_percentages.RData"))
 save(abundance_samples, file = file.path(dir_data, "abundance_samples.RData"))
 save(transect_coordinates, file = file.path(dir_data, "transect_coordinates.RData"))
 
