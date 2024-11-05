@@ -45,6 +45,10 @@ for (type in corine_types) {
         env_data_corine[,type] <- NULL
     }
 }
+for (type in not_habitat_types) {
+    env_data_natura[,type] <- NULL
+    env_data_corine[,type] <- NULL
+}
 
 # SELECT TRAIT DATA
 trait_data <- trait_data[, c("Feeding", "LogMass")]

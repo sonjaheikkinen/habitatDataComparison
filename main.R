@@ -11,8 +11,10 @@
 # SETTINGS FOR RUNNING THE SCRIPT
 
 run_preprocess_data <- FALSE
-run_format_data <- TRUE
+run_format_data <- FALSE
 run_exploratory_analysis <- FALSE
+run_select_data <- FALSE
+run_define_models <- FALSE
 
 buffer_width <- 25
 habitat_data_types <- c("fraction", "landscapemetrics")
@@ -35,6 +37,7 @@ library(vegan) # For species diversities
 library(dendextend) # For clustering
 library(pheatmap) # For heatmaps
 library(ggplot2) # For plotting
+library(Hmsc) # For modeling with Hmsc
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")
@@ -69,8 +72,14 @@ if (run_exploratory_analysis) {
 }
 
 # SELECT DATA
+if (run_select_data) {
+    source("select_data.R")
+}
 
 # DEFINE MODELS
+if (run_define_models) {
+    source("define_models.R")
+}
 
 # FIT MODELS
 
