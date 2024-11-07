@@ -96,13 +96,12 @@ get_transect_data_percentages <- function(transects_shp, raster, data_type_names
     return(percentages)
 }
 
-add_transect_clusters <- function(fractions, cluster_amount) {
+get_transect_clusters <- function(fractions, cluster_amount) {
     
     clustering <- hclust(dist(fractions), method = "complete")
     cluster_groups <- cutree(tree = as.dendrogram(clustering), k = cluster_amount)
-    fractions$Cluster <- cluster_groups
 
-    return(fractions)
+    return(cluster_groups)
 }
 
 
@@ -208,16 +207,18 @@ spatiotemporal_context <- data.frame(Sample = sample_id,
 # Get fractions of each habitat type on each transect
 fractions_natura <- get_fractions(buffer_width, natura_raster, transects_shp, names_natura)
 fractions_corine <- get_fractions(buffer_width, corine_raster, transects_shp, names_corine)
-
-
-# Calculate habitat type clusters for some easy comparisons
-fractions_natura <- add_transect_clusters(fractions_natura, 10)
-fractions_corine <- add_transect_clusters(fractions_corine, 10)
-
-
+colnames(fractions_natura) <- make.names(colnames(fractions_natura))
+colnames(fractions_corine) <- make.names(colnames(fractions_corine))
 
 # Get transect names
 transect_names <- rownames(fractions_natura)
+
+
+# Calculate habitat type clusters for some easy comparisons
+clusters_natura <- get_transect_clusters(fractions_natura, 10)
+clusters_corine <- get_transect_clusters(fractions_corine, 10)
+
+
 
 # Calculate transect lengths 
 transect_lengths <- c()
@@ -265,16 +266,16 @@ env_data_natura <- data.frame(fractions_natura,
                               Temperature = transect_temperatures,
                               Diversity = natura_diversities$PatchDensity,
                               NaturaPercentage = transect_natura_data_percentages,
-                              CorinePercentage = transect_corine_data_percentages)
-colnames(env_data_natura) <- make.names(colnames(env_data_natura))
+                              CorinePercentage = transect_corine_data_percentages,
+                              Cluster = clusters_natura)
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
                               Temperature = transect_temperatures,
                               Diversity = corine_diversities$PatchDensity,
                               NaturaPercentage = transect_natura_data_percentages,
-                              CorinePercentage = transect_corine_data_percentages)
-colnames(env_data_corine) <- make.names(colnames(env_data_corine))
+                              CorinePercentage = transect_corine_data_percentages,
+                              Cluster = clusters_corine)
 env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
 
 
@@ -350,6 +351,8 @@ save(taxonomy, file = file.path(dir_data, "taxonomy.RData"))
 # Save formatted data
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
+save(clusters_natura, file = file.path(dir_data, "clusters_natura.RData"))
+save(clusters_corine, file = file.path(dir_data, "clusters_corine.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 save(transect_temperatures, file = file.path(dir_data, "transect_temperatures.RData"))
 save(natura_diversities, file = file.path(dir_data, "natura_diversities.RData"))

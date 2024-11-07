@@ -197,6 +197,8 @@ file <- file.path(dir_results, "exploratory_analysis.txt")
 load(file = file.path(dir_data, "occurrence_raw.RData")) 
 load(file = file.path(dir_data, "fractions_natura.RData"))
 load(file = file.path(dir_data, "fractions_corine.RData")) 
+load(file = file.path(dir_data, "clusters_natura.RData"))
+load(file = file.path(dir_data, "clusters_corine.RData")) 
 load(file = file.path(dir_data, "env_data_natura_raw.RData")) 
 load(file = file.path(dir_data, "env_data_corine_raw.RData")) 
 
@@ -425,12 +427,32 @@ compare_habitats_and_species(habitat_data_types,
 # CORRELATIONS FOR CORINE AND NATURA RASTERS
 
 # Calculate correlations between corine and natura data based on cluster
-natura_clusters <- env_data_natura$Cluster
-corine_clusters <- env_data_corine$Cluster
-cluster_correlation <- cor(corine_clusters, natura_clusters)
+cluster_correlation <- cor(clusters_natura, clusters_corine)
 
 
-# Does natura data predict corine cluster better than random data?
+# Does natura data predict corine and vice versa?
+# Do they predict their own clusters? 
+lm_data <- data.frame(natura_cluster = clusters_natura,
+                      corine_cluster = clusters_corine,
+                      fractions_natura,
+                      fractions_corine)
+formula_natura_frac_to_natura_clus <- as.formula(sprintf("natura_cluster ~ %s", 
+                                                         paste(colnames(fractions_natura), collapse = "+")))
+formula_corine_frac_to_natura_clus <- as.formula(sprintf("natura_cluster ~ %s", 
+                                                         paste(colnames(fractions_corine), collapse = "+")))
+formula_corine_frac_to_corine_clus <- as.formula(sprintf("corine_cluster ~ %s", 
+                                                         paste(colnames(fractions_corine), collapse = "+")))
+formula_natura_frac_to_corine_clus <- as.formula(sprintf("corine_cluster ~ %s", 
+                                                         paste(colnames(fractions_natura), collapse = "+")))
+model_natura_frac_to_natura_clus <- lm(formula_natura_frac_to_natura_clus, data = lm_data)
+model_corine_frac_to_natura_clus <- lm(formula_corine_frac_to_natura_clus, data = lm_data)
+model_corine_frac_to_corine_clus <- lm(formula_corine_frac_to_corine_clus, data = lm_data)
+model_natura_frac_to_corine_clus <- lm(formula_natura_frac_to_corine_clus, data = lm_data)
+model_corine_clus_to_natura_clus <- lm(natura_cluster ~ corine_cluster, data = lm_data)
+model_natura_clus_to_corine_clus <- lm(corine_cluster ~ natura_cluster, data = lm_data)
+AIC(model_natura_frac_to_natura_clus, model_corine_frac_to_natura_clus)
+AIC(model_corine_frac_to_corine_clus, model_natura_frac_to_corine_clus)
+AIC(model_corine_clus_to_natura_clus, model_natura_clus_to_corine_clus)
 
 
 
