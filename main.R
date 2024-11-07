@@ -18,6 +18,8 @@ run_define_models <- FALSE
 run_fit_models <- FALSE
 
 buffer_width <- 25
+number_of_samples <- 250
+thinning_values <- c(1, 10, 100)
 habitat_data_types <- c("fraction", "landscapemetrics")
 species_data_types <- c("fraction", "diversity", "presence")
 
@@ -28,6 +30,7 @@ dir_base <- paths_df[paths_df$computer == current_computer & paths_df$path_name 
 dir_data <- file.path(dir_base, "Data")
 dir_models <- file.path(dir_base, "Models")
 dir_results <- file.path(dir_base, "Results")
+dir_fitted <- file.path(dir_models, "Fitted")
 
 # ALL NECESSARY LIBRARIES
 library(terra) # For rasters and shapefiles
