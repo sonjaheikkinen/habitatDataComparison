@@ -204,6 +204,7 @@ load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 
 
 
+
 # BASIC NUMBERS ON RAW DATA
 
 
@@ -453,6 +454,72 @@ model_natura_clus_to_corine_clus <- lm(corine_cluster ~ natura_cluster, data = l
 AIC(model_natura_frac_to_natura_clus, model_corine_frac_to_natura_clus)
 AIC(model_corine_frac_to_corine_clus, model_natura_frac_to_corine_clus)
 AIC(model_corine_clus_to_natura_clus, model_natura_clus_to_corine_clus)
+
+
+# How well do corine and natura predict occurrences for single species?
+lm_data_occurrence <- data.frame(occurrence,
+                                 env_data_natura,
+                                 env_data_corine)
+models_natura_probit <- list()
+models_natura_logit <- list()
+models_corine_probit <- list()
+models_corine_logit <- list()
+for (i in 1:length(colnames(occurrence))) {
+    species <- colnames(occurrence)[i]
+    print(sprintf("Species %s, %s/%s", species, i, length(colnames(occurrence))))
+    formula_natura <- as.formula(sprintf("%s ~ %s", 
+                                         species,
+                                         paste(colnames(fractions_natura), collapse = "+")))
+    formula_corine <- as.formula(sprintf("%s ~ %s", 
+                                         species,
+                                         paste(colnames(fractions_corine), collapse = "+")))
+    models_natura_probit[[i]] <- glm(formula_natura, data = lm_data_occurrence, family = binomial(link = "probit"))
+    models_natura_logit[[i]] <- glm(formula_natura, data = lm_data_occurrence, family = binomial(link = "logit"))
+    models_corine_probit[[i]] <- glm(formula_corine, data = lm_data_occurrence, family = binomial(link = "probit"))
+    models_corine_logit[[i]] <- glm(formula_corine, data = lm_data_occurrence, family = binomial(link = "logit"))
+}
+
+wins_corine <- 0
+wins_natura <- 0
+wins_probit <- 0
+wins_logit <- 0
+for (i in 1:length(colnames(occurrence))) {
+    model_natura_probit <- models_natura_probit[[i]]
+    model_natura_logit <- models_natura_logit[[i]]
+    model_corine_probit <- models_corine_probit[[i]]
+    model_corine_logit <- models_corine_logit[[i]]
+    corine_natura_probit <- AIC(model_natura_probit, model_corine_probit)
+    corine_natura_logit <- AIC(model_natura_logit, model_corine_logit)
+    logit_probit_natura <- AIC(model_natura_logit, model_natura_probit)
+    logit_probit_corine <- AIC(model_corine_logit, model_corine_probit)
+    if (corine_natura_probit["model_natura_probit",]$AIC < corine_natura_probit["model_corine_probit",]$AIC) {
+        wins_natura <- wins_natura + 1 
+    } else {
+        wins_corine <- wins_corine + 1
+    }
+    if (corine_natura_logit["model_natura_logit",]$AIC < corine_natura_logit["model_corine_logit",]$AIC) {
+        wins_natura <- wins_natura + 1 
+    } else {
+        wins_corine <- wins_corine + 1
+    }
+    if (logit_probit_natura["model_natura_probit",]$AIC < logit_probit_natura["model_natura_logit",]$AIC) {
+        wins_probit <- wins_probit + 1
+    } else {
+        wins_logit <- wins_logit + 1
+    }
+    if (logit_probit_corine["model_corine_probit",]$AIC < logit_probit_corine["model_corine_logit",]$AIC) {
+        wins_probit <- wins_probit + 1
+    } else {
+        wins_logit <- wins_logit + 1
+    }
+}
+
+
+for (i in 1:length(models_natura_probit)) {
+    print(summary(models_natura_probit[[i]]))
+}
+
+
 
 
 
