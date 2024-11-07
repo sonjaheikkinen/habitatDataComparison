@@ -96,6 +96,15 @@ get_transect_data_percentages <- function(transects_shp, raster, data_type_names
     return(percentages)
 }
 
+add_transect_clusters <- function(fractions, cluster_amount) {
+    
+    clustering <- hclust(dist(fractions), method = "complete")
+    cluster_groups <- cutree(tree = as.dendrogram(clustering), k = cluster_amount)
+    fractions$Cluster <- cluster_groups
+
+    return(fractions)
+}
+
 
 
 
@@ -200,6 +209,13 @@ spatiotemporal_context <- data.frame(Sample = sample_id,
 fractions_natura <- get_fractions(buffer_width, natura_raster, transects_shp, names_natura)
 fractions_corine <- get_fractions(buffer_width, corine_raster, transects_shp, names_corine)
 
+
+# Calculate habitat type clusters for some easy comparisons
+fractions_natura <- add_transect_clusters(fractions_natura, 10)
+fractions_corine <- add_transect_clusters(fractions_corine, 10)
+
+
+
 # Get transect names
 transect_names <- rownames(fractions_natura)
 
@@ -240,6 +256,7 @@ transect_corine_data_percentages <- get_transect_data_percentages(transects_shp,
                                                                   names_corine,
                                                                   buffer_width)
 names(transect_corine_data_percentages) <- transect_names
+
 
 
 # Create environmental data X for natura

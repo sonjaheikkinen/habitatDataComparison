@@ -194,9 +194,11 @@ file <- file.path(dir_results, "exploratory_analysis.txt")
 
 
 # LOAD RAW DATA
-load(file = file.path(dir_data, "occurrence_raw.RData")) # occurrence
-#load(file = file.path(dir_data, "natura_raster.RData")) # natura_raster
-load(file = file.path(dir_data, "fractions_natura.RData")) # fractions_natura
+load(file = file.path(dir_data, "occurrence_raw.RData")) 
+load(file = file.path(dir_data, "fractions_natura.RData"))
+load(file = file.path(dir_data, "fractions_corine.RData")) 
+load(file = file.path(dir_data, "env_data_natura_raw.RData")) 
+load(file = file.path(dir_data, "env_data_corine_raw.RData")) 
 
 
 
@@ -420,5 +422,19 @@ compare_habitats_and_species(habitat_data_types,
 
 
 
-# Close pdf
+# CORRELATIONS FOR CORINE AND NATURA RASTERS
+
+# Calculate correlations between corine and natura data based on cluster
+natura_clusters <- env_data_natura$Cluster
+corine_clusters <- env_data_corine$Cluster
+cluster_correlation <- cor(corine_clusters, natura_clusters)
+
+
+# Does natura data predict corine cluster better than random data?
+
+
+
+
+
+# CLOSE PDF
 dev.off()

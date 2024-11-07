@@ -28,7 +28,7 @@ env_data_corine <- env_data_corine[transect_selection, ]
 # SELECT SPECIES
 
 # SELECT ENVIRONMENTAL DATA
-not_habitat_types <- c("Effort", "Diversity", "Temperature", "NaturaPercentage", "CorinePercentage")
+not_habitat_types <- c("Effort", "Diversity", "Temperature", "NaturaPercentage", "CorinePercentage", "Cluster")
 natura_types <- setdiff(colnames(env_data_natura), not_habitat_types)
 corine_types <- setdiff(colnames(env_data_corine), not_habitat_types)
 for (type in natura_types) {
