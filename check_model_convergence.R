@@ -46,21 +46,31 @@ for (i in 1:length(fitted_models)) {
     # Finally, create column in the corresponding dataframe to save the actual estimates for plotting
     
     
-    # CONVERGENCE OF SPECIES NICHES (BETA)
-    psrf_beta <- gelman.diag(posterior$Beta, multivariate=FALSE)$psrf
+    # CONVERGENCE FOR SPECIES NICHES (BETA)
+    psrf_beta <- gelman.diag(posterior$Beta, multivariate = FALSE)$psrf
     append_to_file("beta\n\n", file = convergence_file)
     append_to_file(sprintf("%s\n", summary(psrf_beta)[,1]), file = convergence_file)
     append_to_file("\n\n", file = convergence_file)
     beta_psrf_point_estimates <- psrf_beta[,1]
     plot_convergence("beta", model_name, beta_psrf_point_estimates)
     
-    # CONVERGENCE OF INFLUENCE OF TRAITS (GAMMA)
-    psrf_gamma <- gelman.diag(posterior$Gamma, multivariate=FALSE)$psrf
+    # CONVERGENCE FOR INFLUENCE OF TRAITS (GAMMA)
+    psrf_gamma <- gelman.diag(posterior$Gamma, multivariate = FALSE)$psrf
     append_to_file("gamma\n\n", file = convergence_file)
     append_to_file(sprintf("%s\n", summary(psrf_gamma)[,1]), file = convergence_file)
     append_to_file("\n\n", file = convergence_file)
     gamma_psrf_point_estimates <- psrf_gamma[,1]
-    plot_convergence("gamma", model_name, gamma_psrf_point_estimates)    
+    plot_convergence("gamma", model_name, gamma_psrf_point_estimates) 
+    
+    # CONVERGENCE FOR INFLUENCE OF PHYLOGENY (RHO)
+    if (!is.null(posterior$Rho)) {
+        psrf_rho <- gelman.diag(posterior$Rho, multivariate = FALSE)$psrf
+        append_to_file("rho\n\n", file = convergence_file)
+        append_to_file(sprintf("%s\n", summary(psrf_rho)[,1]), file = convergence_file)
+        append_to_file("\n\n", file = convergence_file)
+        rho_psrf_point_estimates <- psrf_rho[,1]
+        plot_convergence("rho", model_name, rho_psrf_point_estimates) 
+    }
 
 }
 
