@@ -201,7 +201,9 @@ load(file = file.path(dir_data, "clusters_natura.RData"))
 load(file = file.path(dir_data, "clusters_corine.RData")) 
 load(file = file.path(dir_data, "env_data_natura_raw.RData")) 
 load(file = file.path(dir_data, "env_data_corine_raw.RData")) 
-
+load(file = file.path(dir_data, "corine_diversities.RData"))
+load(file = file.path(dir_data, "natura_diversities.RData"))
+load(file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
 
 
 
@@ -427,8 +429,16 @@ compare_habitats_and_species(habitat_data_types,
 
 # CORRELATIONS FOR CORINE AND NATURA RASTERS
 
-# Calculate correlations between corine and natura data based on cluster
-cluster_correlation <- cor(clusters_natura, clusters_corine)
+# Calculate correlations between corine and natura data
+cor(clusters_natura, clusters_corine)
+cor(natura_diversities$SimpsonsDiversity, 
+    corine_diversities$SimpsonsDiversity)
+cor(natura_diversities$ShannonsDiversity, 
+    corine_diversities$ShannonsDiversity)
+cor(natura_diversities$PatchDensity, 
+    corine_diversities$PatchDensity)
+cor(natura_diversities$ScaledRichness, 
+    corine_diversities$ScaledRichness)
 
 
 # Does natura data predict corine and vice versa?
@@ -459,7 +469,9 @@ AIC(model_corine_clus_to_natura_clus, model_natura_clus_to_corine_clus)
 # How well do corine and natura predict occurrences for single species?
 lm_data_occurrence <- data.frame(occurrence,
                                  env_data_natura,
-                                 env_data_corine)
+                                 env_data_corine,
+                                 transect = spatiotemporal_context$Transect,
+                                 year = spatiotemporal_context$Year)
 models_natura_probit <- list()
 models_natura_logit <- list()
 models_corine_probit <- list()
@@ -513,6 +525,97 @@ for (i in 1:length(colnames(occurrence))) {
         wins_logit <- wins_logit + 1
     }
 }
+
+
+for (i in 1:length(models_natura_probit)) {
+    print(summary(models_natura_probit[[i]]))
+}
+
+
+
+# DO SAME FOR SELECTED DATA
+load(file = file.path(dir_data, "occurrence.RData")) 
+load(file = file.path(dir_data, "env_data_natura.RData")) 
+load(file = file.path(dir_data, "env_data_corine.RData")) 
+
+
+
+# How well do corine and natura predict occurrences for single species?
+lm_data_occurrence <- data.frame(occurrence,
+                                 env_data_natura,
+                                 env_data_corine)
+natura_types_in_selected <- c()
+for (type in colnames(fractions_natura)) {
+    if (type %in% colnames(env_data_natura)) {
+        natura_types_in_selected <- c(natura_types_in_selected, type)
+    }
+}
+corine_types_in_selected <- c()
+for (type in colnames(fractions_corine)) {
+    if (type %in% colnames(env_data_corine)) {
+        corine_types_in_selected <- c(corine_types_in_selected, type)
+    }
+}
+
+
+models_natura_probit <- list()
+models_natura_logit <- list()
+models_corine_probit <- list()
+models_corine_logit <- list()
+for (i in 1:length(colnames(occurrence))) {
+    species <- colnames(occurrence)[i]
+    print(sprintf("Species %s, %s/%s", species, i, length(colnames(occurrence))))
+    formula_natura <- as.formula(sprintf("%s ~ %s", 
+                                         species,
+                                         paste(natura_types_in_selected, collapse = "+")))
+    formula_corine <- as.formula(sprintf("%s ~ %s", 
+                                         species,
+                                         paste(corine_types_in_selected, collapse = "+")))
+    models_natura_probit[[i]] <- glm(formula_natura, data = lm_data_occurrence, family = binomial(link = "probit"))
+    models_natura_logit[[i]] <- glm(formula_natura, data = lm_data_occurrence, family = binomial(link = "logit"))
+    models_corine_probit[[i]] <- glm(formula_corine, data = lm_data_occurrence, family = binomial(link = "probit"))
+    models_corine_logit[[i]] <- glm(formula_corine, data = lm_data_occurrence, family = binomial(link = "logit"))
+}
+
+wins_corine <- 0
+wins_natura <- 0
+wins_probit <- 0
+wins_logit <- 0
+for (i in 1:length(colnames(occurrence))) {
+    model_natura_probit <- models_natura_probit[[i]]
+    model_natura_logit <- models_natura_logit[[i]]
+    model_corine_probit <- models_corine_probit[[i]]
+    model_corine_logit <- models_corine_logit[[i]]
+    corine_natura_probit <- AIC(model_natura_probit, model_corine_probit)
+    corine_natura_logit <- AIC(model_natura_logit, model_corine_logit)
+    logit_probit_natura <- AIC(model_natura_logit, model_natura_probit)
+    logit_probit_corine <- AIC(model_corine_logit, model_corine_probit)
+    if (corine_natura_probit["model_natura_probit",]$AIC < corine_natura_probit["model_corine_probit",]$AIC) {
+        wins_natura <- wins_natura + 1 
+    } else {
+        wins_corine <- wins_corine + 1
+    }
+    if (corine_natura_logit["model_natura_logit",]$AIC < corine_natura_logit["model_corine_logit",]$AIC) {
+        wins_natura <- wins_natura + 1 
+    } else {
+        wins_corine <- wins_corine + 1
+    }
+    if (logit_probit_natura["model_natura_probit",]$AIC < logit_probit_natura["model_natura_logit",]$AIC) {
+        wins_probit <- wins_probit + 1
+    } else {
+        wins_logit <- wins_logit + 1
+    }
+    if (logit_probit_corine["model_corine_probit",]$AIC < logit_probit_corine["model_corine_logit",]$AIC) {
+        wins_probit <- wins_probit + 1
+    } else {
+        wins_logit <- wins_logit + 1
+    }
+}
+
+wins_corine
+wins_natura
+wins_probit
+wins_logit
 
 
 for (i in 1:length(models_natura_probit)) {
