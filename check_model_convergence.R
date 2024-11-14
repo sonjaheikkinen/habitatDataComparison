@@ -1,5 +1,23 @@
 # SCRIPT FOR CHECKING MODEL CONVERGENCE
 
+# CONVERGENCE FUNCTIONS
+plot_convergence <- function(variable, model_name, psrf_point_estimates) {
+    par(mfrow=c(1,2))
+    vioplot(psrf_point_estimates, 
+            col = "dodgerblue",
+            ylim = c(min(psrf_point_estimates) - (max(psrf_point_estimates) - min(psrf_point_estimates)), 
+                     max(psrf_point_estimates)))
+    vioplot(psrf_point_estimates,
+            col = "dodgerblue",
+            ylim = c(0.9,1.1))
+    title(sprintf("PSRF (%s): %s", variable, model_name), 
+          outer = TRUE,
+          line = -3)
+} 
+
+
+# SCRIPT STARTS
+
 # List filenames of fitted models
 fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
 
@@ -29,22 +47,21 @@ for (i in 1:length(fitted_models)) {
     
     
     # CONVERGENCE OF SPECIES NICHES (BETA)
-    psrf_beta <- gelman.diag(posterior$Beta,multivariate=FALSE)$psrf
+    psrf_beta <- gelman.diag(posterior$Beta, multivariate=FALSE)$psrf
     append_to_file("beta\n\n", file = convergence_file)
     append_to_file(sprintf("%s\n", summary(psrf_beta)[,1]), file = convergence_file)
+    append_to_file("\n\n", file = convergence_file)
     beta_psrf_point_estimates <- psrf_beta[,1]
-    par(mfrow=c(1,2))
-    vioplot(beta_psrf_point_estimates, 
-            col = "dodgerblue",
-            ylim = c(min(beta_psrf_point_estimates) - (max(beta_psrf_point_estimates) - min(beta_psrf_point_estimates)), 
-                     max(beta_psrf_point_estimates)))
-    vioplot(beta_psrf_point_estimates,
-            col = "dodgerblue",
-            ylim = c(0.9,1.1))
-    title(sprintf("PSRF (beta): %s", model_name), 
-          outer = TRUE,
-          line = -3)
+    plot_convergence("beta", model_name, beta_psrf_point_estimates)
     
+    # CONVERGENCE OF INFLUENCE OF TRAITS (GAMMA)
+    psrf_gamma <- gelman.diag(posterior$Gamma, multivariate=FALSE)$psrf
+    append_to_file("gamma\n\n", file = convergence_file)
+    append_to_file(sprintf("%s\n", summary(psrf_gamma)[,1]), file = convergence_file)
+    append_to_file("\n\n", file = convergence_file)
+    gamma_psrf_point_estimates <- psrf_gamma[,1]
+    plot_convergence("gamma", model_name, gamma_psrf_point_estimates)    
+
 }
 
 # Close pdf
