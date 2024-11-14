@@ -14,7 +14,7 @@ load(file = file.path(dir_data, "trait_data.RData"))
 # FORMULATE STUDY DESIGN
 # Rows: samples, columns: hierarchical categories (year, transct) of each sample
 # This is pretty much same as spatiotemporal context, but with factors instead
-study_design <- as.data.frame(unclass(spatiotemporal_context), stringsAsFactors = )
+study_design <- as.data.frame(unclass(spatiotemporal_context), stringsAsFactors = TRUE)
 study_design$Year <- as.factor(study_design$Year)
 study_design$x <- NULL
 study_design$y <- NULL
@@ -70,9 +70,9 @@ trait_formula <- as.formula(sprintf("~%s", paste(colnames(trait_data), collapse 
 probit_natura <- Hmsc(Y = occurrence, 
                       XData = env_data_natura,
                       XFormula = env_formula_natura,
-                      #TrData = trait_data,
-                      #TrFormula = trait_formula,
-                      #phyloTree = taxonomy,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      phyloTree = taxonomy,
                       distr = "probit",
                       studyDesign = study_design,
                       ranLevels = list("Transect" = randomlevel_spatial, 
@@ -81,9 +81,9 @@ probit_natura <- Hmsc(Y = occurrence,
 probit_corine <- Hmsc(Y = occurrence, 
                       XData = env_data_corine, 
                       XFormula = env_formula_corine,
-                      #TrData = trait_data,
-                      #TrFormula = trait_formula,
-                      #phyloTree = taxonomy,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      phyloTree = taxonomy,
                       distr = "probit",
                       studyDesign = study_design,
                       ranLevels = list("Transect" = randomlevel_spatial, 
@@ -91,7 +91,7 @@ probit_corine <- Hmsc(Y = occurrence,
 
 
 # If needed, test that model works properly:
-#sampleMcmc(probit_natura, samples = 3)
+# sampleMcmc(probit_natura, samples = 3)
 
 
 # SAVE MODELS
