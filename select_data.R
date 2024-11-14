@@ -26,6 +26,16 @@ env_data_corine <- env_data_corine[transect_selection, ]
 
 
 # SELECT SPECIES
+# Select only more prevalent species
+for (species in colnames(occurrence)) {
+    species_occurrence <- occurrence[,species]
+    species_prevalence <- sum(species_occurrence == 1) / length(species_occurrence)
+    print(sprintf("Prevalence %s: %s", species, species_prevalence))
+    if (species_prevalence < 0.05) {
+        occurrence <- occurrence[, colnames(occurrence) != species]
+    }
+}
+
 
 # SELECT ENVIRONMENTAL DATA
 not_habitat_types <- c("Effort", "Diversity", "Temperature", "NaturaPercentage", "CorinePercentage", "Cluster")
@@ -52,6 +62,7 @@ for (type in not_habitat_types) {
 
 # SELECT TRAIT DATA
 trait_data <- trait_data[, c("Feeding", "LogMass")]
+trait_data <- trait_data[colnames(occurrence), ]
 
 
 # SAVE DATA
