@@ -15,6 +15,14 @@ plot_convergence <- function(variable, model_name, psrf_point_estimates) {
           line = -3)
 } 
 
+save_convergence_info <- function(samples, variable, model_name, convergence_file) {
+    psrf <- gelman.diag(samples, multivariate = FALSE)$psrf
+    append_to_file(sprintf("%s\n", summary(psrf)[,1]), file = convergence_file)
+    append_to_file("\n\n", file = convergence_file)
+    psrf_point_estimates <- psrf[,1]
+    plot_convergence(variable, model_name, psrf_point_estimates)
+}
+
 
 # SCRIPT STARTS
 
@@ -27,49 +35,63 @@ pdf(file = file.path(dir_results,"convergence_results.pdf"))
 # Create text file for convergence results
 convergence_file <- file.path(dir_results, "convergence_results.txt")
 
-for (i in 1:length(fitted_models)) {
+for (model_number in 1:length(fitted_models)) {
     
-    # GET MODEL
-    load(fitted_models[i]) # Load file into fitted_model
+    # GET MODEL INFORMATION
+    load(fitted_models[model_number]) # Load file into fitted_model
     model <- fitted_model
-    model_name <- strsplit(basename(fitted_models[i]), "\\.")[[1]][1]
+    model_name <- strsplit(basename(fitted_models[model_number]), "\\.")[[1]][1]
     append_to_file(model_name, convergence_file, sep = "\n\n")
     thinning_value <- strsplit(model_name, "_")[[1]][4]
+    number_of_random_levels <- model$nr
     
     # GET THE POSTERIOR SAMPLES OF PARAMETERS AS CODA OBJECT
     # Get only names (not numbers) of species and covariates
     posterior <- convertToCodaObject(model, spNamesNumbers = c(T,F), covNamesNumbers = c(T,F))
     
     # CALCULATE THE CONVERGENCE FOR EACH VARIABLE
+    # First get posterior samples for each variable
+    # The posterior sample object is a list of 4, containing the samples (250) for each of the 4 chains
+    # The samples themselves are vectorized matrices, with variable dimensions depending on the variable
     # First calculate the potential scale reduction factors
     # Then write the point estimate summaries (min, max, mean, median, quantiles) to file
     # Finally, create column in the corresponding dataframe to save the actual estimates for plotting
     
     
     # CONVERGENCE FOR SPECIES NICHES (BETA)
-    psrf_beta <- gelman.diag(posterior$Beta, multivariate = FALSE)$psrf
-    append_to_file("beta\n\n", file = convergence_file)
-    append_to_file(sprintf("%s\n", summary(psrf_beta)[,1]), file = convergence_file)
-    append_to_file("\n\n", file = convergence_file)
-    beta_psrf_point_estimates <- psrf_beta[,1]
-    plot_convergence("beta", model_name, beta_psrf_point_estimates)
+    append_to_file("BETA\n\n", file = convergence_file)
+    samples_beta <- posterior$Beta # 
+    save_convergence_info(samples_beta, "beta", model_name, convergence_file)
     
     # CONVERGENCE FOR INFLUENCE OF TRAITS (GAMMA)
-    psrf_gamma <- gelman.diag(posterior$Gamma, multivariate = FALSE)$psrf
-    append_to_file("gamma\n\n", file = convergence_file)
-    append_to_file(sprintf("%s\n", summary(psrf_gamma)[,1]), file = convergence_file)
-    append_to_file("\n\n", file = convergence_file)
-    gamma_psrf_point_estimates <- psrf_gamma[,1]
-    plot_convergence("gamma", model_name, gamma_psrf_point_estimates) 
+    append_to_file("GAMMA\n\n", file = convergence_file)
+    samples_gamma <- posterior$Gamma
+    save_convergence_info(samples_gamma, "gamma", model_name, convergence_file)
     
     # CONVERGENCE FOR INFLUENCE OF PHYLOGENY (RHO)
     if (!is.null(posterior$Rho)) {
-        psrf_rho <- gelman.diag(posterior$Rho, multivariate = FALSE)$psrf
-        append_to_file("rho\n\n", file = convergence_file)
-        append_to_file(sprintf("%s\n", summary(psrf_rho)[,1]), file = convergence_file)
-        append_to_file("\n\n", file = convergence_file)
-        rho_psrf_point_estimates <- psrf_rho[,1]
-        plot_convergence("rho", model_name, rho_psrf_point_estimates) 
+        append_to_file("RHO\n\n", file = convergence_file)
+        samples_rho <- posterior$Rho
+        save_convergence_info(samples_rho, "rho", model_name, convergence_file)
+    }
+    
+    # CONVERGENCE FOR RANDOM VARIATION IN CO-OCCURRENCE (OMEGA)
+    if (number_of_random_levels > 0) {
+        append_to_file("OMEGA\n\n", file = convergence_file)
+        samples_omega <- posterior$Omega
+        for (randomlevel_number in 1:number_of_random_levels) {
+            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+            append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
+            samples_randomlevel <- samples_omega[[randomlevel_number]]
+            randomlevel_length <- dim(samples_randomlevel[[1]])[2]
+            if (randomlevel_length > 1000) {
+                random_sample_indices <- sample(1:randomlevel_length, size = 1000)
+                for (chain in 1:length(samples_randomlevel)) {
+                    samples_randomlevel[[chain]] <- samples_randomlevel[[chain]][,random_sample_indices]
+                }
+            }
+            save_convergence_info(samples_randomlevel, randomlevel_name, model_name, convergence_file)
+        }
     }
 
 }
