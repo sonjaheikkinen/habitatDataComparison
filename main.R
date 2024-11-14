@@ -43,6 +43,7 @@ library(pheatmap) # For heatmaps
 library(ggplot2) # For plotting
 library(Hmsc) # For modeling with Hmsc
 library(lme4) # For general linear models
+library(vioplot) # For violin plots
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")
