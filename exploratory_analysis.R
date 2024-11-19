@@ -427,6 +427,22 @@ compare_habitats_and_species(habitat_data_types,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # CORRELATIONS FOR CORINE AND NATURA RASTERS
 
 # Calculate correlations between corine and natura data
@@ -464,6 +480,12 @@ model_natura_clus_to_corine_clus <- lm(corine_cluster ~ natura_cluster, data = l
 AIC(model_natura_frac_to_natura_clus, model_corine_frac_to_natura_clus)
 AIC(model_corine_frac_to_corine_clus, model_natura_frac_to_corine_clus)
 AIC(model_corine_clus_to_natura_clus, model_natura_clus_to_corine_clus)
+summary(model_natura_frac_to_natura_clus)
+summary(model_corine_frac_to_natura_clus)
+summary(model_corine_frac_to_corine_clus)
+summary(model_natura_frac_to_corine_clus)
+summary(model_corine_clus_to_natura_clus)
+summary(model_natura_clus_to_corine_clus)
 
 
 # How well do corine and natura predict occurrences for single species?
