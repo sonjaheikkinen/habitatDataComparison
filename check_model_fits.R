@@ -16,6 +16,7 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     # Each modelfit measure is a vector with one value for each species
     # The species are in same order as the columns in matrix Y (based on source code)
     explanatory_power <- evaluateModelFit(hM = model, predY = predicted_values_whole_data)
+    # Set species names as rownames
     explanatory_power <- as.data.frame(explanatory_power)
     rownames(explanatory_power) <- colnames(model$Y)
     
@@ -31,8 +32,11 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     predicted_values_test_set <- pcomputePredictedValues(model, 
                                                          partition = partition,
                                                          nParallel = 4)
-    # Compute measured of model fit based on the predicted values for test set
+    # Compute measures of model fit based on the predicted values for test set
     predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    # Set species names as rownames
+    predictive_power <- as.data.frame(predictive_power)
+    rownames(predictive_power) <- colnames(model$Y)
     
     
     print(sprintf("Calculation ended %s", date()))
