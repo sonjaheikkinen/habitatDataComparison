@@ -41,7 +41,7 @@ for (model_number in 1:length(fitted_models)) {
     load(fitted_models[model_number]) # Load file into fitted_model
     model <- fitted_model
     model_name <- strsplit(basename(fitted_models[model_number]), "\\.")[[1]][1]
-    append_to_file(model_name, convergence_file, sep = "\n\n")
+    append_to_file(sprintf("%s\n\n", model_name), convergence_file)
     thinning_value <- strsplit(model_name, "_")[[1]][4]
     number_of_random_levels <- model$nr
     
@@ -75,25 +75,50 @@ for (model_number in 1:length(fitted_models)) {
         save_convergence_info(samples_rho, "rho", model_name, convergence_file)
     }
     
-    # CONVERGENCE FOR RANDOM VARIATION IN CO-OCCURRENCE (OMEGA)
     if (number_of_random_levels > 0) {
+        
+        # CONVERGENCE FOR RANDOM VARIATION IN CO-OCCURRENCE (OMEGA)
         append_to_file("OMEGA\n\n", file = convergence_file)
         samples_omega <- posterior$Omega
         for (randomlevel_number in 1:number_of_random_levels) {
             randomlevel_name <- names(model$ranLevels)[randomlevel_number]
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
-            samples_randomlevel <- samples_omega[[randomlevel_number]]
-            randomlevel_length <- dim(samples_randomlevel[[1]])[2]
+            samples_omega_randomlevel <- samples_omega[[randomlevel_number]]
+            randomlevel_length <- dim(samples_omega_randomlevel[[1]])[2]
             if (randomlevel_length > 1000) {
                 random_sample_indices <- sample(1:randomlevel_length, size = 1000)
-                for (chain in 1:length(samples_randomlevel)) {
-                    samples_randomlevel[[chain]] <- samples_randomlevel[[chain]][,random_sample_indices]
+                for (chain in 1:length(samples_omega_randomlevel)) {
+                    samples_omega_randomlevel[[chain]] <- samples_omega_randomlevel[[chain]][,random_sample_indices]
                 }
             }
-            save_convergence_info(samples_randomlevel, randomlevel_name, model_name, convergence_file)
+            save_convergence_info(samples_omega_randomlevel, 
+                                  sprintf("omega, %s", randomlevel_name), 
+                                  model_name, 
+                                  convergence_file)
         }
+        
+        
+        # CONVERGENCE FOR SPATIAL SCALE ALPHA
+        append_to_file("ALPHA\n\n", file = convergence_file)
+        samples_alpha <- posterior$Alpha
+        for (randomlevel_number in 1:number_of_random_levels) {
+            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+            append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
+            randomlevel <- model$ranLevels[[randomlevel_number]]
+            number_of_spatial_dimensions <- randomlevel$sDim
+            if (number_of_spatial_dimensions > 0) {
+                samples_alpha_randomlevel <- samples_alpha[[randomlevel_number]] 
+                save_convergence_info(samples_alpha_randomlevel, 
+                                      sprintf("alpha, %s", randomlevel_name), 
+                                      model_name, 
+                                      convergence_file)
+            } else {
+                append_to_file(sprintf("%s is not a spatial random level", randomlevel_name), convergence_file)
+            }
+        }
+        
+        
     }
-
 }
 
 # Close pdf
