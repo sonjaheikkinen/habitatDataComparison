@@ -2,7 +2,7 @@
 
 # FUNCTIONS FOR THE SCRIPT
 
-calculate_modelfits <- function(thinning_value, folds, file, model, model_name) {
+calculate_modelfits <- function(folds, file, model, model_name) {
     
     print(sprintf("Calculating fits for %s", model_name))
     print(sprintf("Calculation started %s", date()))
@@ -20,8 +20,27 @@ calculate_modelfits <- function(thinning_value, folds, file, model, model_name) 
     rownames(explanatory_power) <- colnames(model$Y)
     
     
+    # CALCULATE PREDICTIVE POWER
+    
+    # Partition the data to training and test sets
+    # use transect column as the partition column
+    # this ensures, that when predicting based on the habitat types of transect, 
+    # the habitat types and occurrences for that transect have not yet been seen
+    partition <- createPartition(model, nfolds = folds, column = "Transect")
+    # Compute predicted values for test set, based on data fitted with training set
+    predicted_values_test_set <- pcomputePredictedValues(model, 
+                                                         partition = partition,
+                                                         nParallel = 4)
+    # Compute measured of model fit based on the predicted values for test set
+    predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    
+    
     print(sprintf("Calculation ended %s", date()))
     print("")
+    
+    # SAVE RESULTS TO FILE
+    save(explanatory_power, predictive_power, file = file)
+    
 }
 
 
@@ -48,7 +67,7 @@ for (model_number in 1:length(fitted_models)) {
         calculate_modelfits(as.numeric(thinning_value), modelfit_folds, modelfit_file, model, model_name)
     }
     
-    # SAVE FIT VALUES TO FILE
+    # CREATE PLOTS OF FIT VALUES
     
     
 }

@@ -19,13 +19,15 @@ run_fit_models <- FALSE
 run_check_model_convergence <- FALSE
 run_check_model_fits <- FALSE
 
-buffer_width <- 25
+buffer_width <- 25 # how far away from line transect are habitat values read from raster (meters)
+number_of_samples <- 250 # number of samples for each chain
+thinning_values <- c(1, 10, 100) # with thin value x, only every x:th value from chain is taken as sample
+modelfit_folds <- 2 # how many folds to use in cross-validation (1 fold for test, all others are training)
+overwrite_modelfits <- FALSE # should existing modelfit values be overwritten
+
+# Old lists for exploratory analysis, TO DO: move outside main?
 habitat_data_types <- c("fraction", "landscapemetrics")
 species_data_types <- c("fraction", "diversity", "presence")
-number_of_samples <- 250
-thinning_values <- c(1, 10, 100)
-modelfit_folds <- 2
-overwrite_modelfits <- FALSE
 
 # DIRECTORY PATHS
 current_computer <- "main"
