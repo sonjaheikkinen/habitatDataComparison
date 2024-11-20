@@ -35,7 +35,7 @@ dir_data <- file.path(dir_base, "Data")
 dir_models <- file.path(dir_base, "Models")
 dir_results <- file.path(dir_base, "Results")
 dir_fitted <- file.path(dir_models, "Fitted")
-dir_modelfits <- file.path(dir_models, "Modelfits")
+dir_modelfits <- file.path(dir_results, "Modelfits")
 
 # ALL NECESSARY LIBRARIES
 library(terra) # For rasters and shapefiles
