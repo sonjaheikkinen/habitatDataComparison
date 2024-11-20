@@ -17,6 +17,7 @@ run_select_data <- FALSE
 run_define_models <- FALSE
 run_fit_models <- FALSE
 run_check_model_convergence <- FALSE
+run_check_model_fits <- FALSE
 
 buffer_width <- 25
 number_of_samples <- 250
@@ -32,6 +33,7 @@ dir_data <- file.path(dir_base, "Data")
 dir_models <- file.path(dir_base, "Models")
 dir_results <- file.path(dir_base, "Results")
 dir_fitted <- file.path(dir_models, "Fitted")
+dir_modelfits <- file.path(dir_models, "Modelfits")
 
 # ALL NECESSARY LIBRARIES
 library(terra) # For rasters and shapefiles
@@ -99,6 +101,9 @@ if (run_check_model_convergence) {
 }
 
 # CHECK MODEL FITS
+if (run_check_model_fits) {
+    source("check_model_fits.R")
+}
 
 # COMPARE MODEL FITS
 
