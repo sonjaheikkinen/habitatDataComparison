@@ -2,11 +2,23 @@
 
 # FUNCTIONS FOR THE SCRIPT
 
+calculate_modelfits <- function(thinning_value, folds, file, model, model_name) {
+    
+    print(sprintf("Calculating fits for %s", model_name))
+    print(sprintf("Calculation started %s", date()))
+    
+    
+    print(sprintf("Calculation ended %s", date()))
+    print("")
+}
+
 
 # SCRIPT STARTS
 
 # List filenames of fitted models
 fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
+
+# Will old fits be overwritten?
 
 for (model_number in 1:length(fitted_models)) {
 
@@ -16,10 +28,13 @@ for (model_number in 1:length(fitted_models)) {
     model_name <- strsplit(basename(fitted_models[model_number]), "\\.")[[1]][1]
     thinning_value <- strsplit(model_name, "_")[[1]][4]
     modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s", model_name))
-    print(modelfit_file)
     
     # CALCULATE FIT IF NEEDED
-    
+    if (file.exists(modelfit_file) & !overwrite_modelfits) {
+        print(sprintf("Modelfits already calculated for %s", model_name))
+    } else {
+        calculate_modelfits(as.numeric(thinning_value), modelfit_folds, modelfit_file, model, model_name)
+    }
     
     # SAVE FIT VALUES TO FILE
     

@@ -20,10 +20,12 @@ run_check_model_convergence <- FALSE
 run_check_model_fits <- FALSE
 
 buffer_width <- 25
-number_of_samples <- 250
-thinning_values <- c(1, 10, 100)
 habitat_data_types <- c("fraction", "landscapemetrics")
 species_data_types <- c("fraction", "diversity", "presence")
+number_of_samples <- 250
+thinning_values <- c(1, 10, 100)
+modelfit_folds <- 2
+overwrite_modelfits <- FALSE
 
 # DIRECTORY PATHS
 current_computer <- "main"
