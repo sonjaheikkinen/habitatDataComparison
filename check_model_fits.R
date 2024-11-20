@@ -57,14 +57,13 @@ for (model_number in 1:length(fitted_models)) {
     load(fitted_models[model_number]) # Load file into fitted_model
     model <- fitted_model
     model_name <- strsplit(basename(fitted_models[model_number]), "\\.")[[1]][1]
-    thinning_value <- strsplit(model_name, "_")[[1]][4]
     modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s", model_name))
     
     # CALCULATE FIT IF NEEDED
     if (file.exists(modelfit_file) & !overwrite_modelfits) {
         print(sprintf("Modelfits already calculated for %s", model_name))
     } else {
-        calculate_modelfits(as.numeric(thinning_value), modelfit_folds, modelfit_file, model, model_name)
+        calculate_modelfits(modelfit_folds, modelfit_file, model, model_name)
     }
     
     # CREATE PLOTS OF FIT VALUES
