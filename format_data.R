@@ -5,22 +5,33 @@
 get_transect_temperature_data <- function(buffer_width,
                                           temperature_rasters,
                                           transects) {
-    transect_temperature_data <- c()
+    monthly_temps_for_transects <- data.frame()
+    transects <- project(transects, crs(temperature_rasters[[1]]))
     for (i in 1:length(transects$Numero)) {
         transect <- transects[i,]
-        transect_number <- transect$Numero[1]
+        transect_number <- transects$Numero[i]
         buffer_polygon_around_transect <- buffer(transect, width = buffer_width)
-        all_temp_values <- c()
-        for (raster in temperature_rasters) {
+        transect_monthly_mean_temperatures <- list()
+        for (raster_name in names(temperature_rasters)) {
+            raster <- temperature_rasters[[raster_name]]
+            raster_name_parts <- strsplit(raster_name, "_")[[1]]
+            year <- as.numeric(raster_name_parts[2])
+            month <- as.numeric(raster_name_parts[3])
             temps_in_buffer <- na.omit(extract(raster, buffer_polygon_around_transect))
             colnames(temps_in_buffer) <- c("id", "value")
-            all_temp_values <- c(all_temp_values, unique(temps_in_buffer$value))
+            month_mean_temp_for_transect <- mean(temps_in_buffer$value)
+            transect_monthly_mean_temperatures[["year"]] <- c(transect_monthly_mean_temperatures[["year"]], year)
+            transect_monthly_mean_temperatures[["month"]] <-  c(transect_monthly_mean_temperatures[["month"]], month)
+            transect_monthly_mean_temperatures[["temp"]] <-  c(transect_monthly_mean_temperatures[["temp"]],
+                                                             month_mean_temp_for_transect)
+            
         }
-        mean_temperature <- mean(all_temp_values)
-        transect_temperature_data <- c(transect_temperature_data, mean_temperature)
+        temperature_data_for_transect <- data.frame(transect = transect_number, 
+                                                    transect_monthly_mean_temperatures)
+        monthly_temps_for_transects <- rbind(monthly_temps_for_transects, temperature_data_for_transect)
         
     }
-    return(transect_temperature_data)
+    return(monthly_temps_for_transects)
 }
 
 format_observations_for_hmsc <- function(observations) {
@@ -230,8 +241,23 @@ names(transect_lengths) <- transect_names
 
 
 # Calculate transect temperature values
-transect_temperatures <- get_transect_temperature_data(buffer_width, temperature_data,transects_shp)
-names(transect_temperatures) <- transect_names
+transect_temperatures <- get_transect_temperature_data(buffer_width, temperature_data, transects_shp)
+transect_temperatures_april_may <- transect_temperatures[transect_temperatures$month %in% c(4, 5), ]
+transect_april_may_mean_temps <- aggregate(temp ~ transect + year, 
+                                          data = transect_temperatures_april_may, 
+                                          FUN = mean, 
+                                          na.rm = TRUE)
+april_may_mean_temps <- c()
+for (sample_number in 1:length(spatiotemporal_context$Sample)) {
+    sample_transect <- spatiotemporal_context[sample_number, ]$Transect
+    sample_year <- spatiotemporal_context[sample_number, ]$Year
+    sample_april_may_mean_temp <- transect_april_may_mean_temps[transect_april_may_mean_temps$transect == sample_transect 
+                                                                & transect_april_may_mean_temps$year == sample_year, ]$temp
+    if (length(sample_april_may_mean_temp) == 0)  {
+        sample_april_may_mean_temp <- NA
+    }
+    april_may_mean_temps <- c(april_may_mean_temps, sample_april_may_mean_temp)
+}
 
 
 # Create diversity data
@@ -263,20 +289,20 @@ names(transect_corine_data_percentages) <- transect_names
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
-                              Temperature = transect_temperatures,
                               Diversity = natura_diversities$PatchDensity,
                               NaturaPercentage = transect_natura_data_percentages,
                               CorinePercentage = transect_corine_data_percentages,
                               Cluster = clusters_natura)
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
+env_data_natura$Temperature <- april_may_mean_temps
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
-                              Temperature = transect_temperatures,
                               Diversity = corine_diversities$PatchDensity,
                               NaturaPercentage = transect_natura_data_percentages,
                               CorinePercentage = transect_corine_data_percentages,
                               Cluster = clusters_corine)
 env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
+env_data_corine$Temperature <- april_may_mean_temps
 
 
 
