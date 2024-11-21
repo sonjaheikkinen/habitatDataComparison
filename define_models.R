@@ -70,9 +70,9 @@ trait_formula <- as.formula(sprintf("~%s", paste(colnames(trait_data), collapse 
 probit_natura <- Hmsc(Y = occurrence, 
                       XData = env_data_natura,
                       XFormula = env_formula_natura,
-                      TrData = trait_data,
-                      TrFormula = trait_formula,
-                      phyloTree = taxonomy,
+                      #TrData = trait_data,
+                      #TrFormula = trait_formula,
+                      #phyloTree = taxonomy,
                       distr = "probit",
                       studyDesign = study_design,
                       ranLevels = list("Transect" = randomlevel_spatial, 
@@ -81,9 +81,9 @@ probit_natura <- Hmsc(Y = occurrence,
 probit_corine <- Hmsc(Y = occurrence, 
                       XData = env_data_corine, 
                       XFormula = env_formula_corine,
-                      TrData = trait_data,
-                      TrFormula = trait_formula,
-                      phyloTree = taxonomy,
+                      #TrData = trait_data,
+                      #TrFormula = trait_formula,
+                      #phyloTree = taxonomy,
                       distr = "probit",
                       studyDesign = study_design,
                       ranLevels = list("Transect" = randomlevel_spatial, 
@@ -111,12 +111,12 @@ probit_corine_spatiotemporal <- Hmsc(Y = occurrence,
 
 
 # If needed, test that model works properly:
-#sampleMcmc(probit_natura_spatiotemporal, samples = 3)
+#sampleMcmc(probit_natura, samples = 3)
 
 
 # SAVE MODELS
-model_list <- list(probit_natura_spatiotemporal, probit_corine_spatiotemporal)
-names(model_list) <- c("probit_natura_spatiotemporal", "probit_corine_spatiotemporal")
+model_list <- list(probit_natura, probit_corine)
+names(model_list) <- c("probit_natura", "probit_corine")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
