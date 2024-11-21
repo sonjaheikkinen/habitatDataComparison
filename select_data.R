@@ -25,13 +25,15 @@ env_data_natura <- env_data_natura[transect_selection, ]
 env_data_corine <- env_data_corine[transect_selection, ]
 
 
+
 # SELECT SPECIES
 # Select only more prevalent species
 for (species in colnames(occurrence)) {
     species_occurrence <- occurrence[,species]
-    species_prevalence <- sum(species_occurrence == 1) / length(species_occurrence)
-    print(sprintf("Prevalence %s: %s", species, species_prevalence))
-    if (species_prevalence < 0.05) {
+    number_of_transects_where_species_has_occurrence <- sum(tapply(species_occurrence, 
+                                                                   spatiotemporal_context$Transect, 
+                                                                   function(x) any(x == 1)))
+    if (number_of_transects_where_species_has_occurrence < 3) {
         occurrence <- occurrence[, colnames(occurrence) != species]
     }
 }
