@@ -25,6 +25,7 @@ scale_between_zero_and_one <- function(data) {
 # FUNCTIONS | DATA READING
 
 read_climate_data <- function(folder, type) {
+    # Set filename prefix based on given climate data type
     prefix <- ''
     if (type == "temperature") {
         prefix <- "tmon"
@@ -32,10 +33,19 @@ read_climate_data <- function(folder, type) {
     if (type == "rainfall") {
         prefix <- "rrmon"
     }
+    # List all files starting with the given prefix
     raster_files <- list.files(folder, pattern = sprintf("^%s", prefix), full.names = TRUE)
-    rasters <- c()
-    for (filename in raster_files) {
-        rasters <- c(rasters, rast(filename))
+    # Read rasters in a list
+    rasters <- list()
+    for (filepath in raster_files) {
+        filename <- basename(filepath)
+        # Create regex representing the filename. Capture year and month in parenthesis to extract them
+        filename_pattern <- sprintf("^%s_(\\d{4})(\\d{2})\\d{2}\\.tif$", prefix)
+        year <- sub(filename_pattern, "\\1", filename)
+        month <- sub(filename_pattern, "\\2", filename)
+        # Create descriptive name for raster and add to list
+        raster_name <- sprintf("%s_%s_%s", type, year, month)
+        rasters[raster_name] <- list(rast(filepath))
     }
     return(rasters)
 }
