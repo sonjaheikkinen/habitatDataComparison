@@ -178,7 +178,7 @@ compare_habitats_and_species <- function(habitat_data_types,
 
 
 # EXPLORATION FUNCTIONS¨
-explore_bird_data <- function(occurrence, abundance, type) {
+explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, type) {
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_observations_%s.pdf", type)))
     
@@ -236,10 +236,31 @@ explore_bird_data <- function(occurrence, abundance, type) {
     par(old_par)
     
     
+    # Spatial and temporal patterns
+    
+    # Calculate samplelevel mean abundances across species
+    sample_mean_abundances <- matrix(0,
+                                     nrow = length(unique(spatiotemporal_context$Year)),
+                                     ncol = length(unique(spatiotemporal_context$Transect)))
+    rownames(sample_mean_abundances) <- rev(sort(unique(spatiotemporal_context$Year)))
+    colnames(sample_mean_abundances) <- unique(spatiotemporal_context$Transect)
+    for (row in 1:nrow(spatiotemporal_context)) {
+        year <- spatiotemporal_context[row, ]$Year
+        transect <- spatiotemporal_context[row, ]$Transect
+        year_index <- match(year, rownames(sample_mean_abundances))
+        transect_index <- match(transect, colnames(sample_mean_abundances))
+        row_abundances <- abundance[row, ]
+        row_abundances[is.na(row_abundances)] <- 0 
+        sample_mean_abundances[year_index, transect_index] <- mean(row_abundances)
+    }
+    pheatmap(sample_mean_abundances,
+             cluster_rows = FALSE)
+    
+    
     dev.off()
     
 }
-explore_bird_data(occurrence, abundance, "raw")
+explore_bird_data(occurrence, abundance, spatiotemporal_context, "raw")
 
 
 
