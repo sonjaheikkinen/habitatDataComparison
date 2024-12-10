@@ -177,6 +177,70 @@ compare_habitats_and_species <- function(habitat_data_types,
 }
 
 
+# EXPLORATION FUNCTIONS¨
+explore_bird_data <- function(occurrence, abundance, type) {
+    
+    pdf(file.path(dir_results, sprintf("exploratory_analysis_observations_%s.pdf", type)))
+    
+    
+    
+    # Total abundance in samples
+    sample_abundances <- rowSums(abundance, na.rm = TRUE)
+    hist(sample_abundances,
+         main = "Histogram of total abundance in samples",
+         xlab = sprintf("Abundance, min %s, max %s", min(sample_abundances), max(sample_abundances)),
+         ylab = sprintf("Frequency, %s total samples", nrow(abundance)))
+    
+    # Total species richness in samples
+    sample_occurrences <- rowSums(occurrence, na.rm = TRUE)
+    hist(sample_occurrences,
+         main = "Histogram of species richness in samples",
+         xlab = sprintf("Occurrence, min %s, max %s", min(sample_occurrences), max(sample_occurrences)),
+         ylab = sprintf("Frequency, total samples: %s, total richness. %s", 
+                        nrow(occurrence),
+                        ncol(occurrence)))
+    
+    
+    # Adjust margin to fit species names to the left
+    old_par <- par(no.readonly = TRUE) 
+    par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+    
+    # How many samples was each species found in?
+    species_sample_occurrences <- sort(colSums(occurrence))
+    barplot(species_sample_occurrences, 
+            horiz = TRUE, 
+            las = 1, 
+            main = "How many samples was each species observed in",
+            xlab = "Samples",
+            cex.names = 0.7)
+    
+    # Most common species by occurrence
+    common_species_occurrences <- tail(species_sample_occurrences, 10)
+    barplot(common_species_occurrences, 
+            horiz = TRUE, 
+            las = 1, 
+            main = "How many samples were common species observed in",
+            xlab = "Samples",
+            cex.names = 0.7)
+    
+    # Most rare species by occurrence
+    rare_species_occurrences <- species_sample_occurrences[species_sample_occurrences < 5]
+    barplot(rare_species_occurrences, 
+            horiz = TRUE, 
+            las = 1, 
+            main = "How many samples were rare species observed in",
+            xlab = "Samples",
+            cex.names = 0.7)
+    
+    # Use old margins again
+    par(old_par)
+    
+    
+    dev.off()
+    
+}
+explore_bird_data(occurrence, abundance, "raw")
+
 
 
 
@@ -195,6 +259,7 @@ file <- file.path(dir_results, "exploratory_analysis.txt")
 
 # LOAD RAW DATA
 load(file = file.path(dir_data, "occurrence_raw.RData")) 
+load(file = file.path(dir_data, "abundance_raw.RData")) 
 load(file = file.path(dir_data, "fractions_natura.RData"))
 load(file = file.path(dir_data, "fractions_corine.RData")) 
 load(file = file.path(dir_data, "clusters_natura.RData"))
@@ -204,6 +269,10 @@ load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "corine_diversities.RData"))
 load(file = file.path(dir_data, "natura_diversities.RData"))
 load(file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
+
+
+# EXPLORE BIRD DATA
+explore_bird_data(occurrence, abundance)
 
 
 
