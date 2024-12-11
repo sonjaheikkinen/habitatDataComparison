@@ -238,23 +238,76 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, typ
     
     # Spatial and temporal patterns
     
-    # Calculate samplelevel mean abundances across species
-    sample_mean_abundances <- matrix(0,
-                                     nrow = length(unique(spatiotemporal_context$Year)),
-                                     ncol = length(unique(spatiotemporal_context$Transect)))
-    rownames(sample_mean_abundances) <- rev(sort(unique(spatiotemporal_context$Year)))
-    colnames(sample_mean_abundances) <- unique(spatiotemporal_context$Transect)
+    # Calculate sample level mean abundances across species
+    sample_total_abundances <- matrix(0,
+                                      nrow = length(unique(spatiotemporal_context$Year)),
+                                      ncol = length(unique(spatiotemporal_context$Transect)))
+    rownames(sample_total_abundances) <- rev(sort(unique(spatiotemporal_context$Year)))
+    colnames(sample_total_abundances) <- unique(spatiotemporal_context$Transect)
     for (row in 1:nrow(spatiotemporal_context)) {
         year <- spatiotemporal_context[row, ]$Year
         transect <- spatiotemporal_context[row, ]$Transect
-        year_index <- match(year, rownames(sample_mean_abundances))
-        transect_index <- match(transect, colnames(sample_mean_abundances))
+        sample <- sprintf("%s%s", year, transect)
+        year_index <- match(year, rownames(sample_total_abundances))
+        transect_index <- match(transect, colnames(sample_total_abundances))
         row_abundances <- abundance[row, ]
         row_abundances[is.na(row_abundances)] <- 0 
-        sample_mean_abundances[year_index, transect_index] <- mean(row_abundances)
+        sample_total_abundances[year_index, transect_index] <- sum(row_abundances)
     }
-    pheatmap(sample_mean_abundances,
+    pheatmap(sample_total_abundances,
              cluster_rows = FALSE)
+    
+    
+    # Spatial variation in transect total abundance 
+    # Transect total abundances: sum of species abundances in each sample
+    # Transect mean total abundances: mean of transect total abundances for each transect
+    transect_mean_total_abundances <- apply(sample_total_abundances, 
+                                            2, 
+                                            function(col) {
+                                                non_zero_values <- col[col != 0]
+                                                    if (length(non_zero_values) > 0) {
+                                                        mean(non_zero_values)
+                                                    } else {
+                                                        NA  # Return NA if there are no non-zero values
+                                                    }
+                                            })
+    spatial_plot_data <- data.frame(Transect = names(transect_mean_total_abundances),
+                                    Abundance = transect_mean_total_abundances)
+    x_coords <- c()
+    y_coords <- c()
+    for (transect in spatial_plot_data$Transect) {
+        x <- spatiotemporal_context[spatiotemporal_context$Transect == transect,]$x[1]
+        x_coords <- c(x_coords, x)
+        y <- spatiotemporal_context[spatiotemporal_context$Transect == transect,]$y[1]
+        y_coords <- c(y_coords, y)
+    }
+    spatial_plot_data$x <- x_coords
+    spatial_plot_data$y <- y_coords
+    plot(spatial_plot_data$x, spatial_plot_data$y, 
+         cex = spatial_plot_data$Abundance / max(spatial_plot_data$Abundance) * 1.5, 
+         pch = 21, 
+         col = "black", # Dot appearance
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = "Transect mean total abundances")
+    
+    
+    # Temporal variation in total abundance
+    # Scaled by how many samples were taken each year
+    year_total_abundances <- apply(sample_total_abundances, 
+                                   2, 
+                                   function(col) {
+                                       non_zero_values <- col[col != 0]
+                                       if (length(non_zero_values) > 0) {
+                                           mean(non_zero_values)
+                                       } else {
+                                           NA  # Return NA if there are no non-zero values
+                                       }
+                                   })
+    names(year_total_abundances) <- rownames(sample_total_abundances)
+    barplot(year_total_abundances,
+            horiz = TRUE,
+            las = 1)
+    
     
     
     dev.off()
