@@ -176,7 +176,7 @@ abundance <- as.matrix(abundance)
 occurrence <- 1 * (abundance > 0)
 
 # Set abundance to NA where 0 for hurdle model approach
-abundance[abundance == 0] <- NA
+#abundance[abundance == 0] <- NA
 
 
 

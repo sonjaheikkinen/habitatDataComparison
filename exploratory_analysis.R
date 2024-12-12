@@ -1,13 +1,36 @@
 # HELPER FUNCTIONS
 
-create_clusters(data, cluster_amount) {
-    
+get_clusters <- function(data, cluster_amount) {
+    data$Cluster <- NULL
+    clustering <- hclust(dist(data), method = "complete")
+    cluster_groups <- cutree(tree = as.dendrogram(clustering), k = cluster_amount)
+    return(cluster_groups)
 }
 
+plot_cluster_elbow <- function(data, data_name) {
+    max_clusters <- 15
+    within_cluster_sum_of_squares <- sapply(1:max_clusters,
+                                            function(cluster_amount) {
+                                                clusters <- kmeans(data, 
+                                                                   cluster_amount,
+                                                                   nstart = 50,
+                                                                   iter.max = 15,
+                                                                   )
+                                                return(clusters$tot.withinss)
+                                            })
+    plot(1:max_clusters,
+         within_cluster_sum_of_squares,
+         type = "b",
+         pch = 19,
+         frame = FALSE,
+         xlab = "Number of clusters",
+         ylab = "Total within-clusters sum of squares",
+         main = sprintf("Elbow curve for %s", data_name))
+}
 
 # EXPLORATORY ANALYSIS FUNCTIONS
 
-explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, type) {
+explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coordinates, type) {
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_observations_%s.pdf", type)))
     
@@ -84,12 +107,13 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, typ
         sample_total_abundances[year_index, transect_index] <- sum(row_abundances)
     }
     pheatmap(sample_total_abundances,
-             cluster_rows = FALSE)
+             cluster_rows = FALSE,
+             main = "Total abundance in each sample")
     
     
     # Spatial variation in transect total abundance 
-    # Transect total abundances: sum of species abundances in each sample
-    # Transect mean total abundances: mean of transect total abundances for each transect
+    # Sample total abundances: sum of species abundances in each sample
+    # Transect mean total abundances: mean of sample total abundances from that transect
     transect_mean_total_abundances <- apply(sample_total_abundances, 
                                             2, 
                                             function(col) {
@@ -102,16 +126,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, typ
                                             })
     spatial_plot_data <- data.frame(Transect = names(transect_mean_total_abundances),
                                     Abundance = transect_mean_total_abundances)
-    x_coords <- c()
-    y_coords <- c()
-    for (transect in spatial_plot_data$Transect) {
-        x <- spatiotemporal_context[spatiotemporal_context$Transect == transect,]$x[1]
-        x_coords <- c(x_coords, x)
-        y <- spatiotemporal_context[spatiotemporal_context$Transect == transect,]$y[1]
-        y_coords <- c(y_coords, y)
-    }
-    spatial_plot_data$x <- x_coords
-    spatial_plot_data$y <- y_coords
+    spatial_plot_data$x <- coordinates[spatial_plot_data$Transect, ]$x
+    spatial_plot_data$y <- coordinates[spatial_plot_data$Transect, ]$y
     plot(spatial_plot_data$x, spatial_plot_data$y, 
          cex = spatial_plot_data$Abundance / max(spatial_plot_data$Abundance) * 1.5, 
          pch = 21, 
@@ -121,8 +137,9 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, typ
     
     
     # Temporal variation in total abundance
-    # Scaled by how many samples were taken each year
-    year_total_abundances <- apply(sample_total_abundances, 
+    # Sample total abundance: sum of species abundances in each sample
+    # Year mean total abundances: mean of sample total abundancies from that year
+    year_mean_total_abundances <- apply(sample_total_abundances, 
                                    1, 
                                    function(row) {
                                        non_zero_values <- row[row != 0]
@@ -132,31 +149,86 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, typ
                                            NA  # Return NA if there are no non-zero values
                                        }
                                    })
-    names(year_total_abundances) <- rownames(sample_total_abundances)
-    barplot(year_total_abundances,
+    names(year_mean_total_abundances) <- rownames(sample_total_abundances)
+    barplot(year_mean_total_abundances,
             horiz = TRUE,
-            las = 1)
+            las = 1,
+            main = "Year mean total abundances")
     
     
     
     # Spatial variation in species composition
+    
+    # Create spatial occurrence and abundance data
     transect_occurrence_data_list <- list()
+    transect_abundance_data_list <- list()
     for (transect in unique(spatiotemporal_context$Transect)) {
         transect_indices <- match(transect, spatiotemporal_context$Transect)
         transect_occurrences <- occurrence[transect_indices, , drop = FALSE]
+        transect_abundances <- abundance[transect_indices, , drop = FALSE]
         species_occurrences_in_transect <- apply(transect_occurrences,
                                                  2,
                                                  function(col) {
                                                      any(col == 1) * 1
                                                  })
+        species_abundances_in_transect <- apply(transect_abundances,
+                                                2,
+                                                function(col) {
+                                                    sum(col)
+                                                })
         transect_occurrence_data_list[transect] <- list(species_occurrences_in_transect)
+        transect_abundance_data_list[transect] <- list(species_abundances_in_transect)
     }
-    transect_occurrence_data <- do.call(rbind, transect_occurrence_data_list)
+    transect_occurrence_data <- as.data.frame(do.call(rbind, transect_occurrence_data_list))
+    transect_abundance_data <- as.data.frame(do.call(rbind, transect_abundance_data_list))
+    transect_occurrence_clusters <- get_clusters(transect_occurrence_data, 5)
+    transect_species_richness <- rowSums(transect_occurrence_data)
     
     
     # Plot species clusters over transects
+    plot(coordinates[rownames(transect_occurrence_data), ]$x,
+         coordinates[rownames(transect_occurrence_data), ]$y, 
+         cex = 1, 
+         pch = 21,
+         col = transect_occurrence_clusters,
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = "Transect species cluster")
     
     
+    # Plot species richness over transects
+    plot(coordinates[rownames(transect_occurrence_data), ]$x,
+         coordinates[rownames(transect_occurrence_data), ]$y, 
+         cex = transect_species_richness * 0.05, 
+         pch = 21,
+         col = "Black",
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = "Transect species richness")
+    
+    
+    # Compare mean species diversity over transects
+    sample_simpson_diversities <- diversity(abundance, index = "simpson")
+    transect_mean_simpson_diversities <- c()
+    for (transect in unique(spatiotemporal_context)$Transect) {
+        transect_indices <- match(transect, spatiotemporal_context$Transect)
+        transect_mean_simpson_diversities[transect] <- mean(sample_simpson_diversities[transect_indices])
+    }
+    
+    # Smaller dot means bigger diversity
+    plot(coordinates[names(transect_mean_simpson_diversities), ]$x,
+         coordinates[names(transect_mean_simpson_diversities), ]$y, 
+         cex =  (1 - transect_mean_simpson_diversities) * 3, 
+         pch = 21,
+         col = "Black",
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = "Transect mean Simpson's diversities")
+    
+    
+    
+    # Are there truly different transects based on species composition?
+    plot_cluster_elbow(transect_occurrence_data, "transect species occurrences")
+    
+    # Are there truly different transects based on transect abundance
+    plot_cluster_elbow(transect_abundance_data, "transect species abundances")
     
     
     dev.off()
@@ -173,7 +245,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, typ
 load(file = file.path(dir_data, "occurrence_raw.RData")) 
 load(file = file.path(dir_data, "abundance_raw.RData")) 
 load(file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
+load(file = file.path(dir_data, "transect_coordinates.RData"))
 
 
-explore_bird_data(occurrence, abundance, spatiotemporal_context, "raw")
+explore_bird_data(occurrence, abundance, spatiotemporal_context, transect_coordinates, "raw")
 
