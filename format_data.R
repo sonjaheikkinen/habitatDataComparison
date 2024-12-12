@@ -289,7 +289,10 @@ names(transect_corine_data_percentages) <- transect_names
 # Create environmental data X for natura
 env_data_natura <- data.frame(fractions_natura,
                               Effort = transect_lengths,
-                              Diversity = natura_diversities$PatchDensity,
+                              PatchDensity = natura_diversities$PatchDensity,
+                              SimpsonsDiversity = natura_diversities$SimpsonsDiversity,
+                              ShannonsDiversity = natura_diversities$ShannonsDiversity,
+                              ScaledRichness = natura_diversities$ScaledRichness,
                               NaturaPercentage = transect_natura_data_percentages,
                               CorinePercentage = transect_corine_data_percentages,
                               Cluster = clusters_natura)
@@ -297,7 +300,10 @@ env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
 env_data_natura$Temperature <- april_may_mean_temps
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
-                              Diversity = corine_diversities$PatchDensity,
+                              PatchDensity = corine_diversities$PatchDensity,
+                              SimpsonsDiversity = corine_diversities$SimpsonsDiversity,
+                              ShannonsDiversity = corine_diversities$ShannonsDiversity,
+                              ScaledRichness = corine_diversities$ScaledRichness,
                               NaturaPercentage = transect_natura_data_percentages,
                               CorinePercentage = transect_corine_data_percentages,
                               Cluster = clusters_corine)

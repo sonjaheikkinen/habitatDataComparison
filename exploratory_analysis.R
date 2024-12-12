@@ -144,7 +144,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex = spatial_plot_data$Abundance / max(spatial_plot_data$Abundance) * 1.5, 
          pch = 21, 
          col = "black", # Dot appearance
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X", 
+         ylab = "Y", 
          main = "Transect mean total abundances")
     
     
@@ -203,7 +204,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex = 1, 
          pch = 21,
          col = transect_occurrence_clusters,
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X", 
+         ylab = "Y", 
          main = "Transect species cluster")
     
     
@@ -213,7 +215,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex = transect_species_richness * 0.05, 
          pch = 21,
          col = "Black",
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X",
+         ylab = "Y", 
          main = "Transect species richness")
     
     
@@ -235,7 +238,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex =  (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))) * 0.3,
          pch = 21,
          col = "Black",
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X", 
+         ylab = "Y", 
          main = "Transect mean Simpson's diversities")
     
     # Bigger dot means bigger diversity
@@ -245,7 +249,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex =  (scaled_shannons_diversities + abs(min(scaled_shannons_diversities))) * 0.3, 
          pch = 21,
          col = "Black",
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X", 
+         ylab = "Y", 
          main = "Transect mean Shannon's diversities")
     
     diversity_correlation <- cor(transect_mean_simpson_diversities, 
@@ -255,7 +260,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex =  (scaled_shannons_diversities + abs(min(scaled_shannons_diversities))) * 0.3, 
          col = (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))),
          pch = 21,
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X", 
+         ylab = "Y", 
          main = sprintf("Both diversities, correlation %s", diversity_correlation))
     
     
@@ -266,7 +272,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          cex =  transect_species_richness * 0.05, 
          col = (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))),
          pch = 21,
-         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         xlab = "X", 
+         ylab = "Y", 
          main = sprintf("Richness (size) and Simpson's (color), correlation %s", 
                         richness_diversity_correlation))
     
@@ -347,6 +354,198 @@ explore_habitat_data(natura,
         }
     }
     
+    par(mfrow=c(1,1))
+    
+    hist(natura$Temperature, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Temperature (april + may)",
+         main = "Histogram of transect spring temperatures")
+    
+    hist(natura$Effort, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Transect length",
+         main = "Histogram of transect lengths in samples")
+    
+    hist(natura$PatchDensity, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Patch density",
+         main = "Histogram of Natura patch density in samples")
+    
+    hist(corine$PatchDensity, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Patch density",
+         main = "Histogram of Corine patch density in samples")
+    
+    hist(natura$SimpsonsDiversity, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Simpson's diversity",
+         main = "Histogram of Natura Simpson's diversity in samples")
+    
+    hist(corine$SimpsonsDiversity, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Simpson's diversity",
+         main = "Histogram of Corine Simpson's diversity in samples")
+    
+    hist(natura$ShannonsDiversity, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Shannon's diversity",
+         main = "Histogram of Natura Shannon's diversity in samples")
+    
+    hist(corine$ShannonsDiversity, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Shannon's diversity",
+         main = "Histogram of Corine Shannon's diversity in samples")
+    
+    hist(natura$ScaledRichness, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Scaled richness",
+         main = "Histogram of Natura scaled richness in samples")
+    
+    hist(corine$ScaledRichness, 
+         probability = TRUE, 
+         col = "lightgray",
+         xlab = "Scaled richness",
+         main = "Histogram of Corine scaled richness in samples")
+    
+    
+    # Spatial plots for variables
+    
+    # Habitat type clusters spatially
+    natura_clusters <- get_clusters(fractions_natura, 5)
+    plot(coordinates[names(natura_clusters), ]$x,
+         coordinates[names(natura_clusters), ]$y, 
+         cex =  1, 
+         col = natura_clusters,
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Natura clusters spatial pattern")
+    corine_clusters <- get_clusters(fractions_corine, 5)
+    plot(coordinates[names(corine_clusters), ]$x,
+         coordinates[names(corine_clusters), ]$y, 
+         cex =  1, 
+         col = corine_clusters,
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Corine clusters spatial pattern")
+    # Cluster value correlation
+    cluster_correlation <- cor(natura_clusters, corine_clusters)
+    plot(coordinates[names(corine_clusters), ]$x,
+         coordinates[names(corine_clusters), ]$y, 
+         cex =  1, 
+         col = natura_clusters,
+         pch = corine_clusters,
+         xlab = "X", 
+         ylab = "Y", 
+         main = sprintf("Both (color: natura, shape: corine), correlation = %s", 
+                        round(cluster_correlation, 2)))
+    
+    
+    # Diversities spatially
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_natura$PatchDensity * 0.003, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Natura patch density")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_corine$PatchDensity * 0.003, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Corine patch density")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_natura$SimpsonsDiversity, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Natura Simpson's diversity")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_corine$SimpsonsDiversity, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Corine Simpson's diversity")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_natura$ShannonsDiversity, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Natura Shannon's diversity")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_corine$ShannonsDiversity, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Corine Shannon's diversity")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_natura$ScaledRichness * 0.05, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Natura scaled richness")
+    plot(coordinates[spatiotemporal_context$Transect, ]$x,
+         coordinates[spatiotemporal_context$Transect, ]$y, 
+         cex =  env_data_corine$ScaledRichness * 0.05, 
+         col = "Black",
+         pch = 21,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Corine scaled richness")
+    
+    
+    
+    # Diversity correlations
+    diversity_columns <- c("PatchDensity", "SimpsonsDiversity", "ShannonsDiversity", "ScaledRichness")
+    within_natura <- cor(natura[, diversity_columns], use = "complete.obs")
+    within_corine <- cor(corine[, diversity_columns], use = "complete.obs")
+    between_datasets <- matrix(NA, 
+                               nrow = length(diversity_columns), 
+                               ncol = length(diversity_columns), 
+                               dimnames = list(diversity_columns, diversity_columns))
+    for (var1 in diversity_columns) {
+        for (var2 in diversity_columns) {
+            between_datasets[var1, var2] <- cor(natura[,var1], corine[,var2], use = "complete.obs")
+        }
+    }
+    diversity_correlations <- list(
+        "Diversity correlation within natura" = within_natura,
+        "Diversity correlation within corine" = within_corine,
+        "Diversity correlation between datasets" = between_datasets
+    )
+    for (name in names(diversity_correlations)) {
+        pheatmap(diversity_correlations[[name]],
+                 main = name,
+                 cluster_rows = TRUE,
+                 cluster_cols = TRUE,
+                 display_numbers = TRUE)
+    }
+    
+
     dev.off()
     
 }
