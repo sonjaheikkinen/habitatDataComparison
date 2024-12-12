@@ -282,6 +282,76 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
 }
 
 
+explore_habitat_data(natura, 
+                     corine, 
+                     fractions_natura,
+                     fractions_corine,
+                     spatiotemporal_context, 
+                     coordinates, 
+                     type) {
+    
+    
+    # Remove entries before 2006 becaues there is no temperature_data
+    selected_years <- spatiotemporal_context$Year >= 2006
+    natura <- natura[selected_years,]
+    corine <- corine[selected_years,]
+    spatiotemporal_context <- spatiotemporal_context[selected_years,]
+    
+    
+    pdf(file.path(dir_results, sprintf("exploratory_analysis_habitats_%s.pdf", type)))
+
+    # Plot histograms of natura and corine types in transects
+    # Also plot the histogram of just those values that aren't zeros
+    for (column in colnames(fractions_natura)) {
+        par(mfrow = c(2, 1))
+        column_data <- fractions_natura[, column]
+        column_data_without_zeros <- column_data[column_data != 0]
+        zeros <- sum(column_data == 0)
+        hist(fractions_natura[,column], 
+             probability = TRUE, 
+             col = "lightgray",
+             xlab = sprintf("%s", column),
+             main = sprintf("Natura: Histogram of %s in transects, zeros: %s/%s = %s", 
+                            column, 
+                            zeros, 
+                            length(column_data), 
+                            round(zeros / length(column_data), 2)))
+        if (length(column_data_without_zeros) > 0) {
+            hist(column_data_without_zeros, 
+                 probability = TRUE, 
+                 col = "lightgray",
+                 xlab = sprintf("%s", column),
+                 main = sprintf("Natura: Histogram of %s without zeros", column))
+        }
+    }
+    for (column in colnames(fractions_corine)) {
+        par(mfrow = c(2, 1))
+        column_data <- fractions_corine[, column]
+        column_data_without_zeros <- column_data[column_data != 0]
+        zeros <- sum(column_data == 0)
+        hist(fractions_corine[,column], 
+             probability = TRUE, 
+             col = "lightgray",
+             xlab = sprintf("%s", column),
+             main = sprintf("Corine: Histogram of %s in transects, zeros: %s/%s = %s", 
+                            column, 
+                            zeros, 
+                            length(column_data), 
+                            round(zeros / length(column_data), 2)))
+        if (length(column_data_without_zeros) > 0) {
+            hist(column_data_without_zeros, 
+                 probability = TRUE, 
+                 col = "lightgray",
+                 xlab = sprintf("%s", column),
+                 main = sprintf("Corine: Histogram of %s without zeros", column))
+        }
+    }
+    
+    dev.off()
+    
+}
+
+
 
 
 # SCRIPT STARTS 
@@ -292,7 +362,17 @@ load(file = file.path(dir_data, "occurrence_raw.RData"))
 load(file = file.path(dir_data, "abundance_raw.RData")) 
 load(file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
 load(file = file.path(dir_data, "transect_coordinates.RData"))
+load(file = file.path(dir_data, "env_data_natura_raw.RData")) 
+load(file = file.path(dir_data, "env_data_corine_raw.RData"))
+load(file = file.path(dir_data, "fractions_natura.RData")) 
+load(file = file.path(dir_data, "fractions_corine.RData"))
 
 
 explore_bird_data(occurrence, abundance, spatiotemporal_context, transect_coordinates, "raw")
-
+explore_habitat_data(env_data_natura, 
+                     env_data_corine, 
+                     fractions_natura,
+                     fractions_corine,
+                     spatiotemporal_context, 
+                     transect_coordinates, 
+                     "raw")
