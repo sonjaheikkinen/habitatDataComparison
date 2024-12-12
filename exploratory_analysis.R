@@ -28,12 +28,24 @@ plot_cluster_elbow <- function(data, data_name) {
          main = sprintf("Elbow curve for %s", data_name))
 }
 
+
+scale_to_range <- function(values, new_min, new_max) {
+    old_min <- min(values)
+    old_max <- max(values)
+    scaled_values <- new_min + (values - old_min) * (new_max - new_min) / (old_max - old_min)
+    return(scaled_values)
+}
+
+
+
+
+
+
 # EXPLORATORY ANALYSIS FUNCTIONS
 
 explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coordinates, type) {
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_observations_%s.pdf", type)))
-    
     
     
     # Total abundance in samples
@@ -207,22 +219,56 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     
     # Compare mean species diversity over transects
     sample_simpson_diversities <- diversity(abundance, index = "simpson")
+    sample_shannon_diversities <- diversity(abundance, index = "shannon")
     transect_mean_simpson_diversities <- c()
+    transect_mean_shannon_diversities <- c()
     for (transect in unique(spatiotemporal_context)$Transect) {
         transect_indices <- match(transect, spatiotemporal_context$Transect)
         transect_mean_simpson_diversities[transect] <- mean(sample_simpson_diversities[transect_indices])
+        transect_mean_shannon_diversities[transect] <- mean(sample_shannon_diversities[transect_indices])
     }
     
     # Smaller dot means bigger diversity
+    scaled_simpson_diversities <- scale(transect_mean_simpson_diversities)
     plot(coordinates[names(transect_mean_simpson_diversities), ]$x,
          coordinates[names(transect_mean_simpson_diversities), ]$y, 
-         cex =  (1 - transect_mean_simpson_diversities) * 3, 
+         cex =  (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))) * 0.3,
          pch = 21,
          col = "Black",
          xlab = "X Coordinate", ylab = "Y Coordinate", 
          main = "Transect mean Simpson's diversities")
     
+    # Bigger dot means bigger diversity
+    scaled_shannons_diversities <- scale(transect_mean_shannons_diversities)
+    plot(coordinates[names(transect_mean_shannon_diversities), ]$x,
+         coordinates[names(transect_mean_shannon_diversities), ]$y, 
+         cex =  (scaled_shannons_diversities + abs(min(scaled_shannons_diversities))) * 0.3, 
+         pch = 21,
+         col = "Black",
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = "Transect mean Shannon's diversities")
     
+    diversity_correlation <- cor(transect_mean_simpson_diversities, 
+                                 transect_mean_shannon_diversities)
+    plot(coordinates[names(transect_mean_shannon_diversities), ]$x,
+         coordinates[names(transect_mean_shannon_diversities), ]$y, 
+         cex =  (scaled_shannons_diversities + abs(min(scaled_shannons_diversities))) * 0.3, 
+         col = (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))),
+         pch = 21,
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = sprintf("Both diversities, correlation %s", diversity_correlation))
+    
+    
+    richness_diversity_correlation <- cor(transect_species_richness, 
+                                          transect_mean_simpson_diversities)
+    plot(coordinates[names(transect_mean_shannon_diversities), ]$x,
+         coordinates[names(transect_mean_shannon_diversities), ]$y, 
+         cex =  transect_species_richness * 0.05, 
+         col = (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))),
+         pch = 21,
+         xlab = "X Coordinate", ylab = "Y Coordinate", 
+         main = sprintf("Richness (size) and Simpson's (color), correlation %s", 
+                        richness_diversity_correlation))
     
     # Are there truly different transects based on species composition?
     plot_cluster_elbow(transect_occurrence_data, "transect species occurrences")
