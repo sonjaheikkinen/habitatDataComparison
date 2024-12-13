@@ -235,7 +235,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     scaled_simpson_diversities <- scale(transect_mean_simpson_diversities)
     plot(coordinates[names(transect_mean_simpson_diversities), ]$x,
          coordinates[names(transect_mean_simpson_diversities), ]$y, 
-         cex =  (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))) * 0.3,
+         cex =  (scaled_simpson_diversities + abs(min(scaled_simpson_diversities))) * 0.3,
          pch = 21,
          col = "Black",
          xlab = "X", 
@@ -243,10 +243,10 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
          main = "Transect mean Simpson's diversities")
     
     # Bigger dot means bigger diversity
-    scaled_shannons_diversities <- scale(transect_mean_shannons_diversities)
+    scaled_shannon_diversities <- scale(transect_mean_shannon_diversities)
     plot(coordinates[names(transect_mean_shannon_diversities), ]$x,
          coordinates[names(transect_mean_shannon_diversities), ]$y, 
-         cex =  (scaled_shannons_diversities + abs(min(scaled_shannons_diversities))) * 0.3, 
+         cex =  (scaled_shannon_diversities + abs(min(scaled_shannon_diversities))) * 0.3, 
          pch = 21,
          col = "Black",
          xlab = "X", 
@@ -257,8 +257,8 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
                                  transect_mean_shannon_diversities)
     plot(coordinates[names(transect_mean_shannon_diversities), ]$x,
          coordinates[names(transect_mean_shannon_diversities), ]$y, 
-         cex =  (scaled_shannons_diversities + abs(min(scaled_shannons_diversities))) * 0.3, 
-         col = (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))),
+         cex =  (scaled_shannon_diversities + abs(min(scaled_shannon_diversities))) * 0.3, 
+         col = (scaled_simpson_diversities + abs(min(scaled_simpson_diversities))),
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
@@ -270,7 +270,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     plot(coordinates[names(transect_mean_shannon_diversities), ]$x,
          coordinates[names(transect_mean_shannon_diversities), ]$y, 
          cex =  transect_species_richness * 0.05, 
-         col = (scaled_simpson_diversities + abs(min(scaled_simpsons_diversities))),
+         col = (scaled_simpson_diversities + abs(min(scaled_simpson_diversities))),
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
@@ -289,20 +289,37 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
 }
 
 
-explore_habitat_data(natura, 
-                     corine, 
-                     fractions_natura,
-                     fractions_corine,
-                     spatiotemporal_context, 
-                     coordinates, 
-                     type) {
+explore_habitat_data <- function(natura, 
+                                 corine, 
+                                 fractions_natura,
+                                 fractions_corine,
+                                 spatiotemporal_info, 
+                                 coordinates, 
+                                 type) {
     
     
     # Remove entries before 2006 becaues there is no temperature_data
     selected_years <- spatiotemporal_context$Year >= 2006
     natura <- natura[selected_years,]
     corine <- corine[selected_years,]
-    spatiotemporal_context <- spatiotemporal_context[selected_years,]
+    spatiotemporal_context <- spatiotemporal_info[selected_years,]
+    
+    print(str(natura))
+    print(str(spatiotemporal_context))
+    
+    
+    # Create aggregated data where each transect is only once
+    data_to_aggregate <- data.frame(
+        Transect = spatiotemporal_context$Transect,
+        natura
+    )
+    transect_data_natura <- aggregate(. ~ Transect, data = data_to_aggregate, FUN = mean)
+    data_to_aggregate <- data.frame(
+        Transect = spatiotemporal_context$Transect,
+        corine
+    )
+    transect_data_corine <- aggregate(. ~ Transect, data = data_to_aggregate, FUN = mean)
+    
     
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_habitats_%s.pdf", type)))
@@ -360,61 +377,61 @@ explore_habitat_data(natura,
          probability = TRUE, 
          col = "lightgray",
          xlab = "Temperature (april + may)",
-         main = "Histogram of transect spring temperatures")
+         main = "Histogram of transect spring temperatures in samples")
     
-    hist(natura$Effort, 
+    hist(transect_data_natura$Effort, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Transect length",
-         main = "Histogram of transect lengths in samples")
+         main = "Histogram of transect lengths")
     
-    hist(natura$PatchDensity, 
+    hist(transect_data_natura$PatchDensity, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Patch density",
-         main = "Histogram of Natura patch density in samples")
+         main = "Histogram of Natura patch density in transects")
     
-    hist(corine$PatchDensity, 
+    hist(transect_data_corine$PatchDensity, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Patch density",
-         main = "Histogram of Corine patch density in samples")
+         main = "Histogram of Corine patch density in transects")
     
-    hist(natura$SimpsonsDiversity, 
+    hist(transect_data_natura$SimpsonsDiversity, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Simpson's diversity",
-         main = "Histogram of Natura Simpson's diversity in samples")
+         main = "Histogram of Natura Simpson's diversity in transects")
     
-    hist(corine$SimpsonsDiversity, 
+    hist(transect_data_corine$SimpsonsDiversity, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Simpson's diversity",
-         main = "Histogram of Corine Simpson's diversity in samples")
+         main = "Histogram of Corine Simpson's diversity in transects")
     
-    hist(natura$ShannonsDiversity, 
+    hist(transect_data_natura$ShannonsDiversity, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Shannon's diversity",
-         main = "Histogram of Natura Shannon's diversity in samples")
+         main = "Histogram of Natura Shannon's diversity in transects")
     
-    hist(corine$ShannonsDiversity, 
+    hist(transect_data_corine$ShannonsDiversity, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Shannon's diversity",
-         main = "Histogram of Corine Shannon's diversity in samples")
+         main = "Histogram of Corine Shannon's diversity in transects")
     
-    hist(natura$ScaledRichness, 
+    hist(transect_data_natura$ScaledRichness, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Scaled richness",
-         main = "Histogram of Natura scaled richness in samples")
+         main = "Histogram of Natura scaled richness in transects")
     
-    hist(corine$ScaledRichness, 
+    hist(transect_data_corine$ScaledRichness, 
          probability = TRUE, 
          col = "lightgray",
          xlab = "Scaled richness",
-         main = "Histogram of Corine scaled richness in samples")
+         main = "Histogram of Corine scaled richness in transects")
     
     
     # Spatial plots for variables
@@ -452,65 +469,65 @@ explore_habitat_data(natura,
     
     
     # Diversities spatially
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_natura$PatchDensity * 0.003, 
+    plot(coordinates[transect_data_natura$Transect, ]$x,
+         coordinates[transect_data_natura$Transect, ]$y, 
+         cex =  transect_data_natura$PatchDensity * 0.003, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Natura patch density")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_corine$PatchDensity * 0.003, 
+    plot(coordinates[transect_data_corine$Transect, ]$x,
+         coordinates[transect_data_corine$Transect, ]$y, 
+         cex =  transect_data_corine$PatchDensity * 0.003, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Corine patch density")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_natura$SimpsonsDiversity, 
+    plot(coordinates[transect_data_natura$Transect, ]$x,
+         coordinates[transect_data_natura$Transect, ]$y, 
+         cex =  transect_data_natura$SimpsonsDiversity, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Natura Simpson's diversity")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_corine$SimpsonsDiversity, 
+    plot(coordinates[transect_data_corine$Transect, ]$x,
+         coordinates[transect_data_corine$Transect, ]$y, 
+         cex =  transect_data_corine$SimpsonsDiversity, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Corine Simpson's diversity")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_natura$ShannonsDiversity, 
+    plot(coordinates[transect_data_natura$Transect, ]$x,
+         coordinates[transect_data_natura$Transect, ]$y, 
+         cex =  transect_data_natura$ShannonsDiversity, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Natura Shannon's diversity")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_corine$ShannonsDiversity, 
+    plot(coordinates[transect_data_corine$Transect, ]$x,
+         coordinates[transect_data_corine$Transect, ]$y, 
+         cex =  transect_data_corine$ShannonsDiversity, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Corine Shannon's diversity")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_natura$ScaledRichness * 0.05, 
+    plot(coordinates[transect_data_natura$Transect, ]$x,
+         coordinates[transect_data_natura$Transect, ]$y, 
+         cex =  transect_data_natura$ScaledRichness * 0.05, 
          col = "Black",
          pch = 21,
          xlab = "X", 
          ylab = "Y", 
          main = "Natura scaled richness")
-    plot(coordinates[spatiotemporal_context$Transect, ]$x,
-         coordinates[spatiotemporal_context$Transect, ]$y, 
-         cex =  env_data_corine$ScaledRichness * 0.05, 
+    plot(coordinates[transect_data_corine$Transect, ]$x,
+         coordinates[transect_data_corine$Transect, ]$y, 
+         cex =  transect_data_corine$ScaledRichness * 0.05, 
          col = "Black",
          pch = 21,
          xlab = "X", 
@@ -520,16 +537,18 @@ explore_habitat_data(natura,
     
     
     # Diversity correlations
-    diversity_columns <- c("PatchDensity", "SimpsonsDiversity", "ShannonsDiversity", "ScaledRichness")
-    within_natura <- cor(natura[, diversity_columns], use = "complete.obs")
-    within_corine <- cor(corine[, diversity_columns], use = "complete.obs")
+    correlation_columns <- c("PatchDensity", "SimpsonsDiversity", "ShannonsDiversity", "ScaledRichness", "Cluster")
+    within_natura <- cor(transect_data_natura[, correlation_columns], use = "complete.obs")
+    within_corine <- cor(transect_data_corine[, correlation_columns], use = "complete.obs")
     between_datasets <- matrix(NA, 
-                               nrow = length(diversity_columns), 
-                               ncol = length(diversity_columns), 
-                               dimnames = list(diversity_columns, diversity_columns))
-    for (var1 in diversity_columns) {
-        for (var2 in diversity_columns) {
-            between_datasets[var1, var2] <- cor(natura[,var1], corine[,var2], use = "complete.obs")
+                               nrow = length(correlation_columns), 
+                               ncol = length(correlation_columns), 
+                               dimnames = list(correlation_columns, correlation_columns))
+    for (var1 in correlation_columns) {
+        for (var2 in correlation_columns) {
+            between_datasets[var1, var2] <- cor(transect_data_natura[,var1], 
+                                                transect_data_corine[,var2], 
+                                                use = "complete.obs")
         }
     }
     diversity_correlations <- list(
@@ -544,6 +563,58 @@ explore_habitat_data(natura,
                  cluster_cols = TRUE,
                  display_numbers = TRUE)
     }
+    
+    # Habitat type correlations
+    pheatmap(cor(fractions_natura),
+             main = "Natura type correlations",
+             cluster_rows = TRUE,
+             cluster_cols = TRUE,
+             display_numbers = TRUE)
+    
+    pheatmap(cor(fractions_corine),
+             main = "Corine type correlations",
+             cluster_rows = TRUE,
+             cluster_cols = TRUE,
+             fontsize = 4,
+             display_numbers = TRUE)
+    
+    
+    
+    # Temperatures spatially
+    colors <- colorRampPalette(c("blue", "white", "red"))
+    number_of_colors <- 100 
+    scaled_temperatures <- scale_to_range(transect_data_natura$Temperature, 
+                                          1, 
+                                          number_of_colors)
+    temperature_colors <- colors(number_of_colors)[round(scaled_temperatures)]
+    plot(coordinates[transect_data_natura$Transect, ]$x,
+         coordinates[transect_data_natura$Transect, ]$y, 
+         cex =  1, 
+         col = temperature_colors,
+         pch = 20,
+         xlab = "X", 
+         ylab = "Y", 
+         main = "Transect mean spring temperatures over all years")
+    text(x = coordinates[transect_data_natura$Transect, ]$x,
+         y = coordinates[transect_data_natura$Transect, ]$y,
+         labels = round(transect_data_natura$Temperature, 1),  
+         pos = 3, 
+         col = "black", 
+         cex = 0.5)
+    
+    
+    # Yearly mean temperatures
+    yearly_mean_temperatures <- aggregate(Temperature ~ Year, 
+                                          data = data.frame(Temperature = natura$Temperature,
+                                                            Year = spatiotemporal_context$Year),
+                                          FUN = mean)
+    barplot(
+        height = yearly_mean_temperatures$Temperature,  
+        names.arg = yearly_mean_temperatures$Year,     
+        xlab = "Year",
+        ylab = "Temperature (mean of April and May)",
+        main = "Yearly mean spring temperatures over all transects")
+    
     
 
     dev.off()
