@@ -14,8 +14,7 @@ plot_cluster_elbow <- function(data, data_name) {
                                                 clusters <- kmeans(data, 
                                                                    cluster_amount,
                                                                    nstart = 50,
-                                                                   iter.max = 15,
-                                                                   )
+                                                                   iter.max = 15)
                                                 return(clusters$tot.withinss)
                                             })
     plot(1:max_clusters,
@@ -27,6 +26,28 @@ plot_cluster_elbow <- function(data, data_name) {
          ylab = "Total within-clusters sum of squares",
          main = sprintf("Elbow curve for %s", data_name))
 }
+
+plot_silhouette_scores <- function(data, data_name) {
+    max_clusters <- 15
+    silhouette_scores <- sapply(2:max_clusters,
+                               function(cluster_amount) {
+                                   clusters <- kmeans(data,
+                                                      cluster_amount,
+                                                      nstart = 50,
+                                                      iter.max = 15)
+                                   silhouette_scores <- silhouette(clusters$cluster, dist(data))
+                                   mean_silhouette_score <- mean(silhouette_scores[,3])
+                                   return(mean_silhouette_score)
+                               })
+    plot(2:max_clusters,
+         silhouette_scores,
+         frame = FALSE,
+         type = "b",
+         xlab = "Number of clusters",
+         ylab = "Average silhouette scores",
+         main = sprintf("Silhouette scores for %s", data_name))
+}
+
 
 
 scale_to_range <- function(values, new_min, new_max) {
@@ -536,8 +557,13 @@ explore_habitat_data <- function(natura,
     
     
     
-    # Diversity correlations
-    correlation_columns <- c("PatchDensity", "SimpsonsDiversity", "ShannonsDiversity", "ScaledRichness", "Cluster")
+    # Correlations
+    correlation_columns <- c("PatchDensity", 
+                             "SimpsonsDiversity", 
+                             "ShannonsDiversity", 
+                             "ScaledRichness", 
+                             "Cluster",
+                             "Temperature")
     within_natura <- cor(transect_data_natura[, correlation_columns], use = "complete.obs")
     within_corine <- cor(transect_data_corine[, correlation_columns], use = "complete.obs")
     between_datasets <- matrix(NA, 
@@ -552,9 +578,9 @@ explore_habitat_data <- function(natura,
         }
     }
     diversity_correlations <- list(
-        "Diversity correlation within natura" = within_natura,
-        "Diversity correlation within corine" = within_corine,
-        "Diversity correlation between datasets" = between_datasets
+        "Correlation within natura" = within_natura,
+        "Correlation within corine" = within_corine,
+        "Correlation between datasets" = between_datasets
     )
     for (name in names(diversity_correlations)) {
         pheatmap(diversity_correlations[[name]],
@@ -616,7 +642,35 @@ explore_habitat_data <- function(natura,
         main = "Yearly mean spring temperatures over all transects")
     
     
-
+    # Elbow curvers and silhouettes
+    
+    plot_cluster_elbow(fractions_natura, "Natura fractions")
+    plot_silhouette_scores(fractions_natura, "Natura fractions")
+    plot_cluster_elbow(fractions_corine, "Corine fractions")
+    plot_silhouette_scores(fractions_corine, "Corine fractions")
+    
+    diversity_columns <- c("PatchDensity", 
+                           "SimpsonsDiversity", 
+                           "ScaledRichness")
+    plot_cluster_elbow(transect_data_natura[,diversity_columns], "Natura diversity")
+    plot_silhouette_scores(transect_data_natura[,diversity_columns], "Natura diversity")
+    plot_cluster_elbow(transect_data_corine[,diversity_columns], "Corine diversity")
+    plot_silhouette_scores(transect_data_corine[,diversity_columns], "Corine diversity")
+    
+    plot_cluster_elbow(transect_data_natura[,c("Temperature")], "Natura temperature")
+    plot_silhouette_scores(transect_data_natura[,c("Temperature")], "Natura temperature")
+    plot_cluster_elbow(transect_data_corine[,c("Temperature")], "Corine temperature")
+    plot_silhouette_scores(transect_data_corine[,c("Temperature")], "Corine temperature")
+    
+    
+    combination_columns_natura <- c(colnames(fractions_natura), diversity_columns, "Temperature")
+    combination_columns_corine <- c(colnames(fractions_corine), diversity_columns, "Temperature")
+    plot_cluster_elbow(transect_data_natura[,combination_columns_natura], "Natura combined")
+    plot_silhouette_scores(transect_data_natura[,combination_columns_natura], "Natura combined")
+    plot_cluster_elbow(transect_data_corine[,combination_columns_corine], "Corine combined")
+    plot_silhouette_scores(transect_data_corine[,combination_columns_corine], "Corine combined")
+    
+    
     dev.off()
     
 }
