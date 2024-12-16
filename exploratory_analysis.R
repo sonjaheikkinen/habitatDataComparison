@@ -29,13 +29,12 @@ plot_cluster_elbow <- function(data, data_name) {
 
 plot_silhouette_scores <- function(data, data_name) {
     max_clusters <- 15
+    dist_data <- dist(data)
+    clusters <- hclust(dist_data, method = "complete")
     silhouette_scores <- sapply(2:max_clusters,
                                function(cluster_amount) {
-                                   clusters <- kmeans(data,
-                                                      cluster_amount,
-                                                      nstart = 50,
-                                                      iter.max = 15)
-                                   silhouette_scores <- silhouette(clusters$cluster, dist(data))
+                                   clusters <- cutree(clusters, cluster_amount)
+                                   silhouette_scores <- silhouette(clusters, dist_data)
                                    mean_silhouette_score <- mean(silhouette_scores[,3])
                                    return(mean_silhouette_score)
                                })
@@ -56,6 +55,7 @@ scale_to_range <- function(values, new_min, new_max) {
     scaled_values <- new_min + (values - old_min) * (new_max - new_min) / (old_max - old_min)
     return(scaled_values)
 }
+
 
 
 
@@ -197,7 +197,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     transect_occurrence_data_list <- list()
     transect_abundance_data_list <- list()
     for (transect in unique(spatiotemporal_context$Transect)) {
-        transect_indices <- match(transect, spatiotemporal_context$Transect)
+        transect_indices <- which(spatiotemporal_context$Transect == transect)
         transect_occurrences <- occurrence[transect_indices, , drop = FALSE]
         transect_abundances <- abundance[transect_indices, , drop = FALSE]
         species_occurrences_in_transect <- apply(transect_occurrences,
@@ -247,7 +247,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     transect_mean_simpson_diversities <- c()
     transect_mean_shannon_diversities <- c()
     for (transect in unique(spatiotemporal_context)$Transect) {
-        transect_indices <- match(transect, spatiotemporal_context$Transect)
+        transect_indices <- which(spatiotemporal_context$Transect == transect)
         transect_mean_simpson_diversities[transect] <- mean(sample_simpson_diversities[transect_indices])
         transect_mean_shannon_diversities[transect] <- mean(sample_shannon_diversities[transect_indices])
     }
@@ -299,10 +299,12 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
                         richness_diversity_correlation))
     
     # Are there truly different transects based on species composition?
-    plot_cluster_elbow(transect_occurrence_data, "transect species occurrences")
+    #plot_cluster_elbow(transect_occurrence_data, "transect species occurrences")
+    plot_silhouette_scores(transect_occurrence_data, "transect species occurrences")
     
     # Are there truly different transects based on transect abundance
-    plot_cluster_elbow(transect_abundance_data, "transect species abundances")
+    #plot_cluster_elbow(transect_abundance_data, "transect species abundances")
+    plot_silhouette_scores(transect_abundance_data, "transect species abundances")
     
     
     dev.off()
@@ -316,17 +318,18 @@ explore_habitat_data <- function(natura,
                                  fractions_corine,
                                  spatiotemporal_info, 
                                  coordinates, 
+                                 occurrence,
+                                 abundance,
                                  type) {
     
     
     # Remove entries before 2006 becaues there is no temperature_data
-    selected_years <- spatiotemporal_context$Year >= 2006
+    selected_years <- spatiotemporal_info$Year >= 2006
     natura <- natura[selected_years,]
     corine <- corine[selected_years,]
     spatiotemporal_context <- spatiotemporal_info[selected_years,]
-    
-    print(str(natura))
-    print(str(spatiotemporal_context))
+    occurrence <- occurrence[selected_years, ]
+    abundance <- abundance[selected_years, ]
     
     
     # Create aggregated data where each transect is only once
@@ -644,31 +647,130 @@ explore_habitat_data <- function(natura,
     
     # Elbow curvers and silhouettes
     
-    plot_cluster_elbow(fractions_natura, "Natura fractions")
+    #plot_cluster_elbow(fractions_natura, "Natura fractions")
     plot_silhouette_scores(fractions_natura, "Natura fractions")
-    plot_cluster_elbow(fractions_corine, "Corine fractions")
+    #plot_cluster_elbow(fractions_corine, "Corine fractions")
     plot_silhouette_scores(fractions_corine, "Corine fractions")
     
     diversity_columns <- c("PatchDensity", 
                            "SimpsonsDiversity", 
                            "ScaledRichness")
-    plot_cluster_elbow(transect_data_natura[,diversity_columns], "Natura diversity")
+    #plot_cluster_elbow(transect_data_natura[,diversity_columns], "Natura diversity")
     plot_silhouette_scores(transect_data_natura[,diversity_columns], "Natura diversity")
-    plot_cluster_elbow(transect_data_corine[,diversity_columns], "Corine diversity")
+    #plot_cluster_elbow(transect_data_corine[,diversity_columns], "Corine diversity")
     plot_silhouette_scores(transect_data_corine[,diversity_columns], "Corine diversity")
     
-    plot_cluster_elbow(transect_data_natura[,c("Temperature")], "Natura temperature")
+    #plot_cluster_elbow(transect_data_natura[,c("Temperature")], "Natura temperature")
     plot_silhouette_scores(transect_data_natura[,c("Temperature")], "Natura temperature")
-    plot_cluster_elbow(transect_data_corine[,c("Temperature")], "Corine temperature")
+    #plot_cluster_elbow(transect_data_corine[,c("Temperature")], "Corine temperature")
     plot_silhouette_scores(transect_data_corine[,c("Temperature")], "Corine temperature")
     
     
     combination_columns_natura <- c(colnames(fractions_natura), diversity_columns, "Temperature")
     combination_columns_corine <- c(colnames(fractions_corine), diversity_columns, "Temperature")
-    plot_cluster_elbow(transect_data_natura[,combination_columns_natura], "Natura combined")
+    #plot_cluster_elbow(transect_data_natura[,combination_columns_natura], "Natura combined")
     plot_silhouette_scores(transect_data_natura[,combination_columns_natura], "Natura combined")
-    plot_cluster_elbow(transect_data_corine[,combination_columns_corine], "Corine combined")
+    #plot_cluster_elbow(transect_data_corine[,combination_columns_corine], "Corine combined")
     plot_silhouette_scores(transect_data_corine[,combination_columns_corine], "Corine combined")
+    
+    
+    
+    # Plot species abundances on environmental gradients
+    abundance_clusters <- get_clusters(as.data.frame(abundance), 5)
+    
+    # For all of these: spatial plot, temporal plot, linear model?
+    
+    # Create fractions datasets
+    # Natura
+    natura_cluster_abundances <- list()
+    natura_cluster_richnesses <- list()
+    natura_cluster_diversity <- list()
+    natura_cluster_species_clusters <- list()
+    for (cluster in unique(natura$Cluster)) {
+        cluster_indices <- which(natura$Cluster == cluster)
+        cluster_abundance_rows <- abundance[cluster_indices, ]
+        cluster_abundances <- rowSums(cluster_abundance_rows)
+        cluster_richnesses <- apply(cluster_abundance_rows,
+                                    1,
+                                    function(row) {
+                                        return(sum(row > 0))
+                                    })
+        cluster_diversities <- diversity(cluster_abundance_rows, index = "simpson")
+        cluster_species_clusters <- abundance_clusters[cluster_indices]
+        natura_cluster_abundances[cluster] <- list(cluster_abundances)
+        natura_cluster_richnesses[cluster] <- list(cluster_richnesses)
+        natura_cluster_diversity[cluster] <- list(cluster_diversities)
+        natura_cluster_species_clusters[cluster] <- list(cluster_species_clusters)
+    }
+    # Corine
+    corine_cluster_abundances <- list()
+    corine_cluster_richnesses <- list()
+    corine_cluster_diversity <- list()
+    corine_cluster_species_clusters <- list()
+    for (cluster in unique(corine$Cluster)) {
+        cluster_indices <- which(corine$Cluster == cluster)
+        cluster_abundance_rows <- abundance[cluster_indices, ]
+        cluster_abundances <- rowSums(cluster_abundance_rows)
+        cluster_richnesses <- apply(cluster_abundance_rows,
+                                    1,
+                                    function(row) {
+                                        return(sum(row > 0))
+                                    })
+        cluster_diversities <- diversity(cluster_abundance_rows, index = "simpson")
+        cluster_species_clusters <- abundance_clusters[cluster_indices]
+        corine_cluster_abundances[cluster] <- list(cluster_abundances)
+        corine_cluster_richnesses[cluster] <- list(cluster_richnesses)
+        corine_cluster_diversity[cluster] <- list(cluster_diversities)
+        corine_cluster_species_clusters[cluster] <- list(cluster_species_clusters)
+    }
+     
+    # Also glms for all these?
+    
+    # Fractions vs abundance
+    boxplot(natura_cluster_abundances,
+            xlab = "Natura cluster",
+            ylab = "Abundance",
+            main = "Sample total abundance distributions for each Natura Cluster")
+    boxplot(corine_cluster_abundances,
+            xlab = "Corine cluster",
+            ylab = "Abundance",
+            main = "Sample total abundance distributions for each Corine Cluster")
+    
+    # Fractions vs richness
+    boxplot(natura_cluster_richnesses,
+            xlab = "Natura cluster",
+            ylab = "Species richnesses",
+            main = "Sample species richnesses for each Natura Cluster")
+    boxplot(corine_cluster_richnesses,
+            xlab = "Corine cluster",
+            ylab = "Species richnesses",
+            main = "Sample species richnesses for each Corine Cluster")
+    
+    # Fractions vs diversity
+    boxplot(natura_cluster_diversity,
+            xlab = "Natura cluster",
+            ylab = "Simpson's diversity",
+            main = "Sample Simpson's diversities for each Natura Cluster")
+    boxplot(corine_cluster_diversity,
+            xlab = "Corine cluster",
+            ylab = "Simpson's diversity",
+            main = "Sample Simpson's diversities for each Corine Cluster")
+    
+    # Fractions vs species cluster
+    # Should this be boxplot?
+    
+    # Diversity vs abundance
+    
+    # Diversity vs richness
+    
+    # Diversity vs diversity
+    
+    # Diversity vs. species cluster
+
+    # Glms for all these also?
+    
+    # Visualize what natura and corine clusters mean in practice (habitat fractions)    
+    
     
     
     dev.off()
@@ -699,4 +801,6 @@ explore_habitat_data(env_data_natura,
                      fractions_corine,
                      spatiotemporal_context, 
                      transect_coordinates, 
+                     occurrence,
+                     abundance,
                      "raw")

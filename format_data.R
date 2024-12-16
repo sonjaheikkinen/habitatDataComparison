@@ -226,8 +226,8 @@ transect_names <- rownames(fractions_natura)
 
 
 # Calculate habitat type clusters for some easy comparisons
-clusters_natura <- get_transect_clusters(fractions_natura, 10)
-clusters_corine <- get_transect_clusters(fractions_corine, 10)
+clusters_natura <- get_transect_clusters(fractions_natura, 5)
+clusters_corine <- get_transect_clusters(fractions_corine, 5)
 
 
 
