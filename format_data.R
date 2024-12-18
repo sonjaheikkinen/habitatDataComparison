@@ -381,8 +381,8 @@ save(taxonomy, file = file.path(dir_data, "taxonomy.RData"))
 #save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 
 # Save formatted data
-save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
-save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
+save(fractions_natura, file = file.path(dir_data, "fractions_natura_raw.RData"))
+save(fractions_corine, file = file.path(dir_data, "fractions_corine_raw.RData"))
 save(clusters_natura, file = file.path(dir_data, "clusters_natura.RData"))
 save(clusters_corine, file = file.path(dir_data, "clusters_corine.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))

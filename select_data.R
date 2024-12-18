@@ -3,6 +3,8 @@ load(file = file.path(dir_data, "abundance_raw.RData"))
 load(file = file.path(dir_data, "occurrence_raw.RData"))
 load(file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
 load(file = file.path(dir_data, "env_data_natura_raw.RData"))
+load(file = file.path(dir_data, "fractions_natura_raw.RData"))
+load(file = file.path(dir_data, "fractions_corine_raw.RData"))
 load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "trait_data_raw.RData"))
 
@@ -23,6 +25,8 @@ occurrence <- occurrence[transect_selection, ]
 spatiotemporal_context <- spatiotemporal_context[transect_selection, ]
 env_data_natura <- env_data_natura[transect_selection, ]
 env_data_corine <- env_data_corine[transect_selection, ]
+fractions_natura <- fractions_natura[unique(spatiotemporal_context$Transect),]
+fractions_corine <- fractions_corine[unique(spatiotemporal_context$Transect),]
 
 
 
@@ -40,14 +44,14 @@ for (species in colnames(occurrence)) {
 
 
 # SELECT ENVIRONMENTAL DATA
-not_habitat_types <- c("Effort", "Diversity", "Temperature", "NaturaPercentage", "CorinePercentage", "Cluster")
-natura_types <- setdiff(colnames(env_data_natura), not_habitat_types)
-corine_types <- setdiff(colnames(env_data_corine), not_habitat_types)
+natura_types <- colnames(fractions_natura)
+corine_types <- colnames(fractions_corine)
 for (type in natura_types) {
     zero_percentage <- sum(env_data_natura[,type] == 0) / length(env_data_natura[,type])
     print(sprintf("%s zero percentage: %s", type, zero_percentage))
     if (zero_percentage > 0.95) {
         env_data_natura[,type] <- NULL
+        fractions_natura[,type] <- NULL
     }
 }
 for (type in corine_types) {
@@ -55,15 +59,12 @@ for (type in corine_types) {
     print(sprintf("%s zero percentage: %s", type, zero_percentage))
     if (zero_percentage > 0.95) {
         env_data_corine[,type] <- NULL
+        fractions_corine[,type] <- NULL
     }
 }
-for (type in not_habitat_types) {
-    env_data_natura[,type] <- NULL
-    env_data_corine[,type] <- NULL
-}
+
 
 # SELECT TRAIT DATA
-trait_data <- trait_data[, c("Feeding", "LogMass")]
 trait_data <- trait_data[colnames(occurrence), ]
 
 
@@ -75,5 +76,7 @@ save(occurrence, file = file.path(dir_data, "occurrence.RData"))
 save(spatiotemporal_context, file = file.path(dir_data, "spatiotemporal_context.RData"))
 save(trait_data, file = file.path(dir_data, "trait_data.RData"))
 save(phylogeny_data, file = file.path(dir_data, "phylogeny_data.RData"))
+save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
+save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
 
 

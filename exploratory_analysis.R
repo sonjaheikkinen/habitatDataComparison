@@ -325,6 +325,8 @@ explore_habitat_data <- function(natura,
                                  type) {
     
     
+    pdf(file.path(dir_results, sprintf("exploratory_analysis_habitats_%s.pdf", type)))
+    
     # Remove entries before 2006 becaues there is no temperature_data
     selected_years <- spatiotemporal_info$Year >= 2006
     natura <- natura[selected_years,]
@@ -346,9 +348,6 @@ explore_habitat_data <- function(natura,
     )
     transect_data_corine <- aggregate(. ~ Transect, data = data_to_aggregate, FUN = mean)
     
-    
-    
-    pdf(file.path(dir_results, sprintf("exploratory_analysis_habitats_%s.pdf", type)))
 
     # Plot histograms of natura and corine types in transects
     # Also plot the histogram of just those values that aren't zeros
@@ -953,8 +952,8 @@ load(file = file.path(dir_data, "spatiotemporal_context_raw.RData"))
 load(file = file.path(dir_data, "transect_coordinates.RData"))
 load(file = file.path(dir_data, "env_data_natura_raw.RData")) 
 load(file = file.path(dir_data, "env_data_corine_raw.RData"))
-load(file = file.path(dir_data, "fractions_natura.RData")) 
-load(file = file.path(dir_data, "fractions_corine.RData"))
+load(file = file.path(dir_data, "fractions_natura_raw.RData")) 
+load(file = file.path(dir_data, "fractions_corine_raw.RData"))
 load(file = file.path(dir_data, "phylogeny_data_raw.RData"))
 load(file = file.path(dir_data, "trait_data_raw.RData"))
 
@@ -989,9 +988,8 @@ load(file = file.path(dir_data, "spatiotemporal_context.RData"))
 load(file = file.path(dir_data, "transect_coordinates.RData"))
 load(file = file.path(dir_data, "env_data_natura.RData")) 
 load(file = file.path(dir_data, "env_data_corine.RData"))
-selected_transects <- unique(spatiotemporal_context$Transect)
-fractions_natura <- fractions_natura[selected_transects, ]
-fractions_corine <- fractions_corine[selected_transects, ]
+load(file = file.path(dir_data, "fractions_natura.RData")) 
+load(file = file.path(dir_data, "fractions_corine.RData"))
 load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
 
