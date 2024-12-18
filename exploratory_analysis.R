@@ -62,6 +62,8 @@ scale_to_range <- function(values, new_min, new_max) {
 
 
 
+
+
 # EXPLORATORY ANALYSIS FUNCTIONS
 
 explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coordinates, type) {
@@ -853,6 +855,92 @@ explore_phylogeny_data <- function(phylogeny, abundance, type) {
 }
 
 
+# FUNCTIONS | TRAIT DATA
+
+count_trait_total_abundance <- function(trait_value, 
+                                        column, 
+                                        trait_data, 
+                                        species_total_abundances) {
+    trait_value_indices <- which(trait_data[,column] == trait_value)
+    species_with_trait_value <- trait_data[trait_value_indices, ]$Species
+    trait_value_abundance <- sum(species_total_abundances[species_with_trait_value])
+    return(trait_value_abundance)
+}
+
+explore_trait_data <- function(traits, abundance, type) {
+    
+    pdf(file.path(dir_results, sprintf("exploratory_analysis_traits_%s.pdf", type)))
+    
+    barplot(table(trait_data$Feeding),
+            main = "Feeding types of species",
+            ylab = "Frequency")
+    
+    barplot(table(trait_data$Mig),
+            main = "Migration types of species",
+            ylab = "Frequency")
+    
+    barplot(table(trait_data$Habitat),
+            main = "Habitat types of species",
+            ylab = "Frequency")
+    
+    hist(trait_data$Mass,
+         main = "Histogram of mass of species")
+    
+    # Traits weighted by abundances in the data
+    species_total_abundances <- colSums(abundance)
+    feeding_types_in_data <- sapply(unique(trait_data$Feeding),
+                                    function(trait_value) {
+                                        return(count_trait_total_abundance(trait_value,
+                                                                           "Feeding",
+                                                                           trait_data, 
+                                                                           species_total_abundances))
+                                    })
+    migration_types_in_data <- sapply(unique(trait_data$Mig),
+                                    function(trait_value) {
+                                        return(count_trait_total_abundance(trait_value,
+                                                                           "Mig",
+                                                                           trait_data, 
+                                                                           species_total_abundances))
+                                    })
+    habitat_types_in_data <- sapply(unique(trait_data$Habitat),
+                                    function(trait_value) {
+                                        return(count_trait_total_abundance(trait_value,
+                                                                           "Habitat",
+                                                                           trait_data, 
+                                                                           species_total_abundances))
+                                    })
+    masses_in_data <- unlist(sapply(trait_data$Species,
+                             function(species) {
+                                 species_mass <- trait_data[trait_data$Species == species,]$Mass
+                                 species_total_abundance <- species_total_abundances[species]
+                                 return(rep(species_mass, species_total_abundance))
+                             }))
+    names(masses_in_data) <- NULL
+    barplot(feeding_types_in_data,
+         main = "Total abundance for each feeding type in data")
+    barplot(migration_types_in_data,
+            main = "Total abundance for each migration type in data")
+    barplot(habitat_types_in_data,
+            main = "Total abundance for each habitat type in data")
+    hist(masses_in_data,
+         main = "Total abundance of all masses")
+    hist(masses_in_data[masses_in_data >= 1000],
+         main = "Histogram of masses over 1000 g")
+    hist(masses_in_data[masses_in_data < 1000 & masses_in_data >= 100],
+         main = "Histogram of masses under 1000 g but over 100 g")
+    hist(masses_in_data[masses_in_data < 100],
+         main = "Histogram of masses under 100 g")
+    
+
+    
+    
+    dev.off()
+    
+}
+
+
+
+
 
 
 # SCRIPT STARTS 
@@ -889,4 +977,42 @@ explore_phylogeny_data(phylogeny_data,
                        abundance,
                        "raw")
 explore_trait_data(trait_data,
+                   abundance, 
                    "raw")
+
+
+
+# LOAD SELECTED DATA
+load(file = file.path(dir_data, "occurrence.RData")) 
+load(file = file.path(dir_data, "abundance.RData")) 
+load(file = file.path(dir_data, "spatiotemporal_context.RData"))
+load(file = file.path(dir_data, "transect_coordinates.RData"))
+load(file = file.path(dir_data, "env_data_natura.RData")) 
+load(file = file.path(dir_data, "env_data_corine.RData"))
+selected_transects <- unique(spatiotemporal_context$Transect)
+fractions_natura <- fractions_natura[selected_transects, ]
+fractions_corine <- fractions_corine[selected_transects, ]
+load(file = file.path(dir_data, "phylogeny_data.RData"))
+load(file = file.path(dir_data, "trait_data.RData"))
+
+
+explore_bird_data(occurrence, 
+                  abundance, 
+                  spatiotemporal_context, 
+                  transect_coordinates, 
+                  "selected")
+explore_habitat_data(env_data_natura, 
+                     env_data_corine, 
+                     fractions_natura,
+                     fractions_corine,
+                     spatiotemporal_context, 
+                     transect_coordinates, 
+                     occurrence,
+                     abundance,
+                     "selected")
+explore_phylogeny_data(phylogeny_data, 
+                       abundance,
+                       "selected")
+explore_trait_data(trait_data,
+                   abundance, 
+                   "selected")
