@@ -778,6 +778,81 @@ explore_habitat_data <- function(natura,
 }
 
 
+explore_phylogeny_data <- function(phylogeny, abundance, type) {
+    
+    pdf(file.path(dir_results, sprintf("exploratory_analysis_phylogeny_%s.pdf", type)))
+    
+    # First prune tree to those in abundance
+    species_list <- colnames(abundance)
+    species_to_remove <- setdiff(phylogeny$tip.label, species_list)
+    tree <- drop.tip(phylogeny, species_to_remove)
+    
+    # Plot phylogenetic tree
+    plot(tree,
+         cex = 0.3)
+    
+    # Plot phylogenetic correlation matrix
+    correlation_matrix <- vcv(tree)
+    pheatmap(correlation_matrix,
+             fontsize_row = 4,
+             fontsize_col = 4)
+    
+    # Comparing phylogenetic groups
+    order_names <- c("Sorsalinnut",
+                     "Kanalinnut",
+                     "Kuikkalinnut",
+                     "Rantalinnut",
+                     "Kiitäjälinnut",
+                     "Pöllölinnut",
+                     "Tikkalinnut",
+                     "Päiväpetolinnut",
+                     "Varpuslinnut",
+                     "Jalohaukkalinnut",
+                     "Käkilinnut",
+                     "Kyyhkylinnut")
+    groups <- cutree(tree, 12) # Jaa lahkotasolle (manuaalisesti selvitetty)
+    group_total_abundances <- sapply(unique(groups), 
+                                     function(group) {
+                                         group_indices <- which(groups == group)
+                                         group_species <- names(groups)[group_indices]
+                                         print(group)
+                                         print(group_species)
+                                         group_abundance <- sum(abundance[,group_species])
+                                         return(group_abundance)
+                                     })
+    names(group_total_abundances) <- order_names
+    group_species_richnesses <- sapply(unique(groups), 
+                                       function(group) {
+                                           group_indices <- which(groups == group)
+                                           return(length(group_indices))
+                                       })
+    names(group_species_richnesses) <- order_names
+    
+    # Adjust margin to fit species names to the left
+    old_par <- par(no.readonly = TRUE) 
+    par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+    
+    barplot(group_species_richnesses,
+            horiz = TRUE,
+            las = 1,
+            main = "Number of species per order")
+    barplot(group_total_abundances,
+            horiz = TRUE,
+            las = 1,
+            main = "Total abundance per order (lahko)")
+    barplot(group_total_abundances / group_species_richnesses,
+            horiz = TRUE,
+            las = 1,
+            main = "Mean abundance per order (total / number of species)")
+  
+    par(old_par)
+    
+    
+    dev.off()
+    
+}
+
+
 
 
 # SCRIPT STARTS 
@@ -792,9 +867,15 @@ load(file = file.path(dir_data, "env_data_natura_raw.RData"))
 load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "fractions_natura.RData")) 
 load(file = file.path(dir_data, "fractions_corine.RData"))
+load(file = file.path(dir_data, "phylogeny_data_raw.RData"))
+load(file = file.path(dir_data, "trait_data_raw.RData"))
 
 
-explore_bird_data(occurrence, abundance, spatiotemporal_context, transect_coordinates, "raw")
+explore_bird_data(occurrence, 
+                  abundance, 
+                  spatiotemporal_context, 
+                  transect_coordinates, 
+                  "raw")
 explore_habitat_data(env_data_natura, 
                      env_data_corine, 
                      fractions_natura,
@@ -804,3 +885,8 @@ explore_habitat_data(env_data_natura,
                      occurrence,
                      abundance,
                      "raw")
+explore_phylogeny_data(phylogeny_data, 
+                       abundance,
+                       "raw")
+explore_trait_data(trait_data,
+                   "raw")
