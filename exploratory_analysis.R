@@ -58,9 +58,41 @@ scale_to_range <- function(values, new_min, new_max) {
 
 
 
+plot_spatially <- function(values, 
+                           sizes, 
+                           coord_indices, 
+                           coordinates, 
+                           title, 
+                           colors = "Black",
+                           pch = 21) {
+    plot(coordinates[coord_indices, ]$x,
+         coordinates[coord_indices, ]$y, 
+         cex = sizes, 
+         pch = pch,
+         col = colors,
+         xlab = sprintf("X \n[%s, %s], mean %s, median %s, sd %s",
+                               round(min(values), 2), 
+                               round(max(values), 2),
+                               round(mean(values), 2), 
+                               round(median(values), 2),
+                               round(sd(values), 2)), 
+         ylab = "Y", 
+         main = title)
+}
 
-
-
+plot_barplot <- function(values, names, title) {
+    barplot(values, 
+            names.arg = names,
+            horiz = TRUE,
+            las = 2,
+            xlab = sprintf("[%s, %s], mean %s, median %s, sd %s",
+                           round(min(values), 2), 
+                           round(max(values), 2),
+                           round(mean(values), 2), 
+                           round(median(values), 2),
+                           round(sd(values), 2)),
+            main = title)
+}
 
 
 
@@ -71,18 +103,105 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     pdf(file.path(dir_results, sprintf("exploratory_analysis_observations_%s.pdf", type)))
     
     
+    sample_total_abundance <- rowSums(abundance, na.rm = TRUE)
+    sample_species_richness <- rowSums(occurrence, na.rm = TRUE)
+    sample_simpson_diversity <- diversity(abundance, index = "simpson")
+    sample_shannon_diversity <- diversity(abundance, index = "shannon")
+    
+    
+    # SPATIAL AND TEMPORAL PLOTS FOR TOTAL ABUNDANCE, SPECIES RICHNESS, DIVERSITIES
+    
+    
+    # Spatial overview
+    transect_mean_total_abundance <- aggregate(Abundance ~ Transect,
+                                               data = data.frame(Abundance = sample_total_abundance,
+                                                                 spatiotemporal_context),
+                                               FUN = mean)
+    transect_mean_species_richness <- aggregate(Richness ~ Transect,
+                                               data = data.frame(Richness = sample_species_richness,
+                                                                 spatiotemporal_context),
+                                               FUN = mean)
+    transect_mean_simpson_diversity <- aggregate(Diversity ~ Transect,
+                                               data = data.frame(Diversity = sample_simpson_diversity,
+                                                                 spatiotemporal_context),
+                                               FUN = mean)
+    transect_mean_shannon_diversity <- aggregate(Diversity ~ Transect,
+                                                 data = data.frame(Diversity = sample_shannon_diversity,
+                                                                   spatiotemporal_context),
+                                                 FUN = mean)
+    plot_spatially(transect_mean_total_abundance$Abundance,
+                   transect_mean_total_abundance$Abundance * 0.005,
+                   transect_mean_total_abundance$Transect, 
+                   coordinates,
+                   "Mean of sample total abundances for each transect")
+    
+    plot_spatially(transect_mean_species_richness$Richness,
+                   transect_mean_species_richness$Richness * 0.05,
+                   transect_mean_species_richness$Transect,
+                   coordinates,
+                   "Mean of sample species richnesses for each transect")
+    scaled_simpson_diversities <- scale(transect_mean_simpson_diversity$Diversity)
+    plot_spatially(transect_mean_simpson_diversity$Diversity,
+                   (scaled_simpson_diversities + abs(min(scaled_simpson_diversities))) * 0.3,
+                   transect_mean_simpson_diversity$Transect,
+                   coordinates,
+                   "Mean of sample Simpson's diversities for each transect")
+    scaled_shannon_diversities <- scale(transect_mean_shannon_diversity$Diversity)
+    plot_spatially(transect_mean_shannon_diversity$Diversity,
+                   (scaled_shannon_diversities + abs(min(scaled_shannon_diversities))) * 0.3,
+                   transect_mean_shannon_diversity$Transect,
+                   coordinates,
+                   "Mean of sample Shannon's diversities for each transect")
+    
+    
+    # Temporal overview
+    year_mean_total_abundance <- aggregate(Abundance ~ Year,
+                                           data = data.frame(Abundance = sample_total_abundance,
+                                                             spatiotemporal_context),
+                                           FUN = mean)
+    year_mean_species_richness <- aggregate(Richness ~ Year,
+                                            data = data.frame(Richness = sample_species_richness,
+                                                              spatiotemporal_context),
+                                            FUN = mean)
+    year_mean_simpson_diversity <- aggregate(Diversity ~ Year,
+                                             data = data.frame(Diversity = sample_simpson_diversity,
+                                                               spatiotemporal_context),
+                                             FUN = mean)
+    year_mean_shannon_diversity <- aggregate(Diversity ~ Year,
+                                             data = data.frame(Diversity = sample_shannon_diversity,
+                                                               spatiotemporal_context),
+                                             FUN = mean)
+    plot_barplot(year_mean_total_abundance$Abundance, 
+                 year_mean_total_abundance$Year,
+                 "Mean of sample total abundances for each year")
+    plot_barplot(year_mean_species_richness$Richness, 
+                 year_mean_species_richness$Year,
+                 "Mean of sample species richness for each year")
+    plot_barplot(year_mean_simpson_diversity$Diversity, 
+                 year_mean_simpson_diversity$Year,
+                 "Mean of sample Simpson's diversities for each year")
+    plot_barplot(year_mean_shannon_diversity$Diversity, 
+                 year_mean_shannon_diversity$Year,
+                 "Mean of sample Shannon's diversities for each year")
+    
+    
+    # Yearly plots
+    
+    
+    
+    
+    
+    
     # Total abundance in samples
-    sample_abundances <- rowSums(abundance, na.rm = TRUE)
-    hist(sample_abundances,
+    hist(sample_total_abundance,
          main = "Histogram of total abundance in samples",
-         xlab = sprintf("Abundance, min %s, max %s", min(sample_abundances), max(sample_abundances)),
+         xlab = sprintf("Abundance, min %s, max %s", min(sample_total_abundance), max(sample_total_abundance)),
          ylab = sprintf("Frequency, %s total samples", nrow(abundance)))
     
     # Total species richness in samples
-    sample_occurrences <- rowSums(occurrence, na.rm = TRUE)
-    hist(sample_occurrences,
+    hist(sample_species_richness,
          main = "Histogram of species richness in samples",
-         xlab = sprintf("Occurrence, min %s, max %s", min(sample_occurrences), max(sample_occurrences)),
+         xlab = sprintf("Occurrence, min %s, max %s", min(sample_species_richness), max(sample_species_richness)),
          ylab = sprintf("Frequency, total samples: %s, total richness. %s", 
                         nrow(occurrence),
                         ncol(occurrence)))
@@ -126,22 +245,22 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     # Spatial and temporal patterns
     
     # Calculate sample level mean abundances across species
-    sample_total_abundances <- matrix(0,
+    sample_total_abundance <- matrix(0,
                                       nrow = length(unique(spatiotemporal_context$Year)),
                                       ncol = length(unique(spatiotemporal_context$Transect)))
-    rownames(sample_total_abundances) <- rev(sort(unique(spatiotemporal_context$Year)))
-    colnames(sample_total_abundances) <- unique(spatiotemporal_context$Transect)
+    rownames(sample_total_abundance) <- rev(sort(unique(spatiotemporal_context$Year)))
+    colnames(sample_total_abundance) <- unique(spatiotemporal_context$Transect)
     for (row in 1:nrow(spatiotemporal_context)) {
         year <- spatiotemporal_context[row, ]$Year
         transect <- spatiotemporal_context[row, ]$Transect
         sample <- sprintf("%s%s", year, transect)
-        year_index <- match(year, rownames(sample_total_abundances))
-        transect_index <- match(transect, colnames(sample_total_abundances))
+        year_index <- match(year, rownames(sample_total_abundance))
+        transect_index <- match(transect, colnames(sample_total_abundance))
         row_abundances <- abundance[row, ]
         row_abundances[is.na(row_abundances)] <- 0 
-        sample_total_abundances[year_index, transect_index] <- sum(row_abundances)
+        sample_total_abundance[year_index, transect_index] <- sum(row_abundances)
     }
-    pheatmap(sample_total_abundances,
+    pheatmap(sample_total_abundance,
              cluster_rows = FALSE,
              main = "Total abundance in each sample")
     
@@ -149,7 +268,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     # Spatial variation in transect total abundance 
     # Sample total abundances: sum of species abundances in each sample
     # Transect mean total abundances: mean of sample total abundances from that transect
-    transect_mean_total_abundances <- apply(sample_total_abundances, 
+    transect_mean_total_abundances <- apply(sample_total_abundance, 
                                             2, 
                                             function(col) {
                                                 non_zero_values <- col[col != 0]
@@ -175,7 +294,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     # Temporal variation in total abundance
     # Sample total abundance: sum of species abundances in each sample
     # Year mean total abundances: mean of sample total abundancies from that year
-    year_mean_total_abundances <- apply(sample_total_abundances, 
+    year_mean_total_abundances <- apply(sample_total_abundance, 
                                    1, 
                                    function(row) {
                                        non_zero_values <- row[row != 0]
@@ -185,7 +304,7 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
                                            NA  # Return NA if there are no non-zero values
                                        }
                                    })
-    names(year_mean_total_abundances) <- rownames(sample_total_abundances)
+    names(year_mean_total_abundances) <- rownames(sample_total_abundance)
     barplot(year_mean_total_abundances,
             horiz = TRUE,
             las = 1,
@@ -244,14 +363,12 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
     
     
     # Compare mean species diversity over transects
-    sample_simpson_diversities <- diversity(abundance, index = "simpson")
-    sample_shannon_diversities <- diversity(abundance, index = "shannon")
     transect_mean_simpson_diversities <- c()
     transect_mean_shannon_diversities <- c()
     for (transect in unique(spatiotemporal_context)$Transect) {
         transect_indices <- which(spatiotemporal_context$Transect == transect)
-        transect_mean_simpson_diversities[transect] <- mean(sample_simpson_diversities[transect_indices])
-        transect_mean_shannon_diversities[transect] <- mean(sample_shannon_diversities[transect_indices])
+        transect_mean_simpson_diversities[transect] <- mean(sample_simpson_diversity[transect_indices])
+        transect_mean_shannon_diversities[transect] <- mean(sample_shannon_diversity[transect_indices])
     }
     
     # Smaller dot means bigger diversity
@@ -314,11 +431,26 @@ explore_bird_data <- function(occurrence, abundance, spatiotemporal_context, coo
 }
 
 
+# FUNCTIONS | HABITAT DATA
+
+plot_distribution <- function(data, xlab, main) {
+    hist(data, 
+         xlab = sprintf("%s, \n[%s, %s], mean %s, median %s, sd %s",
+                        xlab, 
+                        round(min(data), 2), 
+                        round(max(data), 2),
+                        round(mean(data), 2), 
+                        round(median(data), 2),
+                        round(sd(data), 2)),
+         main = main)
+}
+
+
 explore_habitat_data <- function(natura, 
                                  corine, 
                                  fractions_natura,
                                  fractions_corine,
-                                 spatiotemporal_info, 
+                                 spatiotemporal_context, 
                                  coordinates, 
                                  occurrence,
                                  abundance,
@@ -326,14 +458,6 @@ explore_habitat_data <- function(natura,
     
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_habitats_%s.pdf", type)))
-    
-    # Remove entries before 2006 becaues there is no temperature_data
-    selected_years <- spatiotemporal_info$Year >= 2006
-    natura <- natura[selected_years,]
-    corine <- corine[selected_years,]
-    spatiotemporal_context <- spatiotemporal_info[selected_years,]
-    occurrence <- occurrence[selected_years, ]
-    abundance <- abundance[selected_years, ]
     
     
     # Create aggregated data where each transect is only once
@@ -355,108 +479,67 @@ explore_habitat_data <- function(natura,
         par(mfrow = c(2, 1))
         column_data <- fractions_natura[, column]
         column_data_without_zeros <- column_data[column_data != 0]
-        zeros <- sum(column_data == 0)
-        hist(fractions_natura[,column], 
-             probability = TRUE, 
-             col = "lightgray",
-             xlab = sprintf("%s", column),
-             main = sprintf("Natura: Histogram of %s in transects, zeros: %s/%s = %s", 
-                            column, 
-                            zeros, 
-                            length(column_data), 
-                            round(zeros / length(column_data), 2)))
+        non_zeros <- sum(column_data != 0)
+        plot_distribution(fractions_natura[,column], 
+                          xlab = sprintf("%s", column),
+                          main = sprintf("Natura: Histogram of %s in transects, \nnon-zeros: %s/%s = %s", 
+                                         column, 
+                                         non_zeros, 
+                                         length(column_data), 
+                                         round(non_zeros / length(column_data), 2)))
         if (length(column_data_without_zeros) > 0) {
-            hist(column_data_without_zeros, 
-                 probability = TRUE, 
-                 col = "lightgray",
-                 xlab = sprintf("%s", column),
-                 main = sprintf("Natura: Histogram of %s without zeros", column))
+            plot_distribution(column_data_without_zeros, 
+                              xlab = sprintf("%s", column),
+                              main = sprintf("Natura: Histogram of %s without zeros", column))
         }
     }
     for (column in colnames(fractions_corine)) {
         par(mfrow = c(2, 1))
         column_data <- fractions_corine[, column]
         column_data_without_zeros <- column_data[column_data != 0]
-        zeros <- sum(column_data == 0)
-        hist(fractions_corine[,column], 
-             probability = TRUE, 
-             col = "lightgray",
-             xlab = sprintf("%s", column),
-             main = sprintf("Corine: Histogram of %s in transects, zeros: %s/%s = %s", 
-                            column, 
-                            zeros, 
-                            length(column_data), 
-                            round(zeros / length(column_data), 2)))
+        non_zeros <- sum(column_data != 0)
+        plot_distribution(fractions_corine[,column],
+                          xlab = sprintf("%s", column),
+                          main = sprintf("Corine: Histogram of %s in transects, \nnon-zeros: %s/%s = %s",
+                                         column, 
+                                         non_zeros, 
+                                         length(column_data), 
+                                         round(non_zeros / length(column_data), 2)))
         if (length(column_data_without_zeros) > 0) {
-            hist(column_data_without_zeros, 
-                 probability = TRUE, 
-                 col = "lightgray",
-                 xlab = sprintf("%s", column),
-                 main = sprintf("Corine: Histogram of %s without zeros", column))
+            plot_distribution(column_data_without_zeros,
+                              xlab = sprintf("%s", column),
+                              main = sprintf("Corine: Histogram of %s without zeros", column))
         }
     }
     
     par(mfrow=c(1,1))
     
-    hist(natura$Temperature, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Temperature (april + may)",
-         main = "Histogram of transect spring temperatures in samples")
+    plot_distribution(natura$Temperature,
+                      xlab = "Temperature (april + may)",
+                      main = "Histogram of transect spring temperatures in samples")
     
-    hist(transect_data_natura$Effort, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Transect length",
-         main = "Histogram of transect lengths")
+    plot_distribution(natura$Effort,
+                      xlab = "Transect length",
+                      main = "Histogram of transect lengths in samples")
     
-    hist(transect_data_natura$PatchDensity, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Patch density",
-         main = "Histogram of Natura patch density in transects")
+    variables_to_plot <- c("PatchDensity", 
+                           "SimpsonsDiversity",
+                           "ShannonsDiversity",
+                           "ScaledRichness")
     
-    hist(transect_data_corine$PatchDensity, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Patch density",
-         main = "Histogram of Corine patch density in transects")
+    for (column in variables_to_plot) {
+        par(mfrow = c(2, 1))
+        plot_distribution(transect_data_natura[,column],
+                          xlab = column,
+                          main = sprintf("Histogram of Natura %s in transects",
+                                         column))
+        plot_distribution(transect_data_corine[,column],
+                          xlab = column,
+                          main = sprintf("Histogram of Corine %s in transects",
+                                         column))
+    }
     
-    hist(transect_data_natura$SimpsonsDiversity, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Simpson's diversity",
-         main = "Histogram of Natura Simpson's diversity in transects")
-    
-    hist(transect_data_corine$SimpsonsDiversity, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Simpson's diversity",
-         main = "Histogram of Corine Simpson's diversity in transects")
-    
-    hist(transect_data_natura$ShannonsDiversity, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Shannon's diversity",
-         main = "Histogram of Natura Shannon's diversity in transects")
-    
-    hist(transect_data_corine$ShannonsDiversity, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Shannon's diversity",
-         main = "Histogram of Corine Shannon's diversity in transects")
-    
-    hist(transect_data_natura$ScaledRichness, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Scaled richness",
-         main = "Histogram of Natura scaled richness in transects")
-    
-    hist(transect_data_corine$ScaledRichness, 
-         probability = TRUE, 
-         col = "lightgray",
-         xlab = "Scaled richness",
-         main = "Histogram of Corine scaled richness in transects")
+    par(mfrow=c(1,1))
     
     
     # Spatial plots for variables
@@ -610,7 +693,7 @@ explore_habitat_data <- function(natura,
     
     
     
-    # Temperatures spatially
+    # Temperatures spatially (means per transect)
     colors <- colorRampPalette(c("blue", "white", "red"))
     number_of_colors <- 100 
     scaled_temperatures <- scale_to_range(transect_data_natura$Temperature, 
@@ -631,6 +714,34 @@ explore_habitat_data <- function(natura,
          pos = 3, 
          col = "black", 
          cex = 0.5)
+    
+    # Temperatures spatially (per year)
+    for (year in unique(spatiotemporal_context$Year)) {
+        year_indices <- which(spatiotemporal_context$Year == year)
+        data_for_year <- data.frame(spatiotemporal_context[year_indices, ],
+                                         natura[year_indices, ])
+        colors <- colorRampPalette(c("blue", "white", "red"))
+        number_of_colors <- 100 
+        scaled_temperatures <- scale_to_range(data_for_year$Temperature, 
+                                              1, 
+                                              number_of_colors)
+        temperature_colors <- colors(number_of_colors)[round(scaled_temperatures)]
+        plot(coordinates[data_for_year$Transect, ]$x,
+             coordinates[data_for_year$Transect, ]$y, 
+             cex =  1, 
+             col = temperature_colors,
+             pch = 20,
+             xlab = "X", 
+             ylab = "Y", 
+             main = sprintf("Transect mean spring temperatures for %s", year))
+        text(x = coordinates[data_for_year$Transect, ]$x,
+             y = coordinates[data_for_year$Transect, ]$y,
+             labels = round(data_for_year$Temperature, 1),  
+             pos = 3, 
+             col = "black", 
+             cex = 0.5)
+        
+    }
     
     
     # Yearly mean temperatures
@@ -779,14 +890,29 @@ explore_habitat_data <- function(natura,
 }
 
 
-explore_phylogeny_data <- function(phylogeny, abundance, type) {
+explore_phylogeny_data <- function(tree, abundance, type) {
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_phylogeny_%s.pdf", type)))
     
-    # First prune tree to those in abundance
+    # First group the species to order level
+    order_names <- c("Sorsalinnut",
+                     "Kanalinnut",
+                     "Kuikkalinnut",
+                     "Rantalinnut",
+                     "Kiitäjälinnut",
+                     "Pöllölinnut",
+                     "Tikkalinnut",
+                     "Päiväpetolinnut",
+                     "Varpuslinnut",
+                     "Jalohaukkalinnut",
+                     "Käkilinnut")
+    groups <- cutree(tree, 12) # Jaa lahkotasolle (manuaalisesti selvitetty)
+    
+    # Then prune tree to those in abundance
     species_list <- colnames(abundance)
-    species_to_remove <- setdiff(phylogeny$tip.label, species_list)
-    tree <- drop.tip(phylogeny, species_to_remove)
+    species_to_remove <- setdiff(tree$tip.label, species_list)
+    tree <- drop.tip(tree, species_to_remove)
+    groups <- groups[setdiff(names(groups), species_to_remove)]
     
     # Plot phylogenetic tree
     plot(tree,
@@ -798,20 +924,7 @@ explore_phylogeny_data <- function(phylogeny, abundance, type) {
              fontsize_row = 4,
              fontsize_col = 4)
     
-    # Comparing phylogenetic groups
-    order_names <- c("Sorsalinnut",
-                     "Kanalinnut",
-                     "Kuikkalinnut",
-                     "Rantalinnut",
-                     "Kiitäjälinnut",
-                     "Pöllölinnut",
-                     "Tikkalinnut",
-                     "Päiväpetolinnut",
-                     "Varpuslinnut",
-                     "Jalohaukkalinnut",
-                     "Käkilinnut",
-                     "Kyyhkylinnut")
-    groups <- cutree(tree, 12) # Jaa lahkotasolle (manuaalisesti selvitetty)
+
     group_total_abundances <- sapply(unique(groups), 
                                      function(group) {
                                          group_indices <- which(groups == group)
