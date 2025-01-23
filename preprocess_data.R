@@ -56,6 +56,12 @@ observations_from_study_area <- get_observations_from_given_transects(transects,
 observations <- observations_from_study_area
 
 
+# LIMIT DATA TO STUDY YEARS
+observations_2006_onwards <- observations$Year >= 2006
+observations <- observations[observations_2006_onwards, ]
+
+
+
 # CLEAN DATA
 
 # Remove species that are not birds
