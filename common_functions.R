@@ -69,7 +69,8 @@ get_transect_habitat_data <- function(buffer_width,
         buffer_polygon_around_transect <- buffer(transect, width = buffer_width)
         if (type == "fraction" || type == "presence") {
             habitats_in_buffer <- na.omit(extract(habitats, buffer_polygon_around_transect))
-            habitats_in_buffer[,2] <- as.integer(habitats_in_buffer[,2])
+            habitats_in_buffer <- droplevels(habitats_in_buffer)
+            habitats_in_buffer[,2] <- as.integer(as.character(habitats_in_buffer[,2]))
             data_for_transect <- get_habitat_type_fractions_dataframe(transect_number,
                                                                       habitats_in_buffer,
                                                                       all_habitat_values,
