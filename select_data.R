@@ -9,14 +9,6 @@ load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "trait_data_raw.RData"))
 
 
-# SELECT YEARS
-year_selection <- spatiotemporal_context$Year >= 2006
-abundance <- abundance[year_selection, ]
-occurrence <- occurrence[year_selection, ]
-spatiotemporal_context <- spatiotemporal_context[year_selection, ]
-env_data_natura <- env_data_natura[year_selection, ]
-env_data_corine <- env_data_corine[year_selection, ]
-
 # SELECT TRANSECTS
 # Remove transect if not a big enough portion of the transect is covered by natura data
 transect_selection <- env_data_natura$NaturaPercentage >= 0.9
@@ -47,17 +39,29 @@ for (species in colnames(occurrence)) {
 natura_types <- colnames(fractions_natura)
 corine_types <- colnames(fractions_corine)
 for (type in natura_types) {
-    zero_percentage <- sum(env_data_natura[,type] == 0) / length(env_data_natura[,type])
-    print(sprintf("%s zero percentage: %s", type, zero_percentage))
-    if (zero_percentage > 0.95) {
-        env_data_natura[,type] <- NULL
-        fractions_natura[,type] <- NULL
+    #zero_percentage <- sum(env_data_natura[,type] == 0) / length(env_data_natura[,type])
+    #print(sprintf("%s zero percentage: %s", type, zero_percentage))
+    #if (zero_percentage >= 0.95) {
+    #    env_data_natura[,type] <- NULL
+    #    fractions_natura[,type] <- NULL
+    #}
+    non_zeros <- sum(fractions_natura[,type] != 0)
+    print(sprintf("%s non-zeros: %s", type, non_zeros))
+    if (non_zeros < 3) {
+            env_data_natura[,type] <- NULL
+            fractions_natura[,type] <- NULL
     }
 }
 for (type in corine_types) {
-    zero_percentage <- sum(env_data_corine[,type] == 0) / length(env_data_corine[,type])
-    print(sprintf("%s zero percentage: %s", type, zero_percentage))
-    if (zero_percentage > 0.95) {
+    #zero_percentage <- sum(env_data_corine[,type] == 0) / length(env_data_corine[,type])
+    #print(sprintf("%s zero percentage: %s", type, zero_percentage))
+    #if (zero_percentage >= 0.95) {
+    #    env_data_corine[,type] <- NULL
+    #    fractions_corine[,type] <- NULL
+    #}
+    non_zeros <- sum(fractions_corine[,type] != 0)
+    print(sprintf("%s non-zeros: %s", type, non_zeros))
+    if (non_zeros < 3) {
         env_data_corine[,type] <- NULL
         fractions_corine[,type] <- NULL
     }
