@@ -7,6 +7,8 @@ load(file = file.path(dir_data, "spatiotemporal_context.RData"))
 load(file = file.path(dir_data, "env_data_natura.RData"))
 load(file = file.path(dir_data, "env_data_corine.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
+load(file = file.path(dir_data, "fractions_natura.RData"))
+load(file = file.path(dir_data, "fractions_corine.RData"))
 
 
 
@@ -45,13 +47,14 @@ temporal_coordinates <- data.frame(Year = unique(spatiotemporal_context$Year))
 rownames(temporal_coordinates) <- temporal_coordinates$Year
 randomlevel_temporal <- HmscRandomLevel(sData = temporal_coordinates)
 
+# REMOVED BECAUSE UNSURE IF HMSC SUPPORTS SPATIOTEMPORAL RANDOM EFFECTS
 # Create transect-year-level spatiotemporal random effect
 # Each sample belongs to a spatiotemporal class. 
 # Each spatiotemporal class has coordinates x, y, year
-spatiotemporal_coordinates <- unique(spatiotemporal_context[, c("YearTransect", "x", "y", "Year")])
-rownames(spatiotemporal_coordinates) <- spatiotemporal_coordinates$YearTransect
-spatiotemporal_coordinates$YearTransect <- NULL
-randomlevel_spatiotemporal <- HmscRandomLevel(sData = spatiotemporal_coordinates)
+#spatiotemporal_coordinates <- unique(spatiotemporal_context[, c("YearTransect", "x", "y", "Year")])
+#rownames(spatiotemporal_coordinates) <- spatiotemporal_coordinates$YearTransect
+#spatiotemporal_coordinates$YearTransect <- NULL
+#randomlevel_spatiotemporal <- HmscRandomLevel(sData = spatiotemporal_coordinates)
 
 
 
@@ -65,58 +68,141 @@ randomlevel_spatiotemporal <- HmscRandomLevel(sData = spatiotemporal_coordinates
 env_formula_natura <- as.formula(sprintf("~%s", paste(colnames(env_data_natura), collapse = "+")))
 env_formula_corine <- as.formula(sprintf("~%s", paste(colnames(env_data_corine), collapse = "+")))
 trait_formula <- as.formula(sprintf("~%s", paste(colnames(trait_data), collapse = "+")))
+test_formula_natura_frac <- as.formula(sprintf("~%s", 
+                                               paste(colnames(fractions_natura), 
+                                                     collapse = "+")))
+test_formula_natura_frac_temp <- as.formula(sprintf("~%s", 
+                                                    paste(c(colnames(fractions_natura),
+                                                            "Temperature"), 
+                                                          collapse = "+")))
+test_formula_corine_frac <- as.formula(sprintf("~%s", 
+                                               paste(colnames(fractions_corine), 
+                                                     collapse = "+")))
+test_formula_corine_frac_temp <- as.formula(sprintf("~%s", 
+                                                    paste(c(colnames(fractions_corine),
+                                                            "Temperature"), 
+                                                          collapse = "+")))
 
 # DEFINE MODELS
-probit_natura <- Hmsc(Y = occurrence, 
-                      XData = env_data_natura,
-                      XFormula = env_formula_natura,
-                      #TrData = trait_data,
-                      #TrFormula = trait_formula,
-                      #phyloTree = taxonomy,
-                      distr = "probit",
-                      studyDesign = study_design,
-                      ranLevels = list("Transect" = randomlevel_spatial, 
-                                       "Year" = randomlevel_temporal))
 
-probit_corine <- Hmsc(Y = occurrence, 
-                      XData = env_data_corine, 
-                      XFormula = env_formula_corine,
-                      #TrData = trait_data,
-                      #TrFormula = trait_formula,
-                      #phyloTree = taxonomy,
-                      distr = "probit",
-                      studyDesign = study_design,
-                      ranLevels = list("Transect" = randomlevel_spatial, 
-                                       "Year" = randomlevel_temporal))
+#probit_natura <- Hmsc(Y = occurrence, 
+#                      XData = env_data_natura,
+#                      XFormula = env_data_natura,
+#                      TrData = trait_data,
+#                      TrFormula = trait_formula,
+#                      phyloTree = taxonomy,
+#                      distr = "probit",
+#                      studyDesign = study_design,
+#                      ranLevels = list("Transect" = randomlevel_spatial,
+#                                       "Year" = randomlevel_temporal))
 
-probit_natura_spatiotemporal <- Hmsc(Y = occurrence, 
-                                     XData = env_data_natura,
-                                     XFormula = env_formula_natura,
-                                     #TrData = trait_data,
-                                     #TrFormula = trait_formula,
-                                     #phyloTree = taxonomy,
+test_probit_natura_frac <- Hmsc(Y = occurrence, 
+                                XData = env_data_natura,
+                                XFormula = test_formula_natura_frac,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
+test_probit_natura_frac_temp <- Hmsc(Y = occurrence, 
+                                XData = env_data_natura,
+                                XFormula = test_formula_natura_frac_temp,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
+test_probit_corine_frac <- Hmsc(Y = occurrence, 
+                                XData = env_data_corine,
+                                XFormula = test_formula_corine_frac,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
+test_probit_corine_frac_temp <- Hmsc(Y = occurrence, 
+                                     XData = env_data_corine,
+                                     XFormula = test_formula_corine_frac_temp,
                                      distr = "probit",
                                      studyDesign = study_design,
-                                     ranLevels = list("YearTransect" = randomlevel_spatiotemporal))
+                                     ranLevels = list("Transect" = randomlevel_spatial, 
+                                                      "Year" = randomlevel_temporal))
+test_probit_natura_clus <- Hmsc(Y = occurrence, 
+                                XData = env_data_natura,
+                                XFormula = ~Cluster,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
 
-probit_corine_spatiotemporal <- Hmsc(Y = occurrence, 
-                                     XData = env_data_corine, 
-                                     XFormula = env_formula_corine,
-                                     #TrData = trait_data,
-                                     #TrFormula = trait_formula,
-                                     #phyloTree = taxonomy,
-                                     distr = "probit",
-                                     studyDesign = study_design,
-                                     ranLevels = list("YearTransect" = randomlevel_spatiotemporal))
 
 
 # If needed, test that model works properly:
-#sampleMcmc(probit_natura, samples = 3)
+#sampleMcmc(test_probit_corine_frac, samples = 3)
 
 
 # SAVE MODELS
-model_list <- list(probit_natura, probit_corine)
-names(model_list) <- c("probit_natura", "probit_corine")
-save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
+model_list <- list(test_probit_natura_frac,
+                   test_probit_natura_frac_temp,
+                   test_probit_corine_frac,
+                   test_probit_corine_frac_temp,)
+names(model_list) <- c("test_probit_natura_frac",
+                       "test_probit_natura_frac_temp",
+                       "test_probit_corine_frac",
+                       "test_probit_corine_frac_temp")
+save(model_list, file = file.path(dir_models, "models_unfitted_2.RData"))
+
+
+
+
+# QUICK TESTING
+
+
+
+
+
+quick_test <- Hmsc(Y = occurrence, 
+                   XData = env_data_natura,
+                   XFormula = ~Cluster,
+                   distr = "probit",
+                   studyDesign = study_design,
+                   ranLevels = list("Transect" = randomlevel_spatial, 
+                                    "Year" = randomlevel_temporal))
+
+
+run_quick_test <- function() {
+    
+    samples <- 250
+    thin <- 1
+    n <- 4
+    
+    print(sprintf("Fitting start %s", date()))
+    fitted_model <- sampleMcmc(quick_test, 
+                               samples = samples, 
+                               thin = thin,
+                               transient = ceiling(0.5 * samples * thin),
+                               nChains = n,
+                               nParallel = n,
+                               verbose = 100)
+    print(sprintf("End %s", date()))
+    print("")
+    
+    print(sprintf("Cross-validation start %s", date()))
+    partition <- createPartition(fitted_model, nfolds = 2) 
+    predicted_values <- computePredictedValues(fitted_model, 
+                                                   partition = partition, 
+                                                   nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
+
+    
+    
+}
+
+#run_quick_test()
+
+
+
+
+
+
+
 
 
