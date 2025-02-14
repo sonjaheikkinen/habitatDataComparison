@@ -7,6 +7,7 @@ load(file = file.path(dir_data, "fractions_natura_raw.RData"))
 load(file = file.path(dir_data, "fractions_corine_raw.RData"))
 load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "trait_data_raw.RData"))
+load(file = file.path(dir_data, "phylogeny_data_raw.RData"))
 
 
 # SELECT TRANSECTS
@@ -67,6 +68,10 @@ for (type in corine_types) {
     }
 }
 
+# CALCULATE NEW PCA FROM SELECTED DATA
+pca_results_natura <- prcomp(fractions_natura, center = TRUE, scale. = TRUE)
+pca_results_corine <- prcomp(fractions_corine, center = TRUE, scale. = TRUE)
+
 
 # SELECT TRAIT DATA
 trait_data <- trait_data[colnames(occurrence), ]
@@ -82,5 +87,7 @@ save(trait_data, file = file.path(dir_data, "trait_data.RData"))
 save(phylogeny_data, file = file.path(dir_data, "phylogeny_data.RData"))
 save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
+save(pca_results_natura, file = file.path(dir_data, "pca_results_natura.RData"))
+save(pca_results_corine, file = file.path(dir_data, "pca_results_corine.RData"))
 
 

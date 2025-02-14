@@ -224,6 +224,10 @@ colnames(fractions_corine) <- make.names(colnames(fractions_corine))
 # Get transect names
 transect_names <- rownames(fractions_natura)
 
+# Calculate PCA from raw data
+pca_results_natura <- prcomp(fractions_natura, center = TRUE, scale. = TRUE)
+pca_results_corine <- prcomp(fractions_corine, center = TRUE, scale. = TRUE)
+
 
 # Calculate habitat type clusters for some easy comparisons
 clusters_natura <- get_transect_clusters(fractions_natura, 5)
@@ -383,6 +387,8 @@ save(taxonomy, file = file.path(dir_data, "taxonomy.RData"))
 # Save formatted data
 save(fractions_natura, file = file.path(dir_data, "fractions_natura_raw.RData"))
 save(fractions_corine, file = file.path(dir_data, "fractions_corine_raw.RData"))
+save(pca_results_natura, file = file.path(dir_data, "pca_results_natura_raw.RData"))
+save(pca_results_corine, file = file.path(dir_data, "pca_results_corine_raw.RData"))
 save(clusters_natura, file = file.path(dir_data, "clusters_natura.RData"))
 save(clusters_corine, file = file.path(dir_data, "clusters_corine.RData"))
 save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
