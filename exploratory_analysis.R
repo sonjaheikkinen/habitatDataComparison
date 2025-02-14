@@ -446,10 +446,101 @@ plot_distribution <- function(data, xlab, main) {
 }
 
 
+create_pca_plots <- function(pca_results, title) {
+    # For each pca, calculate the amount of variation it accounts for (eigenvalue)
+    eigenvalues <- pca_results$sdev^2
+    # Transform the actual values for percentages for easier understanding
+    percentage_of_variation_accounted_for_by_pca_axes <- round(eigenvalues / sum(eigenvalues) * 100, 1)
+    plot_pca_scree(percentage_of_variation_accounted_for_by_pca_axes, title)
+    plot_pca_eigenvalues(eigenvalues, title)
+    plot_pca_clusters(pca_results, 
+                      percentage_of_variation_accounted_for_by_pca_axes, 
+                      title)
+    plot_pca_loadings(pca_results, title, pca_number = 1)
+    plot_pca_loadings(pca_results, title, pca_number = 2)
+}
+
+plot_pca_scree <- function(percentage_of_variation_accounted_for_by_pca_axes,
+                           title) {
+    
+    cumulative_variation <- cumsum(percentage_of_variation_accounted_for_by_pca_axes)
+    
+    plot(1:length(percentage_of_variation_accounted_for_by_pca_axes), 
+         percentage_of_variation_accounted_for_by_pca_axes, 
+         type = "b", 
+         col = "darkgreen", 
+         pch = 19, 
+         ylim = c(0, 100), 
+         xlab = "Principal Component", 
+         ylab = "Percentage of Variation", 
+         main = sprintf("%s Scree Plot", title))
+    
+    lines(1:length(cumulative_variation), 
+          cumulative_variation, 
+          type = "b", 
+          col = "blue", 
+          pch = 19)
+    
+    abline(h = seq(0, 100, by = 10), col = "gray", lty = "dotted")
+    
+    legend("topright", 
+           legend = c("Individual Variation", "Cumulative Variation"), 
+           col = c("darkgreen", "blue"), 
+           pch = 19, 
+           lty = 1)
+    
+}
+
+plot_pca_eigenvalues <- function(eigenvalues, title) {
+    plot(1:length(eigenvalues), 
+         eigenvalues, 
+         type = "b", 
+         col = "blue", 
+         pch = 19, 
+        xlab = "Principal Component", 
+        ylab = "Eigenvalue", 
+        main = sprintf("%s Eigenvalues", title))
+    
+    abline(h = 1, col = "black", lty = "dashed")
+    
+    legend("topright", 
+           legend = c("Eigenvalues", "Threshold (y=1)"), 
+           col = c("blue", "black"), 
+           pch = c(19, NA), 
+           lty = c(1, 2)
+    )
+}
+
+
+plot_pca_clusters <- function(pca_results, pca_variation_percentage, title) {
+    pca_plot_data <- data.frame(Transect = rownames(pca_results$x), # Transect numbers
+                                X = pca_results$x[,1], # pc1 coordinate of transect
+                                Y = pca_results$x[,2]) # pc2 coordinate of transect
+    print(ggplot(data = pca_plot_data, aes(x = X, y = Y, label = Transect)) +
+              geom_text(size = 2) +
+              xlab(paste("PC1 - ", pca_variation_percentage[1], " %", sep = "")) +
+              ylab(paste("PC2 - ", pca_variation_percentage[2], " %", sep = "")) +
+              theme_bw() +
+              ggtitle(sprintf("%s PCA", title)))
+}
+
+
+plot_pca_loadings <- function(pca_results, title, pca_number) {
+    loading_scores <- pca_results$rotation[,pca_number]
+    barplot(sort(loading_scores), 
+            horiz = TRUE, 
+            las = 2,
+            main = sprintf("%s, loadings for PC1", title))
+}
+
+
+
 explore_habitat_data <- function(natura, 
                                  corine, 
                                  fractions_natura,
                                  fractions_corine,
+                                 pca_results_natura,
+                                 pca_results_corine,
                                  spatiotemporal_context, 
                                  coordinates, 
                                  occurrence,
@@ -458,6 +549,10 @@ explore_habitat_data <- function(natura,
     
     
     pdf(file.path(dir_results, sprintf("exploratory_analysis_habitats_%s.pdf", type)))
+    
+    
+    create_pca_plots(pca_results_natura, "Natura")
+    create_pca_plots(pca_results_corine, "Corine")
     
     
     # Create aggregated data where each transect is only once
@@ -1066,6 +1161,8 @@ load(file = file.path(dir_data, "transect_coordinates.RData"))
 load(file = file.path(dir_data, "env_data_natura_raw.RData")) 
 load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "fractions_natura_raw.RData")) 
+load(file = file.path(dir_data, "pca_results_natura_raw.RData"))
+load(file = file.path(dir_data, "pca_results_corine_raw.RData"))
 load(file = file.path(dir_data, "fractions_corine_raw.RData"))
 load(file = file.path(dir_data, "phylogeny_data_raw.RData"))
 load(file = file.path(dir_data, "trait_data_raw.RData"))
@@ -1080,6 +1177,8 @@ explore_habitat_data(env_data_natura,
                      env_data_corine, 
                      fractions_natura,
                      fractions_corine,
+                     pca_results_natura,
+                     pca_results_corine,
                      spatiotemporal_context, 
                      transect_coordinates, 
                      occurrence,
@@ -1103,6 +1202,8 @@ load(file = file.path(dir_data, "env_data_natura.RData"))
 load(file = file.path(dir_data, "env_data_corine.RData"))
 load(file = file.path(dir_data, "fractions_natura.RData")) 
 load(file = file.path(dir_data, "fractions_corine.RData"))
+load(file = file.path(dir_data, "pca_results_natura.RData"))
+load(file = file.path(dir_data, "pca_results_corine.RData"))
 load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
 
@@ -1116,6 +1217,8 @@ explore_habitat_data(env_data_natura,
                      env_data_corine, 
                      fractions_natura,
                      fractions_corine,
+                     pca_results_natura,
+                     pca_results_corine,
                      spatiotemporal_context, 
                      transect_coordinates, 
                      occurrence,
