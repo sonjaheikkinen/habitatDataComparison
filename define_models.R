@@ -83,6 +83,40 @@ test_formula_corine_frac_temp <- as.formula(sprintf("~%s",
                                                             "Temperature"), 
                                                           collapse = "+")))
 
+
+
+# DEEFINE SPIKE-AND-SLAB
+# Prior probability for covariate to be included
+prob_include_variable <- 0.1
+# Species and covariate counts
+number_of_natura_covariates <- length(colnames(fractions_natura))
+number_of_corine_covariates <- length(colnames(fractions_corine))
+number_of_species <- length(colnames(occurrence))
+# Select variables separately for each species
+variable_selection_params_natura <- list()
+for (covariate_number in 1:number_of_natura_covariates) {
+    covariate_group <- covariate_number
+    species_groups <- 1:number_of_species
+    variable_inclusion_probabilities <- rep(prob_include_variable, number_of_species)   
+    variable_selection_params_natura[[covariate_number]] <- list(covGroup = covariate_group,
+                                                                  spGroup = species_groups,
+                                                                  q = variable_inclusion_probabilities)
+}
+variable_selection_params_corine <- list()
+for (covariate_number in 1:number_of_corine_covariates) {
+    covariate_group <- covariate_number
+    species_groups <- 1:number_of_species
+    variable_inclusion_probabilities <- rep(prob_include_variable, number_of_species)   
+    variable_selection_params_corine[[covariate_number]] <- list(covGroup = covariate_group,
+                                                                 spGroup = species_groups,
+                                                                 q = variable_inclusion_probabilities)
+}
+
+
+    
+
+
+
 # DEFINE MODELS
 
 #probit_natura <- Hmsc(Y = occurrence, 
@@ -95,6 +129,22 @@ test_formula_corine_frac_temp <- as.formula(sprintf("~%s",
 #                      studyDesign = study_design,
 #                      ranLevels = list("Transect" = randomlevel_spatial,
 #                                       "Year" = randomlevel_temporal))
+natura_spike_and_slab <- Hmsc(Y = occurrence, 
+                                XData = env_data_natura,
+                                XFormula = test_formula_natura_frac,
+                                XSelect = variable_selection_params_natura,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
+corine_spike_and_slab <- Hmsc(Y = occurrence, 
+                                XData = env_data_corine,
+                                XFormula = test_formula_corine_frac,
+                                XSelect = variable_selection_params_corine,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
 
 test_probit_natura_frac <- Hmsc(Y = occurrence, 
                                 XData = env_data_natura,
@@ -135,19 +185,21 @@ test_probit_natura_clus <- Hmsc(Y = occurrence,
 
 
 # If needed, test that model works properly:
-#sampleMcmc(test_probit_corine_frac, samples = 3)
+sampleMcmc(corine_spike_and_slab, samples = 3)
 
 
 # SAVE MODELS
-model_list <- list(test_probit_natura_frac,
-                   test_probit_natura_frac_temp,
-                   test_probit_corine_frac,
-                   test_probit_corine_frac_temp,)
-names(model_list) <- c("test_probit_natura_frac",
-                       "test_probit_natura_frac_temp",
-                       "test_probit_corine_frac",
-                       "test_probit_corine_frac_temp")
-save(model_list, file = file.path(dir_models, "models_unfitted_2.RData"))
+#model_list <- list(test_probit_natura_frac,
+#                   test_probit_natura_frac_temp,
+#                   test_probit_corine_frac,
+#                   test_probit_corine_frac_temp,)
+#names(model_list) <- c("test_probit_natura_frac",
+#                       "test_probit_natura_frac_temp",
+#                       "test_probit_corine_frac",
+#                       "test_probit_corine_frac_temp")
+model_list <- list(natura_spike_and_slab, corine_spike_and_slab)
+names(model_list) <- c("natura_spike_and_slab", "corine_spike_and_slab")
+save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
 
@@ -158,23 +210,36 @@ save(model_list, file = file.path(dir_models, "models_unfitted_2.RData"))
 
 
 
-quick_test <- Hmsc(Y = occurrence, 
-                   XData = env_data_natura,
-                   XFormula = ~Cluster,
-                   distr = "probit",
-                   studyDesign = study_design,
-                   ranLevels = list("Transect" = randomlevel_spatial, 
-                                    "Year" = randomlevel_temporal))
-
 
 run_quick_test <- function() {
     
-    samples <- 250
-    thin <- 1
+    samples <- 10
+    thin <- 10
     n <- 4
+        
+    names_1 <- colnames(fractions_natura)
+    names_2 <- c(names_1, "Effort")
+    env_formula_1 <- as.formula(sprintf("~%s", paste(names_1, collapse = "+")))
+    env_formula_2 <- as.formula(sprintf("~%s", paste(names_2, collapse = "+")))
     
-    print(sprintf("Fitting start %s", date()))
-    fitted_model <- sampleMcmc(quick_test, 
+    quick_test_1 <- Hmsc(Y = occurrence, 
+                       XData = env_data_natura,
+                       XFormula = env_formula_1,
+                       distr = "probit",
+                       studyDesign = study_design,
+                       ranLevels = list("Transect" = randomlevel_spatial, 
+                                        "Year" = randomlevel_temporal))
+    quick_test_2 <- Hmsc(Y = occurrence, 
+                         XData = env_data_natura,
+                         XFormula = env_formula_2,
+                         distr = "probit",
+                         studyDesign = study_design,
+                         ranLevels = list("Transect" = randomlevel_spatial, 
+                                          "Year" = randomlevel_temporal))
+    
+    
+    print(sprintf("Fitting 1 start %s", date()))
+    fitted_model_1 <- sampleMcmc(quick_test_1, 
                                samples = samples, 
                                thin = thin,
                                transient = ceiling(0.5 * samples * thin),
@@ -184,16 +249,33 @@ run_quick_test <- function() {
     print(sprintf("End %s", date()))
     print("")
     
-    print(sprintf("Cross-validation start %s", date()))
-    partition <- createPartition(fitted_model, nfolds = 2) 
-    predicted_values <- computePredictedValues(fitted_model, 
-                                                   partition = partition, 
-                                                   nParallel = n)
+    print(sprintf("Fitting 2 start %s", date()))
+    fitted_model_2 <- sampleMcmc(quick_test_2, 
+                               samples = samples, 
+                               thin = thin,
+                               transient = ceiling(0.5 * samples * thin),
+                               nChains = n,
+                               nParallel = n,
+                               verbose = 100)
     print(sprintf("End %s", date()))
     print("")
-
     
+    print(sprintf("Cross-validation 1 start %s", date()))
+    partition <- createPartition(fitted_model_1, nfolds = 2) 
+    predicted_values <- computePredictedValues(fitted_model_1, 
+                                               partition = partition, 
+                                               nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
     
+    print(sprintf("Cross-validation 2 start %s", date()))
+    partition <- createPartition(fitted_model_2, nfolds = 2) 
+    predicted_values <- computePredictedValues(fitted_model_2, 
+                                               partition = partition, 
+                                               nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
+        
 }
 
 #run_quick_test()
