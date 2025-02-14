@@ -34,28 +34,34 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     # use transect column as the partition column
     # this ensures, that when predicting based on the habitat types of transect, 
     # the habitat types and occurrences for that transect have not yet been seen
-    partition <- createPartition(model, nfolds = folds, column = "Transect")
+    #partition <- createPartition(model, nfolds = folds, column = "Transect")
     # Compute predicted values for test set, based on data fitted with training set
-    predicted_values_test_set <- computePredictedValues(model, 
-                                                        partition = partition,
-                                                        nParallel = 4)
+    #predicted_values_test_set <- computePredictedValues(model, 
+    #                                                    partition = partition,
+    #                                                    nParallel = 4)
     # Compute measures of model fit based on the predicted values for test set
-    predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    #predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
     # Set species names as rownames
-    predictive_power <- as.data.frame(predictive_power)
-    rownames(predictive_power) <- colnames(model$Y)
+    #predictive_power <- as.data.frame(predictive_power)
+    #rownames(predictive_power) <- colnames(model$Y)
+    
+    
+    # CALCULATE WAIC
+    waic <-  computeWAIC(model)
+    
     
     
     print(sprintf("Calculation ended %s", date()))
     print("")
     
     # SAVE RESULTS TO FILE
-    save(explanatory_power, predictive_power, file = file)
+    #save(explanatory_power, predictive_power, file = file)
+    save(explanatory_power, waic, file = file)
     
 }
 
 
-create_modelfit_plot <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
+create_modelfit_plot_old <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
     
     if (!type %in% colnames(explanatory_power)) {
         return("Type not yet calculated or does not apply for this model")
@@ -80,12 +86,45 @@ create_modelfit_plot <- function(explanatory_power, predictive_power, type, mode
 }
 
 
+create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_value) {
+    
+    if (!type %in% colnames(explanatory_power)) {
+        return("Type not yet calculated or does not apply for this model")
+    }
+    
+    values <- explanatory_power[,type]
+    
+    if (!is.null(values)) {
+        
+        title <- sprintf("%s\n thin = %s | %s \nmean = %s",
+                         model_name,
+                         as.character(thinning_value),
+                         type,
+                         as.character(mean(explanatory_power[,type], na.rm = TRUE)))
+        
+        plot(1:length(values),
+             values,
+             ylim = c(min(values), max(values)),
+             xlab = "Species",
+             ylab = sprintf("%s", type),
+             main = title)
+        
+        hist(values, xlab = sprintf("%s", type), main = title)
+    }
+    
+}
+
+create_waic_plot <- function(waic, model_name, thinning_value) {
+    print(str(waic))
+    print("")
+    print(waic)
+}
+
+
 # SCRIPT STARTS
 
 # List filenames of fitted models
 fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
-
-fitted_models <- fitted_models[7]
 
 for (model_number in 1:length(fitted_models)) {
 
@@ -109,15 +148,20 @@ for (model_number in 1:length(fitted_models)) {
     # CREATE PLOTS OF FIT VALUES
     if (file.exists(modelfit_file)) {
         load(modelfit_file)
-        create_modelfit_plot(explanatory_power, predictive_power, "TjurR2", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, predictive_power, "R2", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, predictive_power, "AUC", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, predictive_power, "SR2", model_name, thinning_value)
+        create_modelfit_plot(explanatory_power, "TjurR2", model_name, thinning_value)
+        create_modelfit_plot(explanatory_power, "R2", model_name, thinning_value)
+        create_modelfit_plot(explanatory_power, "AUC", model_name, thinning_value)
+        create_modelfit_plot(explanatory_power, "SR2", model_name, thinning_value)
+        create_modelfit_plot(explanatory_power, "RMSE", model_name, thinning_value)
+        create_waic_plot(waic, model_name, thinning_value)
     } else {
         print(sprintf("Modelfit results not found for %s", model_name))
     }
     
+    # CLOSE PDF
+    dev.off()
+    
 }
 
-# Close pdf
-dev.off()
+
+
