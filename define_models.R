@@ -7,6 +7,7 @@ load(file = file.path(dir_data, "spatiotemporal_context.RData"))
 load(file = file.path(dir_data, "env_data_natura.RData"))
 load(file = file.path(dir_data, "env_data_corine.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
+load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "fractions_natura.RData"))
 load(file = file.path(dir_data, "fractions_corine.RData"))
 
@@ -87,7 +88,7 @@ test_formula_corine_frac_temp <- as.formula(sprintf("~%s",
 
 # DEEFINE SPIKE-AND-SLAB
 # Prior probability for covariate to be included
-prob_include_variable <- 0.1
+prob_include_variable <- 1
 # Species and covariate counts
 number_of_natura_covariates <- length(colnames(fractions_natura))
 number_of_corine_covariates <- length(colnames(fractions_corine))
@@ -153,6 +154,17 @@ test_probit_natura_frac <- Hmsc(Y = occurrence,
                                 studyDesign = study_design,
                                 ranLevels = list("Transect" = randomlevel_spatial, 
                                                  "Year" = randomlevel_temporal))
+
+
+test_probit_natura_frac_phyl <- Hmsc(Y = occurrence, 
+                                XData = env_data_natura,
+                                XFormula = test_formula_natura_frac,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                phyloTree = phylogeny_data,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
+
 test_probit_natura_frac_temp <- Hmsc(Y = occurrence, 
                                 XData = env_data_natura,
                                 XFormula = test_formula_natura_frac_temp,
@@ -167,6 +179,16 @@ test_probit_corine_frac <- Hmsc(Y = occurrence,
                                 studyDesign = study_design,
                                 ranLevels = list("Transect" = randomlevel_spatial, 
                                                  "Year" = randomlevel_temporal))
+
+test_probit_corine_frac_phyl <- Hmsc(Y = occurrence, 
+                                XData = env_data_corine,
+                                XFormula = test_formula_corine_frac,
+                                distr = "probit",
+                                studyDesign = study_design,
+                                phyloTree = phylogeny_data,
+                                ranLevels = list("Transect" = randomlevel_spatial, 
+                                                 "Year" = randomlevel_temporal))
+
 test_probit_corine_frac_temp <- Hmsc(Y = occurrence, 
                                      XData = env_data_corine,
                                      XFormula = test_formula_corine_frac_temp,
@@ -189,16 +211,16 @@ sampleMcmc(corine_spike_and_slab, samples = 3)
 
 
 # SAVE MODELS
-#model_list <- list(test_probit_natura_frac,
-#                   test_probit_natura_frac_temp,
-#                   test_probit_corine_frac,
-#                   test_probit_corine_frac_temp,)
-#names(model_list) <- c("test_probit_natura_frac",
-#                       "test_probit_natura_frac_temp",
-#                       "test_probit_corine_frac",
-#                       "test_probit_corine_frac_temp")
-model_list <- list(natura_spike_and_slab, corine_spike_and_slab)
-names(model_list) <- c("natura_spike_and_slab", "corine_spike_and_slab")
+model_list <- list(test_probit_natura_frac,
+                   test_probit_natura_frac_phyl,
+                   test_probit_corine_frac,
+                   test_probit_corine_frac_phyl)
+names(model_list) <- c("test_probit_natura_frac",
+                       "test_probit_natura_frac_phyl",
+                       "test_probit_corine_frac",
+                       "test_probit_corine_frac_phyl")
+#model_list <- list(natura_spike_and_slab, corine_spike_and_slab)
+#names(model_list) <- c("natura_spike_and_slab", "corine_spike_and_slab")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 

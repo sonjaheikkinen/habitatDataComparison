@@ -32,6 +32,7 @@ for (species in colnames(occurrence)) {
                                                                    function(x) any(x == 1)))
     if (number_of_transects_where_species_has_occurrence < 3) {
         occurrence <- occurrence[, colnames(occurrence) != species]
+        abundance <- abundance[, colnames(abundance) != species]
     }
 }
 

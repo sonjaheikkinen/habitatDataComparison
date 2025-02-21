@@ -3,6 +3,12 @@
 # CONVERGENCE FUNCTIONS
 plot_convergence <- function(variable, model_name, psrf_point_estimates) {
     par(mfrow=c(1,2))
+    print("")
+    print("min")
+    print(min(psrf_point_estimates))
+    print("max")
+    print(max(psrf_point_estimates))
+    print("")
     vioplot(psrf_point_estimates, 
             col = "dodgerblue",
             ylim = c(min(psrf_point_estimates) - (max(psrf_point_estimates) - min(psrf_point_estimates)), 
@@ -72,7 +78,7 @@ for (model_number in 1:length(fitted_models)) {
     
     # CONVERGENCE FOR SPECIES NICHES (BETA)
     append_to_file("BETA\n\n", file = convergence_file)
-    samples_beta <- posterior$Beta # 
+    samples_beta <- posterior$Beta 
     save_convergence_info(samples_beta, "beta", model_name, convergence_file)
     print("Calculated convergence for beta")
     

@@ -133,7 +133,7 @@ for (model_number in 1:length(fitted_models)) {
     model <- fitted_model
     model_name <- strsplit(basename(fitted_models[model_number]), "\\.")[[1]][1]
     thinning_value <- extract_thinning_value(model_name)
-    modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s", model_name))
+    modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s.RData", model_name))
     
     # CREATE PDF FOR PLOTTING THE FIT VALUES
     pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
