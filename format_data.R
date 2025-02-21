@@ -246,21 +246,37 @@ names(transect_lengths) <- transect_names
 
 # Calculate transect temperature values
 transect_temperatures <- get_transect_temperature_data(buffer_width, temperature_data, transects_shp)
-transect_temperatures_april_may <- transect_temperatures[transect_temperatures$month %in% c(4, 5), ]
-transect_april_may_mean_temps <- aggregate(temp ~ transect + year, 
-                                          data = transect_temperatures_april_may, 
-                                          FUN = mean, 
-                                          na.rm = TRUE)
-april_may_mean_temps <- c()
+transect_temperatures_winter <- transect_temperatures[transect_temperatures$month %in% c(1, 2), ]
+transect_winter_mean_temps <- aggregate(temp ~ transect + year, 
+                                        data = transect_temperatures_winter, 
+                                        FUN = mean, 
+                                        na.rm = TRUE)
+sample_winter_mean_temperatures <- c()
 for (sample_number in 1:length(spatiotemporal_context$Sample)) {
     sample_transect <- spatiotemporal_context[sample_number, ]$Transect
     sample_year <- spatiotemporal_context[sample_number, ]$Year
-    sample_april_may_mean_temp <- transect_april_may_mean_temps[transect_april_may_mean_temps$transect == sample_transect 
-                                                                & transect_april_may_mean_temps$year == sample_year, ]$temp
-    if (length(sample_april_may_mean_temp) == 0)  {
-        sample_april_may_mean_temp <- NA
+    sample_winter_mean_temp <- transect_winter_mean_temps[transect_winter_mean_temps$transect == sample_transect 
+                                                          & transect_winter_mean_temps$year == sample_year, ]$temp
+    if (length(sample_winter_mean_temp) == 0)  {
+        sample_winter_mean_temp <- NA
     }
-    april_may_mean_temps <- c(april_may_mean_temps, sample_april_may_mean_temp)
+    sample_winter_mean_temperatures <- c(sample_winter_mean_temperatures, sample_winter_mean_temp)
+}
+transect_temperatures_spring <- transect_temperatures[transect_temperatures$month %in% c(4, 5), ]
+transect_spring_mean_temps <- aggregate(temp ~ transect + year, 
+                                          data = transect_temperatures_spring, 
+                                          FUN = mean, 
+                                          na.rm = TRUE)
+sample_spring_mean_temperatures <- c()
+for (sample_number in 1:length(spatiotemporal_context$Sample)) {
+    sample_transect <- spatiotemporal_context[sample_number, ]$Transect
+    sample_year <- spatiotemporal_context[sample_number, ]$Year
+    sample_spring_mean_temp <- transect_spring_mean_temps[transect_spring_mean_temps$transect == sample_transect 
+                                                                & transect_spring_mean_temps$year == sample_year, ]$temp
+    if (length(sample_spring_mean_temp) == 0)  {
+        sample_spring_mean_temp <- NA
+    }
+    sample_spring_mean_temperatures <- c(sample_spring_mean_temperatures, sample_spring_mean_temp)
 }
 
 
@@ -301,7 +317,8 @@ env_data_natura <- data.frame(fractions_natura,
                               CorinePercentage = transect_corine_data_percentages,
                               Cluster = clusters_natura)
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
-env_data_natura$Temperature <- april_may_mean_temps
+env_data_natura$Temperature <- sample_spring_mean_temperatures
+env_data_natura$WinterTemperature <- sample_winter_mean_temperatures
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
                               PatchDensity = corine_diversities$PatchDensity,
@@ -312,7 +329,8 @@ env_data_corine <- data.frame(fractions_corine,
                               CorinePercentage = transect_corine_data_percentages,
                               Cluster = clusters_corine)
 env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
-env_data_corine$Temperature <- april_may_mean_temps
+env_data_corine$Temperature <- sample_spring_mean_temperatures
+env_data_corine$WinterTemperature <- sample_winter_mean_temperatures
 
 
 

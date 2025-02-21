@@ -1208,6 +1208,118 @@ load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
 
 
+cor(env_data_natura$Temperature, env_data_natura$WinterTemperature)
+
+
+# EXPLORE DISTRIBUTIONS AND OUTLIERS
+
+old_par <- par(no.readonly = TRUE) 
+par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+
+# OBSERVATION DATA
+for (species in colnames(abundance)) {
+    sample_indices_where_species_is_found <- abundance[,species] > 0
+    abundances_for_species <- abundance[sample_indices_where_species_is_found, species]
+    x_coordinates_for_species <- spatiotemporal_context[sample_indices_where_species_is_found,]$x
+    y_coordinates_for_species <- spatiotemporal_context[sample_indices_where_species_is_found,]$y
+    plot(natura_raster,
+         main = species)
+    points(x_coordinates_for_species, 
+         y_coordinates_for_species,
+         cex = 1 + abundances_for_species * 0.1)
+}
+
+# ENVIRONMENT DATA
+boxplot(fractions_natura,
+        horizontal = TRUE,
+        las = 1,
+        main = "Fractions natura")
+boxplot(fractions_corine,
+        horizontal = TRUE,
+        las = 1,
+        main = "Fractions corine")
+boxplot(env_data_natura$Effort,
+        horizontal = TRUE,
+        las = 1,
+        main = "Transect length")
+boxplot(env_data_natura$PatchDensity,
+        horizontal = TRUE,
+        las = 1,
+        main = "Natura patch density")
+boxplot(env_data_corine$PatchDensity,
+        horizontal = TRUE,
+        las = 1,
+        main = "Corine patch density")
+boxplot(env_data_natura$SimpsonsDiversity,
+        horizontal = TRUE,
+        las = 1,
+        main = "Natura Simpson's diversity")
+boxplot(env_data_corine$SimpsonsDiversity,
+        horizontal = TRUE,
+        las = 1,
+        main = "Corine Simpson's diversity")
+boxplot(env_data_natura$ShannonsDiversity,
+        horizontal = TRUE,
+        las = 1,
+        main = "Natura Shannon's diversity")
+boxplot(env_data_corine$ShannonsDiversity,
+        horizontal = TRUE,
+        las = 1,
+        main = "Corine Shannon's diversity")
+boxplot(env_data_natura$ScaledRichness,
+        horizontal = TRUE,
+        las = 1,
+        main = "Natura scalred richness")
+boxplot(env_data_corine$ScaledRichness,
+        horizontal = TRUE,
+        las = 1,
+        main = "Corine scaled richness")
+boxplot(env_data_natura$NaturaPercentage,
+        horizontal = TRUE,
+        las = 1,
+        main = "Percentage of line transect covered by Natura")
+boxplot(env_data_corine$CorinePercentage,
+        horizontal = TRUE,
+        las = 1,
+        main = "Percentage of line transect covered by Corine")
+boxplot(env_data_natura$Temperature,
+        horizontal = TRUE,
+        las = 1,
+        main = "Transect temperature")
+boxplot(env_data_natura$WinterTemperature,
+        horizontal = TRUE,
+        las = 1,
+        main = "Transect temperature")
+
+
+
+# TRAIT DATA
+species_counts <- colSums(abundance)
+expanded_data <- trait_data[rep(1:nrow(trait_data), species_counts[trait_data$Species]), ]
+rownames(expanded_data) <- NULL
+print(expanded_data)
+par(mfrow = c(2, 1))
+boxplot(trait_data$Mass,
+        horizontal = TRUE,
+        las = 1,
+        main = "Species masses")
+boxplot(expanded_data$Mass,
+        horizontal = TRUE,
+        las = 1,
+        main = "Observed masses")
+barplot(table(trait_data$Mig),
+        main = "Species migration")
+barplot(table(expanded_data$Mig),
+        main = "Observed migration values")
+barplot(table(trait_data$Feeding),
+        main = "Species feeding")
+barplot(table(expanded_data$Feeding),
+        main = "Observed feeding")
+par(mfrow = c(1, 1))
+
+par(old_par)
+
+
 explore_bird_data(occurrence, 
                   abundance, 
                   spatiotemporal_context, 
