@@ -1,6 +1,9 @@
 # SCRIPT FOR CHECKING MODEL CONVERGENCE
 
 # CONVERGENCE FUNCTIONS
+
+
+
 plot_convergence <- function(variable, model_name, psrf_point_estimates) {
     par(mfrow=c(1,2))
     print("")
@@ -22,11 +25,20 @@ plot_convergence <- function(variable, model_name, psrf_point_estimates) {
 } 
 
 save_convergence_info <- function(samples, variable, model_name, convergence_file) {
+    samples <- filter_zero_columns(samples)
     psrf <- gelman.diag(samples, multivariate = FALSE)$psrf
     append_to_file(sprintf("%s\n", summary(psrf)[,1]), file = convergence_file)
     append_to_file("\n\n", file = convergence_file)
     psrf_point_estimates <- psrf[,1]
     plot_convergence(variable, model_name, psrf_point_estimates)
+}
+
+# Remove those columns from samples, that have been set to zero across all chains
+filter_zero_columns <- function(samples) {
+    sample_colsums <- lapply(samples, colSums)
+    columns_zero_in_any_chain <- Reduce('|', lapply(sample_colsums, function(value) value == 0))
+    filtered_samples <- lapply(samples, function(chain) chain[, !columns_zero_in_any_chain, drop = FALSE])
+    return(filtered_samples)  
 }
 
 extract_thinning_value <- function(filename) {

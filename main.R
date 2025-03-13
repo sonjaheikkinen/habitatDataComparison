@@ -17,11 +17,12 @@ run_select_data <- FALSE
 run_define_models <- FALSE
 run_fit_models <- FALSE
 run_check_model_convergence <- FALSE
+run_check_parameter_effects <- FALSE
 run_check_model_fits <- FALSE
 
 buffer_width <- 25 # how far away from line transect are habitat values read from raster (meters)
 number_of_samples <- 250 # number of samples for each chain
-thinning_values <- c(1, 10, 100) # with thin value x, only every x:th value from chain is taken as sample
+thinning_values <- c(1) # with thin value x, only every x:th value from chain is taken as sample
 modelfit_folds <- 2 # how many folds to use in cross-validation (1 fold for test, all others are training)
 overwrite_modelfits <- FALSE # should existing modelfit values be overwritten
 
@@ -52,6 +53,8 @@ library(Hmsc) # For modeling with Hmsc
 library(lme4) # For general linear models
 library(vioplot) # For violin plots
 library(cluster) # For silhouette scores
+library(corrplot) # For reordering correlation matrices
+library(ggrepel) # For better label placement
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")
@@ -103,6 +106,11 @@ if (run_fit_models) {
 # CHECK MODEL CONVERGENCE
 if (run_check_model_convergence) {
     source("check_model_convergence.R")
+}
+
+# CHECK PARAMETER EFFECTS
+if (run_check_parameter_effects) {
+    source("check_parameter_effects.R")
 }
 
 # CHECK MODEL FITS

@@ -88,10 +88,10 @@ test_formula_corine_frac_temp <- as.formula(sprintf("~%s",
 
 # DEEFINE SPIKE-AND-SLAB
 # Prior probability for covariate to be included
-prob_include_variable <- 1
-# Species and covariate counts
-number_of_natura_covariates <- length(colnames(fractions_natura))
-number_of_corine_covariates <- length(colnames(fractions_corine))
+prob_include_variable <- 0.5
+# Species and covariate counts (add 1 for intercept)
+number_of_natura_covariates <- length(colnames(fractions_natura)) + 1
+number_of_corine_covariates <- length(colnames(fractions_corine)) + 1
 number_of_species <- length(colnames(occurrence))
 # Select variables separately for each species
 variable_selection_params_natura <- list()
@@ -130,7 +130,7 @@ for (covariate_number in 1:number_of_corine_covariates) {
 #                      studyDesign = study_design,
 #                      ranLevels = list("Transect" = randomlevel_spatial,
 #                                       "Year" = randomlevel_temporal))
-natura_spike_and_slab <- Hmsc(Y = occurrence, 
+natura_spike_and_slab_q50 <- Hmsc(Y = occurrence, 
                                 XData = env_data_natura,
                                 XFormula = test_formula_natura_frac,
                                 XSelect = variable_selection_params_natura,
@@ -138,7 +138,7 @@ natura_spike_and_slab <- Hmsc(Y = occurrence,
                                 studyDesign = study_design,
                                 ranLevels = list("Transect" = randomlevel_spatial, 
                                                  "Year" = randomlevel_temporal))
-corine_spike_and_slab <- Hmsc(Y = occurrence, 
+corine_spike_and_slab_q50 <- Hmsc(Y = occurrence, 
                                 XData = env_data_corine,
                                 XFormula = test_formula_corine_frac,
                                 XSelect = variable_selection_params_corine,
@@ -207,20 +207,20 @@ test_probit_natura_clus <- Hmsc(Y = occurrence,
 
 
 # If needed, test that model works properly:
-sampleMcmc(corine_spike_and_slab, samples = 3)
+fitted <- sampleMcmc(corine_spike_and_slab_q50, samples = 3)
 
 
 # SAVE MODELS
-model_list <- list(test_probit_natura_frac,
-                   test_probit_natura_frac_phyl,
-                   test_probit_corine_frac,
-                   test_probit_corine_frac_phyl)
-names(model_list) <- c("test_probit_natura_frac",
-                       "test_probit_natura_frac_phyl",
-                       "test_probit_corine_frac",
-                       "test_probit_corine_frac_phyl")
-#model_list <- list(natura_spike_and_slab, corine_spike_and_slab)
-#names(model_list) <- c("natura_spike_and_slab", "corine_spike_and_slab")
+#model_list <- list(test_probit_natura_frac,
+#                   test_probit_natura_frac_phyl,
+#                   test_probit_corine_frac,
+#                   test_probit_corine_frac_phyl)
+#names(model_list) <- c("test_probit_natura_frac",
+#                       "test_probit_natura_frac_phyl",
+#                       "test_probit_corine_frac",
+#                       "test_probit_corine_frac_phyl")
+model_list <- list(test_probit_natura_frac)
+names(model_list) <- c("test_probit_natura_frac")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
