@@ -453,6 +453,7 @@ create_pca_plots <- function(pca_results, title) {
     percentage_of_variation_accounted_for_by_pca_axes <- round(eigenvalues / sum(eigenvalues) * 100, 1)
     plot_pca_scree(percentage_of_variation_accounted_for_by_pca_axes, title)
     plot_pca_eigenvalues(eigenvalues, title)
+    print("Plot clusters")
     plot_pca_clusters(pca_results, 
                       percentage_of_variation_accounted_for_by_pca_axes, 
                       title)
@@ -513,15 +514,41 @@ plot_pca_eigenvalues <- function(eigenvalues, title) {
 
 
 plot_pca_clusters <- function(pca_results, pca_variation_percentage, title) {
-    pca_plot_data <- data.frame(Transect = rownames(pca_results$x), # Transect numbers
-                                X = pca_results$x[,1], # pc1 coordinate of transect
-                                Y = pca_results$x[,2]) # pc2 coordinate of transect
-    print(ggplot(data = pca_plot_data, aes(x = X, y = Y, label = Transect)) +
-              geom_text(size = 2) +
-              xlab(paste("PC1 - ", pca_variation_percentage[1], " %", sep = "")) +
-              ylab(paste("PC2 - ", pca_variation_percentage[2], " %", sep = "")) +
-              theme_bw() +
-              ggtitle(sprintf("%s PCA", title)))
+    print("In cluster plot function")
+    # Data for PCA scores (transects)
+    pca_plot_data <- data.frame(Transect = rownames(pca_results$x), 
+                                X = pca_results$x[,1], 
+                                Y = pca_results$x[,2])
+    
+    # Data for PCA loadings (variable directions)
+    loadings <- data.frame(Variable = rownames(pca_results$rotation), 
+                           PC1 = pca_results$rotation[,1], 
+                           PC2 = pca_results$rotation[,2])
+    
+    # Scale arrows for better visualization
+    arrow_scaling <- max(abs(pca_plot_data$X), abs(pca_plot_data$Y))
+    
+    # Create PCA plot
+    print(ggplot() +
+        # Add labels for transect numbers
+        geom_text(data = pca_plot_data, aes(x = X, y = Y, label = Transect), size = 3) +
+        
+        # Plot PCA loadings (arrows)
+        geom_segment(data = loadings, 
+                     aes(x = 0, y = 0, xend = PC1 * arrow_scaling, yend = PC2 * arrow_scaling), 
+                     arrow = arrow(length = unit(0.2, "inches")), 
+                     color = "blue") +
+        
+        # Label the variables at the end of arrows with non-overlapping text
+        geom_text_repel(data = loadings, 
+                        aes(x = PC1 * arrow_scaling, y = PC2 * arrow_scaling, label = Variable), 
+                        color = "blue", size = 2) +
+        
+        # Axis labels
+        xlab(paste("PC1 - ", pca_variation_percentage[1], " %", sep = "")) +
+        ylab(paste("PC2 - ", pca_variation_percentage[2], " %", sep = "")) +
+        theme_bw() +
+        ggtitle(sprintf("%s PCA", title)))
 }
 
 
@@ -1184,9 +1211,9 @@ explore_habitat_data(env_data_natura,
                      occurrence,
                      abundance,
                      "raw")
-explore_phylogeny_data(phylogeny_data, 
-                       abundance,
-                       "raw")
+#explore_phylogeny_data(phylogeny_data, 
+#                       abundance,
+#                       "raw")
 explore_trait_data(trait_data,
                    abundance, 
                    "raw")
@@ -1211,10 +1238,34 @@ load(file = file.path(dir_data, "trait_data.RData"))
 cor(env_data_natura$Temperature, env_data_natura$WinterTemperature)
 
 
+
 # EXPLORE DISTRIBUTIONS AND OUTLIERS
 
 old_par <- par(no.readonly = TRUE) 
 par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+
+
+# CHECK FOR ZERO INFLATION
+species_means <- c()
+species_variances <- c()
+for (species in colnames(abundance)) {
+    par(mfrow = c(2, 1))
+    species_abundances <- sort(abundance[, species])
+    species_abundances_without_zeros <- species_abundances[species_abundances != 0]
+    hist(species_abundances, main = species)
+    hist(species_abundances_without_zeros, main = species)
+    species_means <- c(species_means, mean(species_abundances))
+    species_variances <- c(species_variances, var(species_abundances))
+}
+
+par(mfrow = c(1, 1))
+plot(species_means, species_variances, 
+     main = "Mean vs. variance across species", 
+     xlab = "Mean abundance", 
+     ylab = "Variance", 
+     col = "blue")
+abline(0, 1, col = "red", lwd = 2, lty = 2)
+legend("topleft", legend = "Poisson (var = mean)", col = "red", lty = 2, lwd = 2)
 
 # OBSERVATION DATA
 for (species in colnames(abundance)) {
@@ -1336,9 +1387,9 @@ explore_habitat_data(env_data_natura,
                      occurrence,
                      abundance,
                      "selected")
-explore_phylogeny_data(phylogeny_data, 
-                       abundance,
-                       "selected")
+#explore_phylogeny_data(phylogeny_data, 
+#                       abundance,
+#                       "selected")
 explore_trait_data(trait_data,
                    abundance, 
                    "selected")
