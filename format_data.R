@@ -2,36 +2,36 @@
 
 # FUNCTIONS 
 
-get_transect_temperature_data <- function(buffer_width,
-                                          temperature_rasters,
-                                          transects) {
-    monthly_temps_for_transects <- data.frame()
-    transects <- project(transects, crs(temperature_rasters[[1]]))
+get_transect_weather_data <- function(buffer_width,
+                                      weather_rasters,
+                                      transects) {
+    monthly_weather_for_transects <- data.frame()
+    transects <- project(transects, crs(weather_rasters[[1]]))
     for (i in 1:length(transects$Numero)) {
         transect <- transects[i,]
         transect_number <- transects$Numero[i]
         buffer_polygon_around_transect <- buffer(transect, width = buffer_width)
-        transect_monthly_mean_temperatures <- list()
-        for (raster_name in names(temperature_rasters)) {
-            raster <- temperature_rasters[[raster_name]]
+        transect_monthly_mean_weather <- list()
+        for (raster_name in names(weather_rasters)) {
+            raster <- weather_rasters[[raster_name]]
             raster_name_parts <- strsplit(raster_name, "_")[[1]]
             year <- as.numeric(raster_name_parts[2])
             month <- as.numeric(raster_name_parts[3])
-            temps_in_buffer <- na.omit(extract(raster, buffer_polygon_around_transect))
-            colnames(temps_in_buffer) <- c("id", "value")
-            month_mean_temp_for_transect <- mean(temps_in_buffer$value)
-            transect_monthly_mean_temperatures[["year"]] <- c(transect_monthly_mean_temperatures[["year"]], year)
-            transect_monthly_mean_temperatures[["month"]] <-  c(transect_monthly_mean_temperatures[["month"]], month)
-            transect_monthly_mean_temperatures[["temp"]] <-  c(transect_monthly_mean_temperatures[["temp"]],
-                                                             month_mean_temp_for_transect)
+            weather_values_in_buffer <- na.omit(extract(raster, buffer_polygon_around_transect))
+            colnames(weather_values_in_buffer) <- c("id", "value")
+            month_mean_weather_for_transect <- mean(weather_values_in_buffer$value)
+            transect_monthly_mean_weather[["year"]] <- c(transect_monthly_mean_weather[["year"]], year)
+            transect_monthly_mean_weather[["month"]] <-  c(transect_monthly_mean_weather[["month"]], month)
+            transect_monthly_mean_weather[["value"]] <-  c(transect_monthly_mean_weather[["value"]],
+                                                             month_mean_weather_for_transect)
             
         }
-        temperature_data_for_transect <- data.frame(transect = transect_number, 
-                                                    transect_monthly_mean_temperatures)
-        monthly_temps_for_transects <- rbind(monthly_temps_for_transects, temperature_data_for_transect)
+        weather_data_for_transect <- data.frame(transect = transect_number, 
+                                                    transect_monthly_mean_weather)
+        monthly_weather_for_transects <- rbind(monthly_weather_for_transects, weather_data_for_transect)
         
     }
-    return(monthly_temps_for_transects)
+    return(monthly_weather_for_transects)
 }
 
 format_observations_for_hmsc <- function(observations) {
@@ -245,9 +245,9 @@ names(transect_lengths) <- transect_names
 
 
 # Calculate transect temperature values
-transect_temperatures <- get_transect_temperature_data(buffer_width, temperature_data, transects_shp)
-transect_temperatures_winter <- transect_temperatures[transect_temperatures$month %in% c(1, 2), ]
-transect_winter_mean_temps <- aggregate(temp ~ transect + year, 
+transect_temperatures <- get_transect_weather_data(buffer_width, temperature_data, transects_shp)
+transect_temperatures_winter <- transect_temperatures[transect_temperatures$month %in% c(1,2), ]
+transect_winter_mean_temps <- aggregate(value ~ transect + year, 
                                         data = transect_temperatures_winter, 
                                         FUN = mean, 
                                         na.rm = TRUE)
@@ -256,14 +256,14 @@ for (sample_number in 1:length(spatiotemporal_context$Sample)) {
     sample_transect <- spatiotemporal_context[sample_number, ]$Transect
     sample_year <- spatiotemporal_context[sample_number, ]$Year
     sample_winter_mean_temp <- transect_winter_mean_temps[transect_winter_mean_temps$transect == sample_transect 
-                                                          & transect_winter_mean_temps$year == sample_year, ]$temp
+                                                          & transect_winter_mean_temps$year == sample_year, ]$value
     if (length(sample_winter_mean_temp) == 0)  {
         sample_winter_mean_temp <- NA
     }
     sample_winter_mean_temperatures <- c(sample_winter_mean_temperatures, sample_winter_mean_temp)
 }
-transect_temperatures_spring <- transect_temperatures[transect_temperatures$month %in% c(4, 5), ]
-transect_spring_mean_temps <- aggregate(temp ~ transect + year, 
+transect_temperatures_spring <- transect_temperatures[transect_temperatures$month %in% c(5), ]
+transect_spring_mean_temps <- aggregate(value ~ transect + year, 
                                           data = transect_temperatures_spring, 
                                           FUN = mean, 
                                           na.rm = TRUE)
@@ -272,12 +272,31 @@ for (sample_number in 1:length(spatiotemporal_context$Sample)) {
     sample_transect <- spatiotemporal_context[sample_number, ]$Transect
     sample_year <- spatiotemporal_context[sample_number, ]$Year
     sample_spring_mean_temp <- transect_spring_mean_temps[transect_spring_mean_temps$transect == sample_transect 
-                                                                & transect_spring_mean_temps$year == sample_year, ]$temp
+                                                                & transect_spring_mean_temps$year == sample_year, ]$value
     if (length(sample_spring_mean_temp) == 0)  {
         sample_spring_mean_temp <- NA
     }
     sample_spring_mean_temperatures <- c(sample_spring_mean_temperatures, sample_spring_mean_temp)
 }
+
+transect_rainfall <- get_transect_weather_data(buffer_width, rainfall_data, transects_shp)
+transect_rainfall_spring <- transect_rainfall[transect_rainfall$month %in% c(4, 5), ]
+transect_spring_mean_rainfall <- aggregate(value ~ transect + year, 
+                                           data = transect_rainfall_spring, 
+                                           FUN = mean,
+                                           na.rm = TRUE)
+sample_spring_mean_rainfalls <- c()
+for (sample_number in 1:length(spatiotemporal_context$Sample)) {
+    sample_transect <- spatiotemporal_context[sample_number, ]$Transect
+    sample_year <- spatiotemporal_context[sample_number, ]$Year
+    sample_spring_mean_rainfall <- transect_spring_mean_rainfall[transect_spring_mean_rainfall$transect == sample_transect 
+                                                          & transect_spring_mean_rainfall$year == sample_year, ]$value
+    if (length(sample_spring_mean_rainfall) == 0)  {
+        sample_spring_mean_rainfall <- NA
+    }
+    sample_spring_mean_rainfalls <- c(sample_spring_mean_rainfalls, sample_spring_mean_rainfall)
+}
+
 
 
 # Create diversity data
@@ -319,6 +338,7 @@ env_data_natura <- data.frame(fractions_natura,
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
 env_data_natura$Temperature <- sample_spring_mean_temperatures
 env_data_natura$WinterTemperature <- sample_winter_mean_temperatures
+env_data_natura$Rainfall <- sample_spring_mean_rainfalls
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
                               PatchDensity = corine_diversities$PatchDensity,
@@ -331,6 +351,7 @@ env_data_corine <- data.frame(fractions_corine,
 env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
 env_data_corine$Temperature <- sample_spring_mean_temperatures
 env_data_corine$WinterTemperature <- sample_winter_mean_temperatures
+env_data_corine$Rainfall <- sample_spring_mean_rainfalls
 
 
 

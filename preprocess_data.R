@@ -26,7 +26,6 @@ get_observations_from_given_transects <- function(transects, observations) {
 }
 
 # SCRIPT STARTS
-###################################################################################################################
 
 # READ DATA
 transects_shp <- vect(file.path(dir_data, "bird_transects.shp"))

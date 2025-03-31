@@ -25,16 +25,31 @@ fractions_corine <- fractions_corine[unique(spatiotemporal_context$Transect),]
 
 # SELECT SPECIES
 # Select only more prevalent species
+species_list <- c()
+samples <- c()
+transects <- c()
+prevalences <- c()
 for (species in colnames(occurrence)) {
     species_occurrence <- occurrence[,species]
     number_of_transects_where_species_has_occurrence <- sum(tapply(species_occurrence, 
                                                                    spatiotemporal_context$Transect, 
                                                                    function(x) any(x == 1)))
-    if (number_of_transects_where_species_has_occurrence < 3) {
+    number_of_samples_species_is_found_in <- sum(species_occurrence)
+    prevalence <- number_of_samples_species_is_found_in / nrow(occurrence)
+    if (number_of_transects_where_species_has_occurrence < 4) {
+        species_list <- c(species_list, species)
+        samples <- c(samples, number_of_samples_species_is_found_in)
+        transects <- c(transects, number_of_transects_where_species_has_occurrence)
+        prevalences <- c(prevalences, prevalence)
         occurrence <- occurrence[, colnames(occurrence) != species]
         abundance <- abundance[, colnames(abundance) != species]
     }
 }
+values <- data.frame(species = species_list,
+                     samples = samples,
+                     transects = transects,
+                     prevalences = prevalences)
+print(values)
 
 
 # SELECT ENVIRONMENTAL DATA
@@ -76,6 +91,12 @@ pca_results_corine <- prcomp(fractions_corine, center = TRUE, scale. = TRUE)
 
 # SELECT TRAIT DATA
 trait_data <- trait_data[colnames(occurrence), ]
+trait_data <- trait_data[,c("Feeding"), drop = FALSE]
+
+# SELECT PHYLOGENY DATA
+species_to_keep <- colnames(occurrence)
+species_to_remove <- setdiff(phylogeny_data$tip.label, species_to_keep)
+phylogeny_data <- drop.tip(phylogeny_data, species_to_remove)
 
 
 # SAVE DATA

@@ -41,13 +41,6 @@ filter_zero_columns <- function(samples) {
     return(filtered_samples)  
 }
 
-extract_thinning_value <- function(filename) {
-    parts <- strsplit(filename, "_")[[1]] 
-    thinning_value <- as.numeric(parts[length(parts) - 1])
-    print(thinning_value)
-    return(thinning_value)
-}
-
 
 # SCRIPT STARTS
 

@@ -22,6 +22,13 @@ scale_between_zero_and_one <- function(data) {
     return(as.data.frame(scaled_data))
 }
 
+extract_thinning_value <- function(filename) {
+    parts <- strsplit(filename, "_")[[1]] 
+    thinning_value <- as.numeric(parts[length(parts) - 1])
+    print(thinning_value)
+    return(thinning_value)
+}
+
 # FUNCTIONS | DATA READING
 
 read_climate_data <- function(folder, type) {

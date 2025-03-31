@@ -22,7 +22,7 @@ run_check_model_fits <- FALSE
 
 buffer_width <- 25 # how far away from line transect are habitat values read from raster (meters)
 number_of_samples <- 250 # number of samples for each chain
-thinning_values <- c(1) # with thin value x, only every x:th value from chain is taken as sample
+thinning_values <- c(1, 10) # with thin value x, only every x:th value from chain is taken as sample
 modelfit_folds <- 2 # how many folds to use in cross-validation (1 fold for test, all others are training)
 overwrite_modelfits <- FALSE # should existing modelfit values be overwritten
 
@@ -55,6 +55,7 @@ library(vioplot) # For violin plots
 library(cluster) # For silhouette scores
 library(corrplot) # For reordering correlation matrices
 library(ggrepel) # For better label placement
+library(plotly) # For 3D plots
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")

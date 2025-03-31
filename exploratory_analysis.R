@@ -453,10 +453,12 @@ create_pca_plots <- function(pca_results, title) {
     percentage_of_variation_accounted_for_by_pca_axes <- round(eigenvalues / sum(eigenvalues) * 100, 1)
     plot_pca_scree(percentage_of_variation_accounted_for_by_pca_axes, title)
     plot_pca_eigenvalues(eigenvalues, title)
-    print("Plot clusters")
     plot_pca_clusters(pca_results, 
                       percentage_of_variation_accounted_for_by_pca_axes, 
                       title)
+    plot_pca_clusters_3d(pca_results, 
+                         percentage_of_variation_accounted_for_by_pca_axes, 
+                         title)
     plot_pca_loadings(pca_results, title, pca_number = 1)
     plot_pca_loadings(pca_results, title, pca_number = 2)
 }
@@ -514,7 +516,6 @@ plot_pca_eigenvalues <- function(eigenvalues, title) {
 
 
 plot_pca_clusters <- function(pca_results, pca_variation_percentage, title) {
-    print("In cluster plot function")
     # Data for PCA scores (transects)
     pca_plot_data <- data.frame(Transect = rownames(pca_results$x), 
                                 X = pca_results$x[,1], 
@@ -549,6 +550,55 @@ plot_pca_clusters <- function(pca_results, pca_variation_percentage, title) {
         ylab(paste("PC2 - ", pca_variation_percentage[2], " %", sep = "")) +
         theme_bw() +
         ggtitle(sprintf("%s PCA", title)))
+}
+
+
+plot_pca_clusters_3d <- function(pca_results, pca_variation_percentage, title) {
+    # Data for PCA scores (transects)
+    pca_plot_data <- data.frame(Transect = rownames(pca_results$x), 
+                                X = pca_results$x[,1], 
+                                Y = pca_results$x[,2], 
+                                Z = pca_results$x[,3])
+    
+    # Data for PCA loadings (variable directions)
+    loadings <- data.frame(Variable = rownames(pca_results$rotation), 
+                           PC1 = pca_results$rotation[,1], 
+                           PC2 = pca_results$rotation[,2],
+                           PC3 = pca_results$rotation[,3])
+    
+    # Scale arrows for better visualization
+    arrow_scaling <- max(abs(pca_plot_data$X), abs(pca_plot_data$Y), abs(pca_plot_data$Z))
+    
+    # Create PCA plot
+        plot_ly() %>%
+        # Add PCA scores (transect points)
+        add_trace(data = pca_plot_data, 
+                  x = ~X, y = ~Y, z = ~Z, 
+                  type = 'scatter3d', mode = 'text', 
+                  text = ~Transect, 
+                  textposition = "middle center") %>%
+        
+        # Add PCA loadings (arrows)
+        add_trace(data = loadings, 
+                  x = c(rep(0, nrow(loadings)), loadings$PC1 * arrow_scaling), 
+                  y = c(rep(0, nrow(loadings)), loadings$PC2 * arrow_scaling), 
+                  z = c(rep(0, nrow(loadings)), loadings$PC3 * arrow_scaling), 
+                  type = 'scatter3d', mode = 'lines', 
+                  line = list(color = 'blue', width = 4)) %>%
+        
+        # Add variable labels at the end of arrows
+        add_trace(data = loadings, 
+                  x = ~PC1 * arrow_scaling, 
+                  y = ~PC2 * arrow_scaling, 
+                  z = ~PC3 * arrow_scaling, 
+                  type = 'scatter3d', mode = 'text', 
+                  text = ~Variable, 
+                  textposition = "top center",
+                  textfont = list(color = 'blue')) %>%
+        
+        # Set axis labels
+        layout(title = list(text = sprintf("%s PCA", title))
+        )
 }
 
 
@@ -1236,6 +1286,87 @@ load(file = file.path(dir_data, "trait_data.RData"))
 
 
 cor(env_data_natura$Temperature, env_data_natura$WinterTemperature)
+
+for (colname in colnames(fractions_corine)) {
+    hist(log(env_data_corine[,colname]), main = colname)
+}
+
+# SITE FIDELITY
+species_site_fidelities <- c()
+species_prevalences <- c()
+for (species in colnames(occurrence)) {
+    species_prevalence <- 0
+    site_fidelities <- c()
+    for (transect in unique(spatiotemporal_context$Transect)) {
+        transect_visit_indices <- spatiotemporal_context$Transect == transect
+        transect_observations <- occurrence[transect_visit_indices, , drop = FALSE]
+        times_visited <- sum(transect_visit_indices)
+        times_observed <- sum(transect_observations[, species] == 1)
+        if (times_observed == 0) {
+            next;
+        }
+        species_prevalence <- species_prevalence + 1 
+        site_fidelity <- times_observed / times_visited
+        site_fidelities <- c(site_fidelities, site_fidelity)
+    }
+    average_site_fidelity <- mean(site_fidelities)
+    species_site_fidelities <- c(species_site_fidelities, average_site_fidelity)
+    species_prevalences <- c(species_prevalences, species_prevalence)
+}
+names(species_site_fidelities) <- colnames(occurrence)
+names(species_prevalences) <- colnames(occurrence)
+
+sorted_indices <- order(species_site_fidelities)
+species_site_fidelities <- species_site_fidelities[sorted_indices]
+species_prevalences <- species_prevalences[sorted_indices]
+
+color_palette <- colorRampPalette(c("red", "blue"))(length(species_prevalences))
+colors <- color_palette[rank(species_prevalences)]
+
+old_par <- par(no.readonly = TRUE) 
+par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+barplot(species_site_fidelities,
+        horiz = TRUE,
+        las = 2,
+        col = colors,
+        main = "Species site fidelity (colored by prevalence)",
+        xlab = "Site Fidelity")
+par(old_par)
+plot(species_prevalences, species_site_fidelities)
+
+
+# PLOT TEMPORAL TRENDS
+
+
+for (transect in unique(spatiotemporal_context$Transect)) {
+    
+    transect_rows <- spatiotemporal_context$Transect == transect
+    abundance_for_transect <- abundance[transect_rows,]
+    context_for_transect <- spatiotemporal_context[transect_rows,]
+    mean_abundance <- aggregate(abundance_for_transect ~ Year, data = context_for_transect, mean)
+    year <- mean_abundance$Year
+    mean_abundance$Year <- NULL
+    
+    
+    plot(year, 
+         mean_abundance[,1], 
+         type = "l", 
+         ylim = c(min(mean_abundance[mean_abundance != 0]), 
+                  max(mean_abundance[mean_abundance != 0])), 
+         xlab = "Year", 
+         ylab = "Mean Abundance", 
+         main = "Mean Abundance by Year")
+    
+    for (species_number in 2:ncol(mean_abundance)) {
+        # Only plot non-zero values for each species
+        lines(year[mean_abundance[, species_number] != 0], 
+             mean_abundance[mean_abundance[, species_number] != 0, species_number],
+             type = "l")
+    }
+}
+
+
+
 
 
 

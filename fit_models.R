@@ -30,8 +30,8 @@ for (i in 1:length(model_list)) {
             print(sprintf("Thinning value: %s, started %s", thinning_value, date()))
             
             fitted_model <- sampleMcmc(model_to_fit, 
-                                       samples = number_of_samples, 
-                                       thin = thinning_value,
+                                       samples = thinning_value * number_of_samples, 
+                                       thin = 1,
                                        transient = ceiling(0.5 * number_of_samples * thinning_value),
                                        nChains = 4,
                                        nParallel = 4, 
