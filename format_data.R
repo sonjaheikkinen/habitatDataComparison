@@ -262,7 +262,7 @@ for (sample_number in 1:length(spatiotemporal_context$Sample)) {
     }
     sample_winter_mean_temperatures <- c(sample_winter_mean_temperatures, sample_winter_mean_temp)
 }
-transect_temperatures_spring <- transect_temperatures[transect_temperatures$month %in% c(5), ]
+transect_temperatures_spring <- transect_temperatures[transect_temperatures$month %in% c(4,5), ]
 transect_spring_mean_temps <- aggregate(value ~ transect + year, 
                                           data = transect_temperatures_spring, 
                                           FUN = mean, 

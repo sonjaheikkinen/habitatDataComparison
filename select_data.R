@@ -12,7 +12,7 @@ load(file = file.path(dir_data, "phylogeny_data_raw.RData"))
 
 # SELECT TRANSECTS
 # Remove transect if not a big enough portion of the transect is covered by natura data
-transect_selection <- env_data_natura$NaturaPercentage >= 0.9
+transect_selection <- (env_data_natura$NaturaPercentage >= 0.8) & (env_data_natura$Effort > 5500)
 abundance <- abundance[transect_selection, ]
 occurrence <- occurrence[transect_selection, ]
 spatiotemporal_context <- spatiotemporal_context[transect_selection, ]
@@ -36,7 +36,7 @@ for (species in colnames(occurrence)) {
                                                                    function(x) any(x == 1)))
     number_of_samples_species_is_found_in <- sum(species_occurrence)
     prevalence <- number_of_samples_species_is_found_in / nrow(occurrence)
-    if (number_of_transects_where_species_has_occurrence < 4) {
+    if (number_of_transects_where_species_has_occurrence < 3) {
         species_list <- c(species_list, species)
         samples <- c(samples, number_of_samples_species_is_found_in)
         transects <- c(transects, number_of_transects_where_species_has_occurrence)
@@ -56,12 +56,6 @@ print(values)
 natura_types <- colnames(fractions_natura)
 corine_types <- colnames(fractions_corine)
 for (type in natura_types) {
-    #zero_percentage <- sum(env_data_natura[,type] == 0) / length(env_data_natura[,type])
-    #print(sprintf("%s zero percentage: %s", type, zero_percentage))
-    #if (zero_percentage >= 0.95) {
-    #    env_data_natura[,type] <- NULL
-    #    fractions_natura[,type] <- NULL
-    #}
     non_zeros <- sum(fractions_natura[,type] != 0)
     print(sprintf("%s non-zeros: %s", type, non_zeros))
     if (non_zeros < 3) {
@@ -69,20 +63,31 @@ for (type in natura_types) {
             fractions_natura[,type] <- NULL
     }
 }
+type_list <- c()
+samples <- c()
+transects <- c()
+fractions <- c()
 for (type in corine_types) {
-    #zero_percentage <- sum(env_data_corine[,type] == 0) / length(env_data_corine[,type])
-    #print(sprintf("%s zero percentage: %s", type, zero_percentage))
-    #if (zero_percentage >= 0.95) {
-    #    env_data_corine[,type] <- NULL
-    #    fractions_corine[,type] <- NULL
-    #}
-    non_zeros <- sum(fractions_corine[,type] != 0)
-    print(sprintf("%s non-zeros: %s", type, non_zeros))
-    if (non_zeros < 3) {
+    data_for_type <- env_data_corine[,type]
+    non_zeros <- sum(tapply(data_for_type, 
+                            spatiotemporal_context$Transect, 
+                            function(x) any(x > 0)))
+    number_of_samples_type_is_found_in <- sum(data_for_type > 0)
+    average_fraction <- mean(data_for_type[data_for_type > 0])
+    type_list <- c(type_list, type)
+    samples <- c(samples, number_of_samples_type_is_found_in)
+    transects <- c(transects, non_zeros)
+    fractions <- c(fractions, average_fraction)
+    if (non_zeros < 3 || (non_zeros >= 3 && average_fraction < 0.01)) {
         env_data_corine[,type] <- NULL
         fractions_corine[,type] <- NULL
     }
 }
+values <- data.frame(types = type_list,
+                     samples = samples,
+                     transects = transects,
+                     fractions = fractions)
+print(values)
 
 # CALCULATE NEW PCA FROM SELECTED DATA
 pca_results_natura <- prcomp(fractions_natura, center = TRUE, scale. = TRUE)

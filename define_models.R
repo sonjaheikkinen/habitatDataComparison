@@ -67,10 +67,10 @@ randomlevel_temporal <- HmscRandomLevel(sData = temporal_coordinates)
 # If you want the occurrence probability to be able to peak at an intermediate value (bell curve)
 # You need to use second order polynomial poly(variable, degree = 2, raw = TRUE)
 trait_formula <- as.formula("~Feeding")
-formula_natura<- as.formula(sprintf("~Effort:(%s+Temperature+Rainfall+PatchDensity)", 
+formula_natura<- as.formula(sprintf("~%s+Temperature+Rainfall+PatchDensity+Effort", 
                                           paste(colnames(fractions_natura), 
                                                 collapse = "+")))
-formula_corine <- as.formula(sprintf("~Effort:(%s+Temperature+Rainfall+PatchDensity)", 
+formula_corine <- as.formula(sprintf("~%s+Temperature+Rainfall+PatchDensity+Effort", 
                                      paste(colnames(fractions_corine), 
                                            collapse = "+")))
 
@@ -155,9 +155,9 @@ probit_corine <- Hmsc(Y = occurrence,
 
 
 # If needed, test that model works properly:
-print(sprintf("Fitting started %s", date()))
-fitted <- sampleMcmc(probit_corine, samples = 3, nChains = 4)
-print(sprintf("Fitting ended %s", date()))
+#print(sprintf("Fitting started %s", date()))
+#fitted <- sampleMcmc(probit_corine, samples = 3, nChains = 4)
+#print(sprintf("Fitting ended %s", date()))
 
 
 # SAVE MODELS
@@ -169,8 +169,8 @@ print(sprintf("Fitting ended %s", date()))
 #                       "test_probit_natura_frac_phyl",
 #                       "test_probit_corine_frac",
 #                       "test_probit_corine_frac_phyl")
-model_list <- list(probit_corine)
-names(model_list) <- c("probit_corine")
+model_list <- list(probit_natura, probit_corine)
+names(model_list) <- c("probit_natura", "probit_corine")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
