@@ -18,7 +18,10 @@ plot_metric <- function(data) {
 # LOAD IN MODELFITS
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
 
-# EXTRACT MODELFIT VALUES FROM EACH FILE
+
+# START WITH OVERALL COMPARISONS
+
+# EXTRACT MEAN MODELFIT VALUES FROM EACH FILE
 waic_list <- list()
 rmse_list <- list()
 auc_list <- list()
@@ -50,5 +53,62 @@ plot_metric(waic_df)
 plot_metric(rmse_df)
 plot_metric(auc_df)
 plot_metric(tjurr2_df)
+
+
+rmse_df <- NULL
+auc_df<- NULL
+tjurr2_df <- NULL
+
+# NEXT COMPARISONS BY SPECIES
+for (file_number in 1:length(modelfit_files)) {
+    
+    model_name <- strsplit(basename(modelfit_files[file_number]), "\\.")[[1]][1]
+    
+    load(modelfit_files[file_number])
+    
+    initial_dataframe <- data.frame(species = rownames(explanatory_power))
+    
+    if (is.null(rmse_df)) {
+        rmse_df <- initial_dataframe
+    }
+    if (is.null(auc_df)) {
+        auc_df <- initial_dataframe
+    }
+    if(is.null(tjurr2_df)) {
+        tjurr2_df <- initial_dataframe
+    }
+    
+    rmse_df[,model_name] <- explanatory_power$RMSE
+    auc_df[,model_name] <- explanatory_power$AUC
+    tjurr2_df[,model_name] <- explanatory_power$TjurR2
+    
+}
+
+rownames(rmse_df) <- rmse_df$species
+rmse_df$species <- NULL
+rownames(auc_df) <- auc_df$species
+auc_df$species <- NULL
+rownames(tjurr2_df) <- tjurr2_df$species
+tjurr2_df$species <- NULL
+
+pheatmap(rmse_df)
+pheatmap(auc_df)
+pheatmap(tjurr2_df)
+
+# FIT LINEAR MODEL TO EXPLAIN FIT USING MODELLING APPROACH
+long_rmse <- stack(rmse_df)
+long_auc <- stack(auc_df)
+long_tjurr2 <- stack(tjurr2_df)
+
+lm_rmse <- lm(values ~ ind, data = long_rmse)
+summary(lm_rmse)
+lm_auc <- lm(values ~ ind, data = long_auc)
+summary(lm_auc)
+lm_tjurr2 <- lm(values ~ ind, data = long_tjurr2)
+summary(lm_tjurr2)
+
+
+plot(auc_df$modelfit_lognormal_corine_thin_100_fitted, auc_df$modelfit_lognormal_natura_thin_100_fitted)
+abline(a = 0, b = 1)
 
 
