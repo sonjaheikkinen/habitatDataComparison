@@ -22,6 +22,7 @@ plot_convergence <- function(variable, model_name, psrf_point_estimates) {
     title(sprintf("PSRF (%s): %s", variable, model_name), 
           outer = TRUE,
           line = -3)
+    par(mfrow=c(1,1))
 } 
 
 save_convergence_info <- function(samples, variable, model_name, convergence_file) {
@@ -31,6 +32,9 @@ save_convergence_info <- function(samples, variable, model_name, convergence_fil
     append_to_file("\n\n", file = convergence_file)
     psrf_point_estimates <- psrf[,1]
     plot_convergence(variable, model_name, psrf_point_estimates)
+    combined_samples <- as.mcmc.list(samples)
+    traceplot(combined_samples[,1])
+    
 }
 
 # Remove those columns from samples, that have been set to zero across all chains
