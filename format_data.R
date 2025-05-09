@@ -175,9 +175,6 @@ abundance <- as.matrix(abundance)
 # Creato community matrix Y for occurrences
 occurrence <- 1 * (abundance > 0)
 
-# Set abundance to NA where 0 for hurdle model approach
-#abundance[abundance == 0] <- NA
-
 
 
 
