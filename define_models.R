@@ -13,9 +13,14 @@ load(file = file.path(dir_data, "fractions_corine.RData"))
 
 
 
+# Set abundance to NA where 0 for hurdle model approach
+#abundance[abundance == 0] <- NA
+
+
+
 
 # FORMULATE STUDY DESIGN
-# Rows: samples, columns: hierarchical categories (year, transct) of each sample
+# Rows: samples, columns: hierarchical categories (year, transect) of each sample
 # This is pretty much same as spatiotemporal context, but with factors instead
 study_design <- as.data.frame(unclass(spatiotemporal_context), stringsAsFactors = TRUE)
 study_design$Year <- as.factor(study_design$Year)
@@ -67,10 +72,10 @@ randomlevel_temporal <- HmscRandomLevel(sData = temporal_coordinates)
 # If you want the occurrence probability to be able to peak at an intermediate value (bell curve)
 # You need to use second order polynomial poly(variable, degree = 2, raw = TRUE)
 trait_formula <- as.formula("~Feeding")
-formula_natura<- as.formula(sprintf("~%s+Temperature+Rainfall+PatchDensity+Effort", 
+formula_natura<- as.formula(sprintf("~Effort:(%s+Temperature+Rainfall+PatchDensity)", 
                                           paste(colnames(fractions_natura), 
                                                 collapse = "+")))
-formula_corine <- as.formula(sprintf("~%s+Temperature+Rainfall+PatchDensity+Effort", 
+formula_corine <- as.formula(sprintf("~Effort:(%s+Temperature+Rainfall+PatchDensity)", 
                                      paste(colnames(fractions_corine), 
                                            collapse = "+")))
 
@@ -132,6 +137,28 @@ probit_corine <- Hmsc(Y = occurrence,
                                        "Year" = randomlevel_temporal))
 
 
+lognormal_natura <- Hmsc(Y = abundance, 
+                         XData = env_data_natura, 
+                         XFormula = formula_natura,
+                         TrData = trait_data,
+                         TrFormula = trait_formula,
+                         #phyloTree = phylogeny_data,
+                         distr = "lognormal",
+                         studyDesign = study_design,
+                         ranLevels = list("Transect" = randomlevel_spatial,
+                                          "Year" = randomlevel_temporal))
+lognormal_corine <- Hmsc(Y = abundance, 
+                         XData = env_data_corine,
+                         XFormula = formula_corine,
+                         TrData = trait_data,
+                         TrFormula = trait_formula,
+                         #phyloTree = phylogeny_data,
+                         distr = "lognormal",
+                         studyDesign = study_design,
+                         ranLevels = list("Transect" = randomlevel_spatial,
+                                          "Year" = randomlevel_temporal))
+
+
 #natura_spike_and_slab_q10 <- Hmsc(Y = occurrence, 
 #                                XData = env_data_natura,
 #                                XFormula = test_formula_natura_frac,
@@ -156,21 +183,13 @@ probit_corine <- Hmsc(Y = occurrence,
 
 # If needed, test that model works properly:
 #print(sprintf("Fitting started %s", date()))
-#fitted <- sampleMcmc(probit_corine, samples = 3, nChains = 4)
+#fitted <- sampleMcmc(lognormal_corine, samples = 3, nChains = 4)
 #print(sprintf("Fitting ended %s", date()))
 
 
 # SAVE MODELS
-#model_list <- list(test_probit_natura_frac,
-#                   test_probit_natura_frac_phyl,
-#                   test_probit_corine_frac,
-#                   test_probit_corine_frac_phyl)
-#names(model_list) <- c("test_probit_natura_frac",
-#                       "test_probit_natura_frac_phyl",
-#                       "test_probit_corine_frac",
-#                       "test_probit_corine_frac_phyl")
-model_list <- list(probit_natura, probit_corine)
-names(model_list) <- c("probit_natura", "probit_corine")
+model_list <- list(probit_natura)
+names(model_list) <- c("probit_natura")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
@@ -182,15 +201,13 @@ save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
 
-
 run_quick_test <- function() {
     
-    samples <- 10
-    thin <- c(1, 10)
+    samples <- 250
+    thin <- 10
     n <- 4
-        
-    names <- colnames(fractions_natura)
-    env_formula <- as.formula(sprintf("~%s", paste(names_1, collapse = "+")))
+
+    env_formula <- as.formula(sprintf("~%s", "Luonnonmetsät"))
     
     quick_test <- Hmsc(Y = occurrence, 
                        XData = env_data_natura,
@@ -203,20 +220,24 @@ run_quick_test <- function() {
     
     print(sprintf("Fitting start %s", date()))
     fitted_model <- sampleMcmc(quick_test, 
-                               samples = thin * samples, 
-                               thin = 1,
-                               transient = ceiling(0.5 * samples * thin),
+                               samples = samples, 
+                               thin = thin,
+                               transient = 0,
                                nChains = n,
-                               nParallel = n,
-                               verbose = 100)
+                               #nParallel = n,
+                               verbose = 1)
     print(sprintf("End %s", date()))
     print("")
+    
+    return(fitted_model)
 
 }
 
-#run_quick_test()
+#fitted_model <- run_quick_test()
 
-
+mcmc_samples <- convertToCodaObject(fitted_model)
+combined_beta <- as.mcmc.list(mcmc_samples$Beta)
+traceplot(combined_beta[,1])
 
 
 
