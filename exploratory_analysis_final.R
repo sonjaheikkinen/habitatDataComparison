@@ -11,7 +11,8 @@ load(file = file.path(dir_data, "pca_results_natura.RData"))
 load(file = file.path(dir_data, "pca_results_corine.RData"))
 load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
-load()
+load(file = file.path(dir_data, "transects_shp.RData"))
+
 
 
 pdf(file.path(dir_results, sprintf("exploratory_analysis_final.pdf")))
@@ -29,7 +30,10 @@ for (sample in 1:nrow(spatiotemporal_context)) {
     samples[transect, year] <- 1
 }
 pheatmap(samples,
-         cluster_cols = FALSE)
+         color = c("lightblue", "navy"),
+         cluster_cols = FALSE,
+         legend_breaks = c(0, 1),
+         main = "Transect visits")
 
 
 
