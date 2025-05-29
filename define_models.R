@@ -136,6 +136,52 @@ probit_corine <- Hmsc(Y = occurrence,
                       ranLevels = list("Transect" = randomlevel_spatial,
                                        "Year" = randomlevel_temporal))
 
+probit_natura_notemporal <- Hmsc(Y = occurrence, 
+                      XData = env_data_natura,
+                      XFormula = formula_natura,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      #phyloTree = phylogeny_data,
+                      distr = "probit",
+                      studyDesign = study_design,
+                      ranLevels = list("Transect" = randomlevel_spatial))
+probit_natura_onlytemporal <- Hmsc(Y = occurrence, 
+                      XData = env_data_natura,
+                      XFormula = formula_natura,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      #phyloTree = phylogeny_data,
+                      distr = "probit",
+                      studyDesign = study_design,
+                      ranLevels = list("Year" = randomlevel_temporal))
+probit_corine <- Hmsc(Y = occurrence, 
+                      XData = env_data_corine,
+                      XFormula = formula_corine,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      #phyloTree = phylogeny_data,
+                      distr = "probit",
+                      studyDesign = study_design,
+                      ranLevels = list("Transect" = randomlevel_spatial,
+                                       "Year" = randomlevel_temporal))
+
+probit_natura_no_spatial <- Hmsc(Y = occurrence, 
+                      XData = env_data_natura,
+                      XFormula = formula_natura,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      #phyloTree = phylogeny_data,
+                      distr = "probit",
+                      studyDesign = study_design)
+probit_corine_no_spatial <- Hmsc(Y = occurrence, 
+                      XData = env_data_corine,
+                      XFormula = formula_corine,
+                      TrData = trait_data,
+                      TrFormula = trait_formula,
+                      #phyloTree = phylogeny_data,
+                      distr = "probit",
+                      studyDesign = study_design)
+
 
 lognormal_natura <- Hmsc(Y = abundance, 
                          XData = env_data_natura, 
@@ -188,8 +234,8 @@ lognormal_corine <- Hmsc(Y = abundance,
 
 
 # SAVE MODELS
-model_list <- list(probit_natura)
-names(model_list) <- c("probit_natura")
+model_list <- list(probit_natura_notemporal, probit_natura_onlytemporal)
+names(model_list) <- c("probit_natura_notemporal", "probit_natura_onlytemporal")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 
@@ -203,19 +249,65 @@ save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 run_quick_test <- function() {
     
-    samples <- 250
-    thin <- 10
+    samples <- 50
+    thin <- 1
     n <- 4
 
-    env_formula <- as.formula(sprintf("~%s", "Luonnonmetsät"))
+    env_formula <- ~Effort:(Karut.kirkasvetiset.järvet + Tunturikankaat + Karut.tunturiniityt + 
+                                Vaihettumissuot.ja.rantasuot + Aapasuot + Tunturikoivikot + 
+                                Palsasuot + Silikaattikalliot + Luonnonmetsät + Lehdot + 
+                                Puustoiset.suot + Tulvametsät + Temperature + Rainfall + 
+                                PatchDensity)
+    env_formula_short <- ~Effort:(Karut.kirkasvetiset.järvet + Tunturikankaat + Karut.tunturiniityt + 
+                                      Vaihettumissuot.ja.rantasuot + Aapasuot + Tunturikoivikot + 
+                                      Palsasuot + Silikaattikalliot + Luonnonmetsät + Lehdot + 
+                                      Puustoiset.suot + Tulvametsät)
     
     quick_test <- Hmsc(Y = occurrence, 
+                       XData = env_data_natura,
+                       XFormula = env_formula,
+                       TrData = trait_data,
+                       TrFormula = trait_formula,
+                       distr = "probit",
+                       studyDesign = study_design,
+                       ranLevels = list("Transect" = randomlevel_spatial, 
+                                        "Year" = randomlevel_temporal))
+    
+    quick_test_short <- Hmsc(Y = occurrence, 
+                         XData = env_data_natura,
+                         XFormula = env_formula_short,
+                         TrData = trait_data,
+                         TrFormula = trait_formula,
+                         distr = "probit",
+                         studyDesign = study_design,
+                         ranLevels = list("Transect" = randomlevel_spatial, 
+                                          "Year" = randomlevel_temporal))
+    
+    quick_test_notraits <- Hmsc(Y = occurrence, 
                        XData = env_data_natura,
                        XFormula = env_formula,
                        distr = "probit",
                        studyDesign = study_design,
                        ranLevels = list("Transect" = randomlevel_spatial, 
                                         "Year" = randomlevel_temporal))
+    
+    quick_test_nospatial <- Hmsc(Y = occurrence, 
+                       XData = env_data_natura,
+                       XFormula = env_formula,
+                       TrData = trait_data,
+                       TrFormula = trait_formula,
+                       distr = "probit",
+                       studyDesign = study_design)
+    
+    quick_test_noyear <- Hmsc(Y = occurrence, 
+                       XData = env_data_natura,
+                       XFormula = env_formula,
+                       TrData = trait_data,
+                       TrFormula = trait_formula,
+                       distr = "probit",
+                       studyDesign = study_design,
+                       ranLevels = list("Transect" = randomlevel_spatial))
+    
     
     
     print(sprintf("Fitting start %s", date()))
@@ -224,20 +316,63 @@ run_quick_test <- function() {
                                thin = thin,
                                transient = 0,
                                nChains = n,
-                               #nParallel = n,
-                               verbose = 1)
+                               nParallel = n)
     print(sprintf("End %s", date()))
     print("")
+    
+    print(sprintf("Fitting short start %s", date()))
+    fitted_model <- sampleMcmc(quick_test_short, 
+                                 samples = samples, 
+                                 thin = thin,
+                                 transient = 0,
+                                 nChains = n,
+                                 nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
+    
+    print(sprintf("Fitting no traits start %s", date()))
+    fitted_model <- sampleMcmc(quick_test_notraits, 
+                               samples = samples, 
+                               thin = thin,
+                               transient = 0,
+                               nChains = n,
+                               nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
+    
+    print(sprintf("Fitting no year start %s", date()))
+    fitted_model <- sampleMcmc(quick_test_noyear, 
+                               samples = samples, 
+                               thin = thin,
+                               transient = 0,
+                               nChains = n,
+                               nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
+    
+    print(sprintf("Fitting no spatial start %s", date()))
+    fitted_model <- sampleMcmc(quick_test_nospatial, 
+                               samples = samples, 
+                               thin = thin,
+                               transient = 0,
+                               nChains = n,
+                               nParallel = n)
+    print(sprintf("End %s", date()))
+    print("")
+    
+    
     
     return(fitted_model)
 
 }
 
-#fitted_model <- run_quick_test()
+fitted_model <- run_quick_test()
 
-mcmc_samples <- convertToCodaObject(fitted_model)
-combined_beta <- as.mcmc.list(mcmc_samples$Beta)
-traceplot(combined_beta[,1])
+posterior <- convertToCodaObject(fitted_model)
+samples <- posterior$Beta
+combined_samples <- as.mcmc.list(samples)
+traceplot(combined_samples[,1])
+
 
 
 
