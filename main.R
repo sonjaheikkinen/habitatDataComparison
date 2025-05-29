@@ -56,6 +56,7 @@ library(cluster) # For silhouette scores
 library(corrplot) # For reordering correlation matrices
 library(ggrepel) # For better label placement
 library(plotly) # For 3D plots
+library(gridExtra) # For arraging ggplots in grid
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")
