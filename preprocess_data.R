@@ -55,11 +55,6 @@ observations_from_study_area <- get_observations_from_given_transects(transects,
 observations <- observations_from_study_area
 
 
-# LIMIT DATA TO STUDY YEARS
-observations_2006_onwards <- observations$Year >= 2006
-observations <- observations[observations_2006_onwards, ]
-
-
 
 # CLEAN DATA
 
@@ -72,6 +67,20 @@ observations <- observations[sapply(strsplit(observations$Species, " "), length)
 transect_numbers_that_have_observations <- unique(observations$Transect)
 transects <- subset(transects,
                     transects$Numero %in% transect_numbers_that_have_observations)
+
+
+# SAVE CLEANED DATA FOR STUDY AREA
+write.table(observations, 
+            file.path(dir_data, "observations_not_year_limited.csv"), 
+            sep = ";",
+            row.names = FALSE)
+
+
+
+# LIMIT DATA TO STUDY YEARS
+observations_2006_onwards <- observations$Year >= 2006
+observations <- observations[observations_2006_onwards, ]
+
 
 
 # SAVE PREPROCESSED DATA

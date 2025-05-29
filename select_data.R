@@ -8,6 +8,7 @@ load(file = file.path(dir_data, "fractions_corine_raw.RData"))
 load(file = file.path(dir_data, "env_data_corine_raw.RData"))
 load(file = file.path(dir_data, "trait_data_raw.RData"))
 load(file = file.path(dir_data, "phylogeny_data_raw.RData"))
+transects_shp <- vect(file.path(dir_data, "transects_formatted.shp"))
 
 
 # SELECT TRANSECTS
@@ -20,6 +21,8 @@ env_data_natura <- env_data_natura[transect_selection, ]
 env_data_corine <- env_data_corine[transect_selection, ]
 fractions_natura <- fractions_natura[unique(spatiotemporal_context$Transect),]
 fractions_corine <- fractions_corine[unique(spatiotemporal_context$Transect),]
+transects_selected_shp <- transects_shp[transects_shp$Numero %in% spatiotemporal_context$Transect, ]
+
 
 
 
@@ -116,5 +119,7 @@ save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
 save(pca_results_natura, file = file.path(dir_data, "pca_results_natura.RData"))
 save(pca_results_corine, file = file.path(dir_data, "pca_results_corine.RData"))
-
+writeVector(transects_selected_shp, 
+            file.path(dir_data, "transects_selected.shp"),
+            overwrite = TRUE)
 

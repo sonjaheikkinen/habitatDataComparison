@@ -413,7 +413,9 @@ phylogeny_data <- taxonomy
 save(names_natura, file = file.path(dir_data, "names_natura.RData"))
 save(names_corine, file = file.path(dir_data, "names_corine.RData"))
 save(observations, file = file.path(dir_data, "observations.RData"))
-save(transects_shp, file = file.path(dir_data, "transects_shp.RData"))
+writeVector(transects_shp, 
+            file.path(dir_data, "transects_formatted.shp"),
+            overwrite = TRUE)
 save(species_traits, file = file.path(dir_data, "species_traits.RData"))
 save(species_alternative_names, file = file.path(dir_data, "species_alternative_names.RData"))
 save(taxonomy, file = file.path(dir_data, "taxonomy.RData"))
