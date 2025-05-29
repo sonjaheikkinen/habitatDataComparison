@@ -187,8 +187,35 @@ grid.arrange(
 
 
 
+par(mfrow = c(3, 4))
+
+for (habitat_type in colnames(fractions_natura)) {
+    plot_histogram(env_data_natura[,habitat_type],
+                   title = sprintf("%s", habitat_type))
+}
 
 
+par(mfrow = c(5, 4))
+
+for (habitat_type in colnames(fractions_corine)) {
+    plot_histogram(env_data_corine[,habitat_type],
+                   title = sprintf("%s", habitat_type))
+}
+
+par(mfrow = c(2, 2))
+plot_histogram(env_data_natura$Temperature,
+               title = "Temperature (April and May average, celcius)")
+plot_histogram(env_data_natura$Rainfall,
+               title = "Rainfall (April and May average, mm)") 
+plot_histogram(env_data_natura$PatchDensity,
+               title = "Patch density within buffer areas")
+plot_histogram(env_data_natura$Effort,
+               title = "Transect length (meters)")
+
+
+
+
+ 
 
 
 
