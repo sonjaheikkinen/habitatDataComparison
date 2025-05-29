@@ -24,7 +24,8 @@ corine_classification <- read_excel(file.path(dir_data, "CorineMaanpeite2018Luok
 names_natura <- data.frame(value = natura_classification$Value, name = natura_classification$NaturaTyyppi)
 names_corine <- data.frame(value = corine_classification$Value, name = corine_classification$Level4Suo)
 
-
+# TRANSECT NAMES FOR COORDINATE DATA
+transect_coordinates$Transect <- rownames(transect_coordinates)
 
 
 
@@ -217,7 +218,98 @@ plot_histogram(env_data_natura$Effort,
 
  
 
+# SPATIAL AND TEMPORAL PLOTS OF ENVIRONMENTAL DATA
 
+
+# Average over transect
+natura_transect_averages <- aggregate(env_data_natura, 
+                             by = list(Transect = spatiotemporal_context$Transect),
+                             FUN = mean, na.rm = TRUE)
+natura_transect_averages <- merge(natura_transect_averages, 
+                                  transect_coordinates, 
+                                  by.x = "Transect", 
+                                  by.y = "Transect",
+                                  all.x = TRUE)
+corine_transect_averages <- aggregate(env_data_corine, 
+                                      by = list(Transect = spatiotemporal_context$Transect),
+                                      FUN = mean, na.rm = TRUE)
+corine_transect_averages <- merge(corine_transect_averages, 
+                                  transect_coordinates, 
+                                  by.x = "Transect", 
+                                  by.y = "Transect",
+                                  all.x = TRUE)
+
+# Average over year
+natura_year_averages <- aggregate(env_data_natura, 
+                                  by = list(Year = spatiotemporal_context$Year),
+                                  FUN = mean, na.rm = TRUE)
+corine_year_averages <- aggregate(env_data_corine, 
+                                  by = list(Year = spatiotemporal_context$Year),
+                                  FUN = mean, na.rm = TRUE)
+
+
+
+plot_spatially <- function(data, variable, title, text = FALSE) {
+    color_palette <- colorRampPalette(c("blue", "white", "red"))
+    number_of_colors <- 100 
+    scaled_values <- scale_to_range(data[, variable], 1, number_of_colors)
+    colors <- color_palette(number_of_colors)[round(scaled_values)]
+    plot(data[, c("x")], data[, c("y")], 
+         col = colors, pch = 19,
+         xlab = "X Coordinate", 
+         ylab = "Y Coordinate",
+         main = title)
+    if (text) {
+        text(x = data[, c("x")],
+             y = data[, c("y")],
+             labels = round(data[, variable], 1),  
+             pos = 3, 
+             col = "black", 
+             cex = 0.5)
+    }
+}
+
+par(mfrow = c(2, 4))
+plot_spatially(natura_transect_averages, "Cluster", title = "Natura cluster", text=TRUE)
+plot_spatially(corine_transect_averages, "Cluster", title = "Corine cluster", text=TRUE)
+plot_spatially(natura_transect_averages, "Temperature", title = "Average temperature", text=TRUE)
+plot_spatially(natura_transect_averages, "Rainfall", title = "Average rainfall", text=TRUE)
+plot_spatially(natura_transect_averages, "PatchDensity", title = "Natura Patch Density", text=TRUE)
+plot_spatially(corine_transect_averages, "PatchDensity", title = "Corine Patch Density", text=TRUE)
+plot_spatially(natura_transect_averages, "Effort", title = "Transect length", text=TRUE)
+
+
+plot_temporally <- function(data, variable, title) {
+    barplot(data[, variable], 
+            names.arg = data[, c("Year")], 
+            xlab = "Year", 
+            ylab = sprintf("%s", variable),
+            main = title)
+}
+par(mfrow = c(2, 1))
+plot_temporally(natura_year_averages, "Temperature", title = "Average temperature")
+plot_temporally(natura_year_averages, "Rainfall", title = "Average rainfall")
+
+
+
+
+# WITHIN DATASET CORRELATIONS
+natura_correlation_columns <- c(colnames(fractions_natura),
+                                "Temperature",
+                                "Rainfall",
+                                "PatchDensity")
+corine_correlation_columns <- c(colnames(fractions_corine),
+                                "Temperature",
+                                "Rainfall",
+                                "PatchDensity")
+pheatmap(cor(env_data_natura[,natura_correlation_columns]), 
+         display_numbers = TRUE,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE)
+pheatmap(cor(env_data_corine[,corine_correlation_columns]), 
+         display_numbers = TRUE,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE)
 
 
 
