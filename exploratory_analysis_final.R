@@ -203,13 +203,15 @@ for (habitat_type in colnames(fractions_corine)) {
                    title = sprintf("%s", habitat_type))
 }
 
-par(mfrow = c(2, 2))
+par(mfrow = c(3, 2))
 plot_histogram(env_data_natura$Temperature,
                title = "Temperature (April and May average, celcius)")
 plot_histogram(env_data_natura$Rainfall,
                title = "Rainfall (April and May average, mm)") 
 plot_histogram(env_data_natura$PatchDensity,
-               title = "Patch density within buffer areas")
+               title = "Natura patch density within buffer areas")
+plot_histogram(env_data_corine$PatchDensity,
+               title = "Corine patch density within buffer areas")
 plot_histogram(env_data_natura$Effort,
                title = "Transect length (meters)")
 
@@ -310,6 +312,37 @@ pheatmap(cor(env_data_corine[,corine_correlation_columns]),
          display_numbers = TRUE,
          cluster_rows = FALSE,
          cluster_cols = FALSE)
+
+
+
+# ABUNDANCE DISTRIBUTIONS
+abundance_df <- as.data.frame(abundance)
+abundance_long <- stack(abundance_df)
+colnames(abundance_long) <- c("Abundance", "Species")
+
+ggplot(abundance_long, aes(x = Abundance, color = Species)) +
+    geom_freqpoly(binwidth = 5, size = 1) +
+    scale_colour_manual(values = rainbow(ncol(abundance))) +
+    theme_minimal() +
+    labs(title = "Species abundance histograms as lines",
+         x = "Abundance", y = "Count") +
+    theme(legend.position = "none")
+
+#ggplot(abundance_long, aes(x = Abundance, fill = Species)) +
+#    geom_histogram(position = "identity", alpha = 0.2, bins = 30, color = "black") +
+#    scale_colour_manual(values = rainbow(ncol(abundance))) +
+#    theme_minimal() +
+#    labs(title = "Overlapping Histograms of Species Abundance",
+#         x = "Abundance", y = "Count") +
+#    theme(legend.position = "none")
+
+#ggplot(abundance_long, aes(x = Abundance, color = Species)) +
+#    stat_bin(geom = "step", binwidth = 5, position = "identity", size = 1) +
+#    scale_colour_manual(values = rainbow(ncol(abundance))) +
+#    theme_minimal() +
+#    labs(title = "Species Abundance Distributions (Step Histogram)",
+#         x = "Abundance", y = "Count") +
+#    theme(legend.position = "none")
 
 
 
