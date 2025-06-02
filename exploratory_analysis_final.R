@@ -320,13 +320,45 @@ abundance_df <- as.data.frame(abundance)
 abundance_long <- stack(abundance_df)
 colnames(abundance_long) <- c("Abundance", "Species")
 
-ggplot(abundance_long, aes(x = Abundance, color = Species)) +
+abundance_transects_df <- aggregate(abundance_df, 
+                                    list(Transect = spatiotemporal_context$Transect),
+                                    FUN = sum)
+abundance_transects_df$Transect <- NULL
+abundance_transects_long <- stack(abundance_transects_df)
+colnames(abundance_transects_long) <- c("Abundance", "Species")
+
+abundance_years_df <- aggregate(abundance_df, 
+                                list(Year = spatiotemporal_context$Year),
+                                FUN = sum)
+abundance_years_df$Year <- NULL
+abundance_years_long <- stack(abundance_years_df)
+colnames(abundance_years_long) <- c("Abundance", "Species")
+
+total <- ggplot(abundance_long, aes(x = Abundance, color = Species)) +
     geom_freqpoly(binwidth = 5, size = 1) +
     scale_colour_manual(values = rainbow(ncol(abundance))) +
     theme_minimal() +
-    labs(title = "Species abundance histograms as lines",
+    labs(title = "Species abundance across samples",
          x = "Abundance", y = "Count") +
     theme(legend.position = "none")
+transect <- ggplot(abundance_transects_long, aes(x = Abundance, color = Species)) +
+    geom_freqpoly(binwidth = 5, size = 1) +
+    scale_colour_manual(values = rainbow(ncol(abundance))) +
+    theme_minimal() +
+    labs(title = "Species abundance across transects",
+         x = "Abundance", y = "Count") +
+    theme(legend.position = "none")
+year <- ggplot(abundance_years_long, aes(x = Abundance, color = Species)) +
+    geom_freqpoly(binwidth = 5, size = 1) +
+    scale_colour_manual(values = rainbow(ncol(abundance))) +
+    theme_minimal() +
+    labs(title = "Species abundance across years",
+         x = "Abundance", y = "Count") +
+    theme(legend.position = "none")
+
+grid.arrange(
+    total, transect, year
+)
 
 #ggplot(abundance_long, aes(x = Abundance, fill = Species)) +
 #    geom_histogram(position = "identity", alpha = 0.2, bins = 30, color = "black") +
@@ -344,6 +376,62 @@ ggplot(abundance_long, aes(x = Abundance, color = Species)) +
 #         x = "Abundance", y = "Count") +
 #    theme(legend.position = "none")
 
+
+
+# PREVALENCE DISTRIBUTIONS
+
+# Prevalence over samples
+sample_prevalence <- colSums(occurrence) / nrow(occurrence)
+
+# Prevalence over transects
+number_of_transects <- length(unique(spatiotemporal_context$Transect))
+transect_prevalence <- sapply(colnames(occurrence), function(species) {
+    indices_where_species_is_present <- which(occurrence[, species] == 1)
+    transects_where_species_is_present <- unique(spatiotemporal_context$Transect[indices_where_species_is_present])
+    transect_prevalence <- length(transects_where_species_is_present) / number_of_transects
+    return(transect_prevalence)
+})
+
+# Prevalence over years
+number_of_years <- length(unique(spatiotemporal_context$Year))
+year_prevalence <- sapply(colnames(occurrence), function(species) {
+    indices_where_species_is_present <- which(occurrence[, species] == 1)
+    years_where_species_is_present <- unique(spatiotemporal_context$Year[indices_where_species_is_present])
+    year_prevalence <- length(years_where_species_is_present) / number_of_years
+    return(year_prevalence)
+})
+
+species_order <- names(sort(sample_prevalence, decreasing = TRUE))
+combined_data <- rbind(
+    sample = sample_prevalence[species_order],
+    transect = transect_prevalence[species_order],
+    year = year_prevalence[species_order]
+)
+
+
+old_par <- par(no.readonly = TRUE) 
+par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+
+par(mfrow = c(1, 3))
+
+barplot(sort(sample_prevalence),
+        horiz = TRUE,
+        las = 2,
+        main = "Sample prevalence")
+barplot(sort(transect_prevalence),
+        horiz = TRUE,
+        las = 2,
+        main = "Transect prevalence")
+barplot(sort(year_prevalence),
+        horiz = TRUE,
+        las = 2,
+        main = "Year prevalence")
+
+par(old_par)
+
+pheatmap(t(combined_data),
+         cluster_rows = FALSE,
+         cluster_cols = FALSE)
 
 
 
