@@ -218,80 +218,6 @@ plot_histogram(env_data_natura$Effort,
 
 
 
- 
-
-# SPATIAL AND TEMPORAL PLOTS OF ENVIRONMENTAL DATA
-
-
-# Average over transect
-natura_transect_averages <- aggregate(env_data_natura, 
-                             by = list(Transect = spatiotemporal_context$Transect),
-                             FUN = mean, na.rm = TRUE)
-natura_transect_averages <- merge(natura_transect_averages, 
-                                  transect_coordinates, 
-                                  by.x = "Transect", 
-                                  by.y = "Transect",
-                                  all.x = TRUE)
-corine_transect_averages <- aggregate(env_data_corine, 
-                                      by = list(Transect = spatiotemporal_context$Transect),
-                                      FUN = mean, na.rm = TRUE)
-corine_transect_averages <- merge(corine_transect_averages, 
-                                  transect_coordinates, 
-                                  by.x = "Transect", 
-                                  by.y = "Transect",
-                                  all.x = TRUE)
-
-# Average over year
-natura_year_averages <- aggregate(env_data_natura, 
-                                  by = list(Year = spatiotemporal_context$Year),
-                                  FUN = mean, na.rm = TRUE)
-corine_year_averages <- aggregate(env_data_corine, 
-                                  by = list(Year = spatiotemporal_context$Year),
-                                  FUN = mean, na.rm = TRUE)
-
-
-
-plot_spatially <- function(data, variable, title, text = FALSE) {
-    color_palette <- colorRampPalette(c("blue", "white", "red"))
-    number_of_colors <- 100 
-    scaled_values <- scale_to_range(data[, variable], 1, number_of_colors)
-    colors <- color_palette(number_of_colors)[round(scaled_values)]
-    plot(data[, c("x")], data[, c("y")], 
-         col = colors, pch = 19,
-         xlab = "X Coordinate", 
-         ylab = "Y Coordinate",
-         main = title)
-    if (text) {
-        text(x = data[, c("x")],
-             y = data[, c("y")],
-             labels = round(data[, variable], 1),  
-             pos = 3, 
-             col = "black", 
-             cex = 0.5)
-    }
-}
-
-par(mfrow = c(2, 4))
-plot_spatially(natura_transect_averages, "Cluster", title = "Natura cluster", text=TRUE)
-plot_spatially(corine_transect_averages, "Cluster", title = "Corine cluster", text=TRUE)
-plot_spatially(natura_transect_averages, "Temperature", title = "Average temperature", text=TRUE)
-plot_spatially(natura_transect_averages, "Rainfall", title = "Average rainfall", text=TRUE)
-plot_spatially(natura_transect_averages, "PatchDensity", title = "Natura Patch Density", text=TRUE)
-plot_spatially(corine_transect_averages, "PatchDensity", title = "Corine Patch Density", text=TRUE)
-plot_spatially(natura_transect_averages, "Effort", title = "Transect length", text=TRUE)
-
-
-plot_temporally <- function(data, variable, title) {
-    barplot(data[, variable], 
-            names.arg = data[, c("Year")], 
-            xlab = "Year", 
-            ylab = sprintf("%s", variable),
-            main = title)
-}
-par(mfrow = c(2, 1))
-plot_temporally(natura_year_averages, "Temperature", title = "Average temperature")
-plot_temporally(natura_year_averages, "Rainfall", title = "Average rainfall")
-
 
 
 
@@ -360,21 +286,7 @@ grid.arrange(
     total, transect, year
 )
 
-#ggplot(abundance_long, aes(x = Abundance, fill = Species)) +
-#    geom_histogram(position = "identity", alpha = 0.2, bins = 30, color = "black") +
-#    scale_colour_manual(values = rainbow(ncol(abundance))) +
-#    theme_minimal() +
-#    labs(title = "Overlapping Histograms of Species Abundance",
-#         x = "Abundance", y = "Count") +
-#    theme(legend.position = "none")
 
-#ggplot(abundance_long, aes(x = Abundance, color = Species)) +
-#    stat_bin(geom = "step", binwidth = 5, position = "identity", size = 1) +
-#    scale_colour_manual(values = rainbow(ncol(abundance))) +
-#    theme_minimal() +
-#    labs(title = "Species Abundance Distributions (Step Histogram)",
-#         x = "Abundance", y = "Count") +
-#    theme(legend.position = "none")
 
 
 
@@ -432,6 +344,176 @@ par(old_par)
 pheatmap(t(combined_data),
          cluster_rows = FALSE,
          cluster_cols = FALSE)
+
+
+
+
+
+
+# SPATIAL AND TEMPORAL PLOTS 
+
+
+# Average  over transect
+natura_transect_averages <- aggregate(env_data_natura, 
+                                      by = list(Transect = spatiotemporal_context$Transect),
+                                      FUN = mean, na.rm = TRUE)
+natura_transect_averages <- merge(natura_transect_averages, 
+                                  transect_coordinates, 
+                                  by.x = "Transect", 
+                                  by.y = "Transect",
+                                  all.x = TRUE)
+corine_transect_averages <- aggregate(env_data_corine, 
+                                      by = list(Transect = spatiotemporal_context$Transect),
+                                      FUN = mean, na.rm = TRUE)
+corine_transect_averages <- merge(corine_transect_averages, 
+                                  transect_coordinates, 
+                                  by.x = "Transect", 
+                                  by.y = "Transect",
+                                  all.x = TRUE)
+abundance_transect_averages_by_species <- aggregate(abundance_df,
+                                                    by = list(Transect = spatiotemporal_context$Transect),
+                                                    FUN = mean)
+rownames(abundance_transect_averages_by_species) <- abundance_transect_averages_by_species$Transect
+abundance_transect_averages_by_species$Transect <- NULL
+abundance_transect_averages <- data.frame(Abundance = rowMeans(abundance_transect_averages_by_species),
+                                          Transect = rownames(abundance_transect_averages_by_species))
+abundance_transect_averages <- merge(abundance_transect_averages, 
+                                     transect_coordinates, 
+                                     by.x = "Transect", 
+                                     by.y = "Transect",
+                                     all.x = TRUE)
+transect_species_richness <- c()
+for (transect in natura_transect_averages$Transect) {
+    row_indices_transect <- which(spatiotemporal_context$Transect == transect)
+    occurrences_for_transect <- occurrence[row_indices_transect, , drop=FALSE]
+    samples_species_richnesses <- rowSums(occurrences_for_transect)
+    species_richness <- mean(samples_species_richnesses)
+    transect_species_richness <- c(transect_species_richness, species_richness)
+}
+transect_species_richness <- data.frame(richness = transect_species_richness,
+                                        x = natura_transect_averages$x,
+                                        y = natura_transect_averages$y)
+
+
+
+# Spatial plots
+
+plot_spatially <- function(data, variable, title, text = FALSE) {
+    min_point_size <- 0.5  
+    max_point_size <- 3 
+    number_of_sizes <- 100
+    scaled_values <- scale_to_range(data[, variable], min_point_size, max_point_size)
+    plot(data[, c("x")], data[, c("y")], 
+         col = "black", 
+         pch = 1,
+         cex = scaled_values,
+         xlab = "X Coordinate", 
+         ylab = "Y Coordinate",
+         main = title)
+    if (text) {
+        text(x = data[, c("x")],
+             y = data[, c("y")],
+             labels = round(data[, variable], 1),  
+             pos = 3, 
+             col = "black", 
+             cex = 0.5)
+    }
+}
+
+par(mfrow = c(2, 4))
+plot_spatially(transect_species_richness, "richness", title = "Average species richness", text=TRUE)
+plot_spatially(abundance_transect_averages, "Abundance", title = "Average abundance", text=TRUE)
+plot_spatially(natura_transect_averages, "Temperature", title = "Average temperature", text=TRUE)
+plot_spatially(natura_transect_averages, "Rainfall", title = "Average rainfall", text=TRUE)
+plot_spatially(natura_transect_averages, "PatchDensity", title = "Natura Patch Density", text=TRUE)
+plot_spatially(corine_transect_averages, "PatchDensity", title = "Corine Patch Density", text=TRUE)
+plot_spatially(natura_transect_averages, "Effort", title = "Transect length", text=TRUE)
+
+
+# Spatial plots for habitat types
+par(mfrow = c(3, 4))
+for (type in colnames(fractions_natura)) {
+    plot_spatially(natura_transect_averages, type, title = type, text=TRUE)
+}
+
+par(mfrow = c(4, 5))
+for (type in colnames(fractions_corine)) {
+    plot_spatially(corine_transect_averages, type, title = type, text=TRUE)
+}
+
+
+
+# Average environmental variables over year
+natura_year_averages <- aggregate(env_data_natura, 
+                                  by = list(Year = spatiotemporal_context$Year),
+                                  FUN = mean, na.rm = TRUE)
+
+average_year_abundance_by_species <- aggregate(abundance_df,
+                                  by = list(Year = spatiotemporal_context$Year),
+                                  FUN = mean)
+average_year_abundance <- average_year_abundance_by_species
+rownames(average_year_abundance) <- average_year_abundance$Year
+average_year_abundance$Year <- NULL
+average_year_abundance <- rowMeans(average_year_abundance)
+year_species_richness <- c()
+transects_sampled <- c()
+for (year in natura_year_averages$Year) {
+    row_indices_year <- which(spatiotemporal_context$Year == year)
+    occurrences_for_year <- occurrence[row_indices_year, , drop=FALSE]
+    samples_species_richnesses <- rowSums(occurrences_for_year)
+    species_richness <- mean(samples_species_richnesses)
+    year_species_richness <- c(year_species_richness, species_richness)
+    transects_sampled <- c(transects_sampled, length(row_indices_year))
+}
+
+
+# Temporal plots
+
+par(mfrow=c(4,1))
+    
+plot(natura_year_averages$Year, 
+     natura_year_averages$Temperature, 
+     type="l", 
+     col="black", 
+     lwd = 3,
+     ylim=c(-5,5), 
+     ylab="Average temperature (°C)",
+     xlab="Year")
+
+plot(natura_year_averages$Year, 
+     natura_year_averages$Rainfall, 
+     type="l", 
+     col="black", 
+     lwd = 3,
+     ylim=c(0,50), 
+     ylab="Average rainfall (mm)",
+     xlab="Year")
+
+plot(natura_year_averages$Year, 
+     year_species_richness, 
+     type="l", 
+     col="black", 
+     lwd = 3,
+     ylim=c(0,30), 
+     ylab="Average species richness", 
+     xlab="Year")
+
+plot(natura_year_averages$Year, 
+     transects_sampled, 
+     type="l", 
+     col="black", 
+     lwd = 3,
+     ylim=c(0,30), 
+     ylab="Transects sampled", 
+     xlab="Year")
+
+
+
+
+
+
+
+
 
 
 
