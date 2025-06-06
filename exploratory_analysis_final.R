@@ -509,6 +509,72 @@ plot(natura_year_averages$Year,
 
 
 
+# SPECIES COMPOSITION
+natura_heatmap <- pheatmap(fractions_natura)
+row_order_of_natura_heatmap <- natura_heatmap$tree_row$order
+transect_order_of_natura_heatmap <- rownames(fractions_natura)[row_order_of_natura_heatmap]
+abundance_ordered <- abundance_transect_averages_by_species[transect_order_of_natura_heatmap,]
+natura_abundance_heatmap <- pheatmap(log(abundance_ordered + 1),
+                                     cluster_rows = FALSE)
+
+corine_heatmap <- pheatmap(fractions_corine)
+row_order_of_corine_heatmap <- corine_heatmap$tree_row$order
+transect_order_of_corine_heatmap <- rownames(fractions_corine)[row_order_of_corine_heatmap]
+abundance_ordered <- abundance_transect_averages_by_species[transect_order_of_corine_heatmap,]
+corine_abundance_heatmap <- pheatmap(log(abundance_ordered + 1),
+                                     cluster_rows = FALSE)
+
+
+
+
+
+
+# SITE FIDELITY
+# SITE FIDELITY
+species_site_fidelities <- c()
+species_prevalences <- c()
+for (species in colnames(occurrence)) {
+    species_prevalence <- 0
+    site_fidelities <- c()
+    for (transect in unique(spatiotemporal_context$Transect)) {
+        transect_visit_indices <- spatiotemporal_context$Transect == transect
+        transect_observations <- occurrence[transect_visit_indices, , drop = FALSE]
+        times_visited <- sum(transect_visit_indices)
+        times_observed <- sum(transect_observations[, species] == 1)
+        if (times_observed == 0) {
+            next;
+        }
+        species_prevalence <- species_prevalence + 1 
+        site_fidelity <- times_observed / times_visited
+        site_fidelities <- c(site_fidelities, site_fidelity)
+    }
+    average_site_fidelity <- mean(site_fidelities)
+    species_site_fidelities <- c(species_site_fidelities, average_site_fidelity)
+    species_prevalences <- c(species_prevalences, species_prevalence)
+}
+names(species_site_fidelities) <- colnames(occurrence)
+names(species_prevalences) <- colnames(occurrence)
+
+sorted_indices <- order(species_site_fidelities)
+species_site_fidelities <- species_site_fidelities[sorted_indices]
+species_prevalences <- species_prevalences[sorted_indices]
+
+color_palette <- colorRampPalette(c("red", "blue"))(length(species_prevalences))
+colors <- color_palette[rank(species_prevalences)]
+
+old_par <- par(no.readonly = TRUE) 
+par(mfrow = c(1, 2))
+par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+barplot(species_site_fidelities,
+        horiz = TRUE,
+        las = 2,
+        col = colors,
+        main = "Species site fidelity (colored by prevalence)",
+        xlab = "Site Fidelity")
+plot(species_prevalences, species_site_fidelities)
+par(old_par)
+
+
 
 
 
