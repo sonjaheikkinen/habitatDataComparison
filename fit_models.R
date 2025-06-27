@@ -1,7 +1,7 @@
 # LOAD DATA
 load(file = file.path(dir_models, "models_unfitted.RData"))
 
-overwrite <- FALSE
+overwrite <- TRUE
 
 
 for (i in 1:length(model_list)) {
@@ -17,9 +17,10 @@ for (i in 1:length(model_list)) {
     for (j in 1:length(thinning_values)) {
         
         thinning_value <- thinning_values[j]
-        model_file <- file.path(dir_fitted, sprintf("%s_thin_%s_fitted_test.RData", 
+        model_file <- file.path(dir_fitted, sprintf("%s_thin_%s_samples_%s_fitted.RData", 
                                                         model_name,
-                                                        thinning_value))
+                                                        thinning_value,
+                                                        number_of_samples))
         found <- file.exists(model_file)
         
         if (found & !overwrite) {

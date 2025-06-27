@@ -8,11 +8,6 @@ append_to_file("Additional information regarding parameter estimates\n\n", file_
 
 # GET MODELS WITH HIGHEST THINNING VALUE
 fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
-model_thinning_values <- sapply(fitted_models, extract_thinning_value)
-max_thinning_value <- max(model_thinning_values)
-models_to_keep <- model_thinning_values == max_thinning_value
-fitted_models <- fitted_models[models_to_keep]
-
 
 # LOOP TROUGH MODELS
 for (model_number in 1:length(fitted_models)) {

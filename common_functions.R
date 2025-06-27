@@ -24,10 +24,30 @@ scale_between_zero_and_one <- function(data) {
 
 extract_thinning_value <- function(filename) {
     parts <- strsplit(filename, "_")[[1]] 
-    thinning_value <- as.numeric(parts[length(parts) - 1])
+    thinning_value <- as.numeric(parts[length(parts) - 2])
     print(thinning_value)
     return(thinning_value)
 }
+
+scale_to_range <- function(values, new_min, new_max) {
+    old_min <- min(values)
+    old_max <- max(values)
+    scaled_values <- new_min + (values - old_min) * (new_max - new_min) / (old_max - old_min)
+    return(scaled_values)
+}
+
+
+plot_histogram <- function(values, title) {
+    hist(values, 
+         xlab = sprintf("[%s, %s], mean %s, median %s, sd %s",
+                        round(min(values), 3), 
+                        round(max(values), 3),
+                        round(mean(values), 3), 
+                        round(median(values), 3),
+                        round(sd(values), 3)),
+         main = title)
+}
+
 
 # FUNCTIONS | DATA READING
 

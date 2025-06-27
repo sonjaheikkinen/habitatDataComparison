@@ -35,6 +35,7 @@ plot_convergence <- function(variable, model_name, psrf_point_estimates) {
 save_convergence_info <- function(samples, variable, model_name, convergence_file) {
     #samples <- filter_zero_columns(samples)
     psrf <- gelman.diag(samples, multivariate = FALSE)$psrf
+    print(psrf)
     append_to_file(sprintf("%s\n", summary(psrf)[,1]), file = convergence_file)
     append_to_file("\n\n", file = convergence_file)
     psrf_point_estimates <- psrf[,1]
@@ -42,8 +43,38 @@ save_convergence_info <- function(samples, variable, model_name, convergence_fil
     plot_histogram(effectiveSize(samples),
                    sprintf("Effective size of %s", variable))
     combined_samples <- as.mcmc.list(samples)
-    traceplot(combined_samples[,1],
-              main = sprintf("Traceplot of %s", variable))
+    par(mfrow = c(4, 2))
+    for (col in 1:ncol(combined_samples[[1]])) {
+        traceplot(combined_samples[,col],
+                  main = sprintf("Traceplot of %s, %s", 
+                                 variable,
+                                 colnames(combined_samples[[1]])[col]))
+    }
+    par(mfrow = c(2, 2))
+    acf_colors <- rainbow(ncol(as.data.frame(combined_samples[[1]])))
+    for (chain in 1:4) {
+        combined_samples_chain <- as.data.frame(combined_samples[[chain]])
+        acf <- acf(as.numeric(combined_samples_chain[,1]),
+                plot = FALSE)
+        plot(acf$lag, acf$acf, 
+             col = acf_colors[1],
+             ylim = c(-1, 1),
+             main = sprintf("Chain %s", chain),
+             xlab = "Lag", ylab = "ACF")
+        if (ncol(combined_samples_chain) > 1) {
+            for (col in 2:ncol(combined_samples_chain)) {
+                acf <- acf(as.numeric(combined_samples_chain[,col]),
+                           plot = FALSE)
+                points(acf$lag, 
+                      acf$acf,
+                      col = acf_colors[col])
+            }
+            
+        }
+    }
+    title(main = sprintf("Autocorrelation of %s", variable),
+          outer = TRUE,
+          line = -3)
     
 }
 
@@ -69,6 +100,7 @@ pdf(file = file.path(dir_results,"convergence_results.pdf"))
 
 # Create text file for convergence results
 convergence_file <- file.path(dir_results, "convergence_results.txt")
+
 
 for (model_number in 1:length(fitted_models)) {
     
@@ -132,11 +164,14 @@ for (model_number in 1:length(fitted_models)) {
     if (number_of_random_levels > 0) {
         
         
-        # CONVERGENCE FOR SITE LOADINGS (ETA)
-        append_to_file("ETA\n\n", file = convergence_file)
-        samples_eta <- posterior$Eta
         for (randomlevel_number in 1:number_of_random_levels) {
-            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+            
+            randomlevel_name <- names(model$ranLevels)[[randomlevel_number]]
+            
+       
+            # CONVERGENCE FOR SITE LOADINGS (ETA)
+            append_to_file("ETA\n\n", file = convergence_file)
+            samples_eta <- posterior$Eta
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
             samples_eta_randomlevel <- samples_eta[[randomlevel_number]]
             randomlevel_length <- dim(samples_eta_randomlevel[[1]])[2]
@@ -151,14 +186,12 @@ for (model_number in 1:length(fitted_models)) {
                                   model_name, 
                                   convergence_file)
             print(sprintf("Calculated convergence for Eta %s", randomlevel_name))
-        }
         
         
-        # CONVERGENCE FOR SPECIES LOADINGS (LAMBDA)
-        append_to_file("LAMBDA\n\n", file = convergence_file)
-        samples_lambda <- posterior$Lambda
-        for (randomlevel_number in 1:number_of_random_levels) {
-            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+        
+            # CONVERGENCE FOR SPECIES LOADINGS (LAMBDA)
+            append_to_file("LAMBDA\n\n", file = convergence_file)
+            samples_lambda <- posterior$Lambda
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
             samples_lambda_randomlevel <- samples_lambda[[randomlevel_number]]
             randomlevel_length <- dim(samples_lambda_randomlevel[[1]])[2]
@@ -173,14 +206,12 @@ for (model_number in 1:length(fitted_models)) {
                                   model_name, 
                                   convergence_file)
             print(sprintf("Calculated convergence for Lambda %s", randomlevel_name))
-        }
         
         
-        # CONVERGENCE FOR RANDOM VARIATION IN CO-OCCURRENCE (OMEGA)
-        append_to_file("OMEGA\n\n", file = convergence_file)
-        samples_omega <- posterior$Omega
-        for (randomlevel_number in 1:number_of_random_levels) {
-            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+        
+            # CONVERGENCE FOR RANDOM VARIATION IN CO-OCCURRENCE (OMEGA)
+            append_to_file("OMEGA\n\n", file = convergence_file)
+            samples_omega <- posterior$Omega
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
             samples_omega_randomlevel <- samples_omega[[randomlevel_number]]
             randomlevel_length <- dim(samples_omega_randomlevel[[1]])[2]
@@ -195,14 +226,12 @@ for (model_number in 1:length(fitted_models)) {
                                   model_name, 
                                   convergence_file)
             print(sprintf("Calculated convergence for omega %s", randomlevel_name))
-        }
         
         
-        # CONVERGENCE FOR SPATIAL SCALE ALPHA
-        append_to_file("ALPHA\n\n", file = convergence_file)
-        samples_alpha <- posterior$Alpha
-        for (randomlevel_number in 1:number_of_random_levels) {
-            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+        
+            # CONVERGENCE FOR SPATIAL SCALE ALPHA
+            append_to_file("ALPHA\n\n", file = convergence_file)
+            samples_alpha <- posterior$Alpha
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
             randomlevel <- model$ranLevels[[randomlevel_number]]
             number_of_spatial_dimensions <- randomlevel$sDim
@@ -216,14 +245,12 @@ for (model_number in 1:length(fitted_models)) {
             } else {
                 append_to_file(sprintf("%s is not a spatial random level", randomlevel_name), convergence_file)
             }
-        }
         
         
-        # CONVERGENCE FOR LOCAL SHRINKAGE OF SPECIES LOADINGS (PSI)
-        append_to_file("LAMBDA\n\n", file = convergence_file)
-        samples_psi <- posterior$Psi
-        for (randomlevel_number in 1:number_of_random_levels) {
-            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+        
+            # CONVERGENCE FOR LOCAL SHRINKAGE OF SPECIES LOADINGS (PSI)
+            append_to_file("PSI\n\n", file = convergence_file)
+            samples_psi <- posterior$Psi
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
             samples_psi_randomlevel <- samples_psi[[randomlevel_number]]
             randomlevel_length <- dim(samples_psi_randomlevel[[1]])[2]
@@ -238,14 +265,12 @@ for (model_number in 1:length(fitted_models)) {
                                   model_name, 
                                   convergence_file)
             print(sprintf("Calculated convergence for Psi %s", randomlevel_name))
-        }
         
         
-        # CONVERGENCE FOR GLOBAL SHRINKAGE OF SPECIES LOADINGS (DELTA)
-        append_to_file("DELTA\n\n", file = convergence_file)
-        samples_delta <- posterior$Delta
-        for (randomlevel_number in 1:number_of_random_levels) {
-            randomlevel_name <- names(model$ranLevels)[randomlevel_number]
+        
+            # CONVERGENCE FOR GLOBAL SHRINKAGE OF SPECIES LOADINGS (DELTA)
+            append_to_file("DELTA\n\n", file = convergence_file)
+            samples_delta <- posterior$Delta
             append_to_file(sprintf("%s\n\n", randomlevel_name), file = convergence_file)
             samples_delta_randomlevel <- samples_delta[[randomlevel_number]]
             randomlevel_length <- dim(samples_delta_randomlevel[[1]])[2]
@@ -260,6 +285,8 @@ for (model_number in 1:length(fitted_models)) {
                                   model_name, 
                                   convergence_file)
             print(sprintf("Calculated convergence for Delta %s", randomlevel_name))
+            
+            
         }
         
         

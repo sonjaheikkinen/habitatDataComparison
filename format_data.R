@@ -243,22 +243,6 @@ names(transect_lengths) <- transect_names
 
 # Calculate transect temperature values
 transect_temperatures <- get_transect_weather_data(buffer_width, temperature_data, transects_shp)
-transect_temperatures_winter <- transect_temperatures[transect_temperatures$month %in% c(1,2), ]
-transect_winter_mean_temps <- aggregate(value ~ transect + year, 
-                                        data = transect_temperatures_winter, 
-                                        FUN = mean, 
-                                        na.rm = TRUE)
-sample_winter_mean_temperatures <- c()
-for (sample_number in 1:length(spatiotemporal_context$Sample)) {
-    sample_transect <- spatiotemporal_context[sample_number, ]$Transect
-    sample_year <- spatiotemporal_context[sample_number, ]$Year
-    sample_winter_mean_temp <- transect_winter_mean_temps[transect_winter_mean_temps$transect == sample_transect 
-                                                          & transect_winter_mean_temps$year == sample_year, ]$value
-    if (length(sample_winter_mean_temp) == 0)  {
-        sample_winter_mean_temp <- NA
-    }
-    sample_winter_mean_temperatures <- c(sample_winter_mean_temperatures, sample_winter_mean_temp)
-}
 transect_temperatures_spring <- transect_temperatures[transect_temperatures$month %in% c(4,5), ]
 transect_spring_mean_temps <- aggregate(value ~ transect + year, 
                                           data = transect_temperatures_spring, 

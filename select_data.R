@@ -48,11 +48,18 @@ for (species in colnames(occurrence)) {
         abundance <- abundance[, colnames(abundance) != species]
     }
 }
-values <- data.frame(species = species_list,
-                     samples = samples,
-                     transects = transects,
-                     prevalences = prevalences)
+
 print(values)
+# Select only forest species
+forest_habitat_types <- c("FO", "CF", "DF")
+for (species in colnames(occurrence)) {
+    species_habitat <- trait_data[species, ]$Habitat
+    if (!species_habitat %in% forest_habitat_types) {
+        occurrence <- occurrence[, colnames(occurrence) != species]
+        abundance <- abundance[, colnames(abundance) != species]
+    }
+}
+
 
 
 # SELECT ENVIRONMENTAL DATA
@@ -99,7 +106,7 @@ pca_results_corine <- prcomp(fractions_corine, center = TRUE, scale. = TRUE)
 
 # SELECT TRAIT DATA
 trait_data <- trait_data[colnames(occurrence), ]
-trait_data <- trait_data[,c("Feeding"), drop = FALSE]
+trait_data <- trait_data[,c("Feeding", "Mig"), drop = FALSE]
 
 # SELECT PHYLOGENY DATA
 species_to_keep <- colnames(occurrence)

@@ -10,19 +10,19 @@
 
 # SETTINGS FOR RUNNING THE SCRIPT
 
-run_preprocess_data <- FALSE
-run_format_data <- FALSE
+run_preprocess_data <- TRUE
+run_format_data <- TRUE
 run_exploratory_analysis <- FALSE
-run_select_data <- FALSE
-run_define_models <- FALSE
-run_fit_models <- FALSE
+run_select_data <- TRUE
+run_define_models <- TRUE
+run_fit_models <- TRUE
 run_check_model_convergence <- FALSE
 run_check_parameter_effects <- FALSE
 run_check_model_fits <- FALSE
 
-buffer_width <- 25 # how far away from line transect are habitat values read from raster (meters)
-number_of_samples <- 250 # number of samples for each chain
-thinning_values <- c(1) # with thin value x, only every x:th value from chain is taken as sample
+buffer_width <- 100 # how far away from line transect are habitat values read from raster (meters)
+number_of_samples <- 1000 # number of samples for each chain
+thinning_values <- c(1, 10, 100, 1000) # with thin value x, only every x:th value from chain is taken as sample
 modelfit_folds <- 2 # how many folds to use in cross-validation (1 fold for test, all others are training)
 overwrite_modelfits <- FALSE # should existing modelfit values be overwritten
 
@@ -56,7 +56,8 @@ library(cluster) # For silhouette scores
 library(corrplot) # For reordering correlation matrices
 library(ggrepel) # For better label placement
 library(plotly) # For 3D plots
-library(gridExtra) # For arraging ggplots in grid
+library(gridExtra) # For arranging plots in grid
+library(viridis) # For colors
 
 # GLOBALLY USED FUNCTIONS
 source(file = "common_functions.R")

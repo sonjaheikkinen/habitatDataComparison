@@ -96,6 +96,7 @@ pheatmap(auc_df)
 pheatmap(tjurr2_df)
 
 # FIT LINEAR MODEL TO EXPLAIN FIT USING MODELLING APPROACH
+# TO DO: Add species as random effect?
 long_rmse <- stack(rmse_df)
 long_auc <- stack(auc_df)
 long_tjurr2 <- stack(tjurr2_df)
@@ -108,7 +109,8 @@ lm_tjurr2 <- lm(values ~ ind, data = long_tjurr2)
 summary(lm_tjurr2)
 
 
-plot(auc_df$modelfit_lognormal_corine_thin_100_fitted, auc_df$modelfit_lognormal_natura_thin_100_fitted)
+plot(auc_df$modelfit_probit_corine_thin_300_fitted, 
+     auc_df$modelfit_probit_natura_thin_300_fitted)
 abline(a = 0, b = 1)
 
 
