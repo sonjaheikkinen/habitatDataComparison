@@ -3,20 +3,25 @@ load(file = file.path(dir_models, "models_unfitted.RData"))
 
 overwrite <- TRUE
 
+sink(file.path(dir_results, "output.txt"), split = TRUE)
 
-for (i in 1:length(model_list)) {
+
+for (model_number in 1:length(model_list)) {
     
-    model_to_fit <- model_list[[i]]
-    model_name <- names(model_list[i])
+    model_to_fit <- model_list[[model_number]]
+    model_name <- names(model_list[model_number])
     
     print(sprintf("Fitting model: %s", model_name))
     print(model_to_fit)
     print(sprintf("Fitting started %s", date()))
     
     
-    for (j in 1:length(thinning_values)) {
+for (thinning_value_number in 1:length(thinning_values)) {
         
-        thinning_value <- thinning_values[j]
+        thinning_value <- thinning_values[thinning_value_number]
+        
+        
+        
         model_file <- file.path(dir_fitted, sprintf("%s_thin_%s_samples_%s_fitted.RData", 
                                                         model_name,
                                                         thinning_value,
@@ -48,3 +53,5 @@ for (i in 1:length(model_list)) {
     print("")
     
 }
+
+sink()

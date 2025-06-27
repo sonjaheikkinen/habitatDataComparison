@@ -34,16 +34,16 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     # use transect column as the partition column
     # this ensures, that when predicting based on the habitat types of transect, 
     # the habitat types and occurrences for that transect have not yet been seen
-    #partition <- createPartition(model, nfolds = folds, column = "Transect")
+    partition <- createPartition(model, nfolds = folds, column = "Transect")
     # Compute predicted values for test set, based on data fitted with training set
-    #predicted_values_test_set <- computePredictedValues(model, 
-    #                                                    partition = partition,
-    #                                                    nParallel = 4)
+    predicted_values_test_set <- computePredictedValues(model, 
+                                                        partition = partition,
+                                                        nParallel = 4)
     # Compute measures of model fit based on the predicted values for test set
-    #predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
     # Set species names as rownames
-    #predictive_power <- as.data.frame(predictive_power)
-    #rownames(predictive_power) <- colnames(model$Y)
+    predictive_power <- as.data.frame(predictive_power)
+    rownames(predictive_power) <- colnames(model$Y)
     
     
     # CALCULATE WAIC
@@ -55,8 +55,7 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     print("")
     
     # SAVE RESULTS TO FILE
-    #save(explanatory_power, predictive_power, file = file)
-    save(explanatory_power, waic, file = file)
+    save(explanatory_power, predictive_power, waic, file = file)
     
 }
 

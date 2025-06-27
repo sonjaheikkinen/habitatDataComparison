@@ -318,7 +318,6 @@ env_data_natura <- data.frame(fractions_natura,
                               Cluster = clusters_natura)
 env_data_natura <- env_data_natura[spatiotemporal_context$Transect, ]
 env_data_natura$Temperature <- sample_spring_mean_temperatures
-env_data_natura$WinterTemperature <- sample_winter_mean_temperatures
 env_data_natura$Rainfall <- sample_spring_mean_rainfalls
 env_data_corine <- data.frame(fractions_corine,
                               Effort = transect_lengths,
@@ -331,7 +330,6 @@ env_data_corine <- data.frame(fractions_corine,
                               Cluster = clusters_corine)
 env_data_corine <- env_data_corine[spatiotemporal_context$Transect, ]
 env_data_corine$Temperature <- sample_spring_mean_temperatures
-env_data_corine$WinterTemperature <- sample_winter_mean_temperatures
 env_data_corine$Rainfall <- sample_spring_mean_rainfalls
 
 
