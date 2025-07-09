@@ -44,12 +44,11 @@ save_convergence_info <- function(samples, variable, model_name, convergence_fil
                    sprintf("Effective size of %s", variable))
     combined_samples <- as.mcmc.list(samples)
     par(mfrow = c(4, 2))
-    for (col in 1:ncol(combined_samples[[1]])) {
-        traceplot(combined_samples[,col],
-                  main = sprintf("Traceplot of %s, %s", 
-                                 variable,
-                                 colnames(combined_samples[[1]])[col]))
-    }
+    traceplot(combined_samples[,1],
+              main = sprintf("Traceplot of %s, %s", 
+                             variable,
+                             colnames(combined_samples[[1]])[1]))
+    # TO DO: Visualize traces for all variables, not just first
     par(mfrow = c(2, 2))
     acf_colors <- rainbow(ncol(as.data.frame(combined_samples[[1]])))
     for (chain in 1:4) {
