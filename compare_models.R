@@ -48,6 +48,65 @@ plot_fits_per_species <- function(type, data) {
             main = type)
 }
 
+plot_fits_against_continuous <- function(xdata, xlab, predictive_power, explanatory_power) {
+    plot(xdata, 
+         explanatory_power$AUC,
+         xlab = xlab,
+         ylab = "AUC",
+         main = "Explanatory power")
+    plot(xdata, 
+         explanatory_power$RMSE,
+         xlab = xlab,
+         ylab = "RMSE",
+         main = "Explanatory power")
+    plot(xdata, 
+         explanatory_power$TjurR2,
+         xlab = xlab,
+         ylab = "TjurR2",
+         main = "Explanatory power")
+    plot(xdata, 
+         predictive_power$AUC,
+         xlab = xlab,
+         ylab = "AUC",
+         main = "Predictive power")
+    plot(xdata, 
+         predictive_power$RMSE,
+         xlab = xlab,
+         ylab = "RMSE",
+         main = "Predictive power")
+    plot(xdata, 
+         predictive_power$TjurR2,
+         xlab = xlab,
+         ylab = "TjurR2",
+         main = "Predictive power")
+}
+
+plot_fits_against_categorical <- function(xdata, xlab, explanatory_power, predictive_power) {
+    boxplot(explanatory_power$AUC ~ xdata,
+            xlab = xlab,
+            ylab = "AUC",
+            main = "Explanatory power")
+    boxplot(explanatory_power$RMSE ~ xdata,
+            xlab = xlab,
+            ylab = "RMSE",
+            main = "Explanatory power")
+    boxplot(explanatory_power$TjurR2 ~ xdata,
+            xlab = xlab,
+            ylab = "TjurR2",
+            main = "Explanatory power")
+    boxplot(predictive_power$AUC ~ xdata,
+            xlab = xlab,
+            ylab = "AUC",
+            main = "Predictive power")
+    boxplot(predictive_power$RMSE ~ xdata,
+            xlab = xlab,
+            ylab = "RMSE",
+            main = "Predictive power")
+    boxplot(predictive_power$TjurR2 ~ xdata,
+            xlab = xlab,
+            ylab = "TjurR2",
+            main = "Predictive power")
+}
 
 
 
@@ -160,70 +219,18 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     
     # FIT AND PREDICTIVE POWER AGAINST PREVALENCE 
     
-    plot(species_prevalences[rownames(explanatory_power),]$prevalences, 
-         explanatory_power$AUC,
-         xlab = "Prevalence",
-         ylab = "AUC",
-         main = "Explanatory power")
-    plot(species_prevalences[rownames(explanatory_power),]$prevalences, 
-         explanatory_power$RMSE,
-         xlab = "Prevalence",
-         ylab = "RMSE",
-         main = "Explanatory power")
-    plot(species_prevalences[rownames(explanatory_power),]$prevalences, 
-         explanatory_power$TjurR2,
-         xlab = "Prevalence",
-         ylab = "TjurR2",
-         main = "Explanatory power")
-    
-    plot(species_prevalences[rownames(predictive_power),]$prevalences, 
-         predictive_power$AUC,
-         xlab = "Prevalence",
-         ylab = "AUC",
-         main = "Predictive power")
-    plot(species_prevalences[rownames(predictive_power),]$prevalences, 
-         predictive_power$RMSE,
-         xlab = "Prevalence",
-         ylab = "RMSE",
-         main = "Predictive power")
-    plot(species_prevalences[rownames(predictive_power),]$prevalences, 
-         predictive_power$TjurR2,
-         xlab = "Prevalence",
-         ylab = "TjurR2",
-         main = "Predictive power")
-    
+    plot_fits_against_continuous(species_prevalences[rownames(explanatory_power),]$prevalences,
+                                 "Prevalence",
+                                 explanatory_power,
+                                 predictive_power)
     
     
     # PLOTS AGAINST FEEDING
     
-    boxplot(explanatory_power$AUC ~ trait_data[rownames(explanatory_power), ]$Feeding,
-            xlab = "Feeding",
-            ylab = "AUC",
-            main = "Explanatory power")
-    boxplot(explanatory_power$RMSE ~ trait_data[rownames(explanatory_power), ]$Feeding,
-            xlab = "Feeding",
-            ylab = "RMSE",
-            main = "Explanatory power")
-    boxplot(explanatory_power$TjurR2 ~ trait_data[rownames(explanatory_power), ]$Feeding,
-            xlab = "Feeding",
-            ylab = "TjurR2",
-            main = "Explanatory power")
-    
-    boxplot(predictive_power$AUC ~ trait_data[rownames(predictive_power), ]$Feeding,
-            xlab = "Feeding",
-            ylab = "AUC",
-            main = "Predictive power")
-    boxplot(predictive_power$RMSE ~ trait_data[rownames(predictive_power), ]$Feeding,
-            xlab = "Feeding",
-            ylab = "RMSE",
-            main = "Predictive power")
-    boxplot(predictive_power$TjurR2 ~ trait_data[rownames(predictive_power), ]$Feeding,
-            xlab = "Feeding",
-            ylab = "TjurR2",
-            main = "Predictive power")
-
-    
-    
+    plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Feeding,
+                                  "Feeding",
+                                  explanatory_power,
+                                  predictive_power)
     
 
     
