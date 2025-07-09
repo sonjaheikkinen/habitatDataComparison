@@ -128,6 +128,7 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     
     
     # COMPARE EACH VALUE FOR EACH SPECIES
+    
     explanatory_power_ordered <- explanatory_power[order(explanatory_power$AUC), ]
     explanatory_power_ordered$Species <- NULL
     long_explanatory_power <- stack(explanatory_power_ordered)
@@ -137,6 +138,18 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     ggplot(long_explanatory_power, aes(x = values, y = Species, fill = ind)) +
         geom_col(position = "identity", alpha = 0.5) +
         labs(x = "Value", y = "Species", title = "Explanatory power") +
+        scale_fill_manual(values = c("red", "yellow", "blue")) +
+        theme_minimal()
+    
+    predictive_power_ordered <- predictive_power[order(predictive_power$AUC), ]
+    predictive_power_ordered$Species <- NULL
+    long_predictive_power <- stack(predictive_power_ordered)
+    long_predictive_power$Species <- rep(rownames(predictive_power_ordered), 3)
+    long_predictive_power$Species <- factor(long_predictive_power$Species, 
+                                             levels = rev(rownames(predictive_power_ordered)))
+    ggplot(long_predictive_power, aes(x = values, y = Species, fill = ind)) +
+        geom_col(position = "identity", alpha = 0.5) +
+        labs(x = "Value", y = "Species", title = "Predictive power") +
         scale_fill_manual(values = c("red", "yellow", "blue")) +
         theme_minimal()
     
