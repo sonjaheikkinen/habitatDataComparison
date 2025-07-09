@@ -71,6 +71,9 @@ plot_metric <- function(data) {
 # LOAD IN MODELFITS
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
 load(file.path(dir_data, "species_prevalences.RData"))
+load(file.path(dir_data, "trait_data.RData"))
+trait_data <- as.data.frame(trait_data)
+rownames(trait_data) <- trait_data$Species
 
 
 
@@ -189,6 +192,35 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
          ylab = "TjurR2",
          main = "Predictive power")
     
+    
+    
+    # PLOTS AGAINST FEEDING
+    
+    boxplot(explanatory_power$AUC ~ trait_data[rownames(explanatory_power), ]$Feeding,
+            xlab = "Feeding",
+            ylab = "AUC",
+            main = "Explanatory power")
+    boxplot(explanatory_power$RMSE ~ trait_data[rownames(explanatory_power), ]$Feeding,
+            xlab = "Feeding",
+            ylab = "RMSE",
+            main = "Explanatory power")
+    boxplot(explanatory_power$TjurR2 ~ trait_data[rownames(explanatory_power), ]$Feeding,
+            xlab = "Feeding",
+            ylab = "TjurR2",
+            main = "Explanatory power")
+    
+    boxplot(predictive_power$AUC ~ trait_data[rownames(predictive_power), ]$Feeding,
+            xlab = "Feeding",
+            ylab = "AUC",
+            main = "Predictive power")
+    boxplot(predictive_power$RMSE ~ trait_data[rownames(predictive_power), ]$Feeding,
+            xlab = "Feeding",
+            ylab = "RMSE",
+            main = "Predictive power")
+    boxplot(predictive_power$TjurR2 ~ trait_data[rownames(predictive_power), ]$Feeding,
+            xlab = "Feeding",
+            ylab = "TjurR2",
+            main = "Predictive power")
 
     
     

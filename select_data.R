@@ -110,7 +110,6 @@ pca_results_corine <- prcomp(fractions_corine, center = TRUE, scale. = TRUE)
 
 # SELECT TRAIT DATA
 trait_data <- trait_data[colnames(occurrence), ]
-trait_data <- trait_data[,c("Feeding", "Mig"), drop = FALSE]
 
 # SELECT PHYLOGENY DATA
 species_to_keep <- colnames(occurrence)

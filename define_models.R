@@ -10,6 +10,7 @@ load(file = file.path(dir_data, "trait_data.RData"))
 load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "fractions_natura.RData"))
 load(file = file.path(dir_data, "fractions_corine.RData"))
+trait_data <- trait_data[,c("Feeding", "Mig"), drop = FALSE]
 
 
 
