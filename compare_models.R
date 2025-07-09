@@ -70,6 +70,7 @@ plot_metric <- function(data) {
 
 # LOAD IN MODELFITS
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
+load(file.path(dir_data, "species_prevalences.RData"))
 
 
 
@@ -152,6 +153,8 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
         labs(x = "Value", y = "Species", title = "Predictive power") +
         scale_fill_manual(values = c("red", "yellow", "blue")) +
         theme_minimal()
+    
+    
     
 
     

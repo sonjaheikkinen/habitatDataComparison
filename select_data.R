@@ -39,17 +39,21 @@ for (species in colnames(occurrence)) {
                                                                    function(x) any(x == 1)))
     number_of_samples_species_is_found_in <- sum(species_occurrence)
     prevalence <- number_of_samples_species_is_found_in / nrow(occurrence)
+    species_list <- c(species_list, species)
+    samples <- c(samples, number_of_samples_species_is_found_in)
+    transects <- c(transects, number_of_transects_where_species_has_occurrence)
+    prevalences <- c(prevalences, prevalence)
     if (number_of_transects_where_species_has_occurrence < 3) {
-        species_list <- c(species_list, species)
-        samples <- c(samples, number_of_samples_species_is_found_in)
-        transects <- c(transects, number_of_transects_where_species_has_occurrence)
-        prevalences <- c(prevalences, prevalence)
         occurrence <- occurrence[, colnames(occurrence) != species]
         abundance <- abundance[, colnames(abundance) != species]
     }
 }
+species_prevalences <- data.frame(species = species_list,
+                                  samples = samples,
+                                  transects = transects,
+                                  prevalences <- prevalences)
 
-print(values)
+
 # Select only forest species
 forest_habitat_types <- c("FO", "CF", "DF")
 for (species in colnames(occurrence)) {
@@ -126,6 +130,7 @@ save(fractions_natura, file = file.path(dir_data, "fractions_natura.RData"))
 save(fractions_corine, file = file.path(dir_data, "fractions_corine.RData"))
 save(pca_results_natura, file = file.path(dir_data, "pca_results_natura.RData"))
 save(pca_results_corine, file = file.path(dir_data, "pca_results_corine.RData"))
+save(species_prevalences, file = file.path(dir_data, "species_prevalences.RData"))
 writeVector(transects_selected_shp, 
             file.path(dir_data, "transects_selected.shp"),
             overwrite = TRUE)
