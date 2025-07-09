@@ -218,19 +218,30 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     
     
     # FIT AND PREDICTIVE POWER AGAINST PREVALENCE 
-    
     plot_fits_against_continuous(species_prevalences[rownames(explanatory_power),]$prevalences,
                                  "Prevalence",
                                  explanatory_power,
                                  predictive_power)
     
     
-    # PLOTS AGAINST FEEDING
-    
+    # PLOTS AGAINST TRAITS
     plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Feeding,
                                   "Feeding",
                                   explanatory_power,
                                   predictive_power)
+    plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Mig,
+                                  "Migration",
+                                  explanatory_power,
+                                  predictive_power)
+    plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$Mass,
+                                 "Mass",
+                                 explanatory_power,
+                                 predictive_power)
+    plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$LogMass,
+                                 "LogMass",
+                                 explanatory_power,
+                                 predictive_power)
+    
     
 
     
