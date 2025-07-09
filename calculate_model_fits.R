@@ -76,6 +76,7 @@ calculate_modelfits <- function(folds, file, model, model_name, partition_transe
     print("")
     
     # SAVE RESULTS TO FILE
+    # TO DO: Combine all in same files, then edit saving so that everything goes to one file
     save(explanatory_power, predictive_power_transect, waic, file = file)
     save(predictive_power_year, file = file.path(dir_modelfits, sprintf("modelfit_year_%s.RData", model_name)))
     

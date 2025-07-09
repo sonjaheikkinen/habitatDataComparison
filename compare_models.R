@@ -13,7 +13,7 @@ extract_thinning_value <- function(filename) {
 # FUNCTIONS | MODEL QUALITY
 
 
-create_modelfit_plot_old <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
+create_modelfit_plot <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
     
     if (!type %in% colnames(explanatory_power)) {
         return("Type not yet calculated or does not apply for this model")
@@ -38,34 +38,17 @@ create_modelfit_plot_old <- function(explanatory_power, predictive_power, type, 
 }
 
 
-create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_value, validation_type) {
-    
-    if (!type %in% colnames(explanatory_power)) {
-        return("Type not yet calculated or does not apply for this model")
-    }
-    
-    values <- explanatory_power[,type]
-    
-    if (!is.null(values)) {
-        
-        title <- sprintf("%s\n thin = %s | %s | %s \n mean = %s",
-                         model_name,
-                         as.character(thinning_value),
-                         type,
-                         validation_type,
-                         as.character(mean(explanatory_power[,type], na.rm = TRUE)))
-        
-        plot(1:length(values),
-             values,
-             ylim = c(min(values), max(values)),
-             xlab = "Species",
-             ylab = sprintf("%s", type),
-             main = title)
-        
-        hist(values, xlab = sprintf("%s", type), main = title)
-    }
-    
+plot_fits_per_species <- function(type, data) {
+    values <- data[,type]
+    names(values) <- data$Species
+    ordered_values <- sort(values, decreasing = FALSE)
+    barplot(ordered_values,
+            horiz = TRUE,
+            las = 1,                    
+            main = type)
 }
+
+
 
 
 
@@ -89,6 +72,10 @@ plot_metric <- function(data) {
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
 
 
+
+# QUALITY OF MODELS
+
+
 for (modelfit_file_number in 1:length(modelfit_files)) {
     
     # GET MODEL INFORMATION
@@ -100,17 +87,60 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     # CREATE PDF FOR PLOTTING THE FIT VALUES
     pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
     
-    # CREATE PLOTS OF FIT VALUES
-    create_modelfit_plot(explanatory_power, "TjurR2", model_name, thinning_value, "Explanatory power")
-    create_modelfit_plot(explanatory_power, "R2", model_name, thinning_value, "Explanatory power")
-    create_modelfit_plot(explanatory_power, "AUC", model_name, thinning_value, "Explanatory power")
-    create_modelfit_plot(explanatory_power, "SR2", model_name, thinning_value, "Explanatory power")
-    create_modelfit_plot(explanatory_power, "RMSE", model_name, thinning_value, "Explanatory power")
-    create_modelfit_plot(predictive_power_transect, "TjurR2", model_name, thinning_value, "Predictive power")
-    create_modelfit_plot(predictive_power_transect, "R2", model_name, thinning_value, "Predictive power")
-    create_modelfit_plot(predictive_power_transect, "AUC", model_name, thinning_value, "Predictive power")
-    create_modelfit_plot(predictive_power_transect, "SR2", model_name, thinning_value, "Predictive power")
-    create_modelfit_plot(predictive_power_transect, "RMSE", model_name, thinning_value, "Predictive power")
+    # CREATE PLOTS FOR PREDICTIVE POWER VS. EXPLANATORY POWER
+    if (!is.null(predictive_power_transect)) {
+        create_modelfit_plot(explanatory_power, 
+                             predictive_power_transect, 
+                             "TjurR2", 
+                             model_name, 
+                             thinning_value)
+        create_modelfit_plot(explanatory_power, 
+                             predictive_power_transect,
+                             "AUC", 
+                             model_name, 
+                             thinning_value)
+        create_modelfit_plot(explanatory_power,
+                             predictive_power_transect,
+                             "RMSE", 
+                             model_name, 
+                             thinning_value)
+    }
+    
+    # LOOK AT VALUES FOR EACH SPECIES
+    explanatory_power$Species <- rownames(explanatory_power)
+    predictive_power$Species <- rownames(predictive_power)
+    old_par <- par(no.readonly = TRUE) 
+    par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+    par(mfrow = c(1, 3)) 
+    plot_fits_per_species("TjurR2", explanatory_power)
+    plot_fits_per_species("AUC", explanatory_power)
+    plot_fits_per_species("RMSE", explanatory_power)
+    title(main = "Explanatory power",
+          outer = TRUE,
+          line = -3)
+    plot_fits_per_species("TjurR2", predictive_power)
+    plot_fits_per_species("AUC", predictive_power)
+    plot_fits_per_species("RMSE", predictive_power)
+    title(main = "Predictive power",
+          outer = TRUE,
+          line = -3)
+    par(old_par)
+    
+    
+    # COMPARE EACH VALUE FOR EACH SPECIES
+    explanatory_power_ordered <- explanatory_power[order(explanatory_power$AUC), ]
+    explanatory_power_ordered$Species <- NULL
+    long_explanatory_power <- stack(explanatory_power_ordered)
+    long_explanatory_power$Species <- rep(rownames(explanatory_power_ordered), 3)
+    long_explanatory_power$Species <- factor(long_explanatory_power$Species, 
+                                             levels = rev(rownames(explanatory_power_ordered)))
+    ggplot(long_explanatory_power, aes(x = values, y = Species, fill = ind)) +
+        geom_col(position = "identity", alpha = 0.5) +
+        labs(x = "Value", y = "Species", title = "Explanatory power") +
+        scale_fill_manual(values = c("red", "yellow", "blue")) +
+        theme_minimal()
+    
+
     
     # CLOSE PDF
     dev.off()
