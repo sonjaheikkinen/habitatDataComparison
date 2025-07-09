@@ -6,12 +6,6 @@ overwrite_modelfits <- TRUE
 # FUNCTIONS FOR THE SCRIPT
 
 
-extract_thinning_value <- function(filename) {
-    parts <- strsplit(filename, "_")[[1]] 
-    thinning_value <- as.numeric(parts[length(parts) - 1])
-    print(thinning_value)
-    return(thinning_value)
-}
 
 calculate_modelfits <- function(folds, file, model, model_name, partition_transect, partition_year) {
     
@@ -88,66 +82,6 @@ calculate_modelfits <- function(folds, file, model, model_name, partition_transe
 }
 
 
-create_modelfit_plot_old <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
-    
-    if (!type %in% colnames(explanatory_power)) {
-        return("Type not yet calculated or does not apply for this model")
-    }
-    if (!is.null(explanatory_power[,type])) {
-        plot(explanatory_power[,type],
-             predictive_power[,type],
-             xlim = c(-1,1),
-             ylim = c(-1,1),
-             xlab = "explanatory power (MF)",
-             ylab = "predictive power (MFCV)",
-             main = sprintf("%s\n thin = %s: %s. \nmean(MF) = %s, mean(MFCV) = %s",
-                            model_name,
-                            as.character(thinning_value),
-                            type,
-                            as.character(mean(explanatory_power[,type], na.rm = TRUE)),
-                            as.character(mean(predictive_power[,type], na.rm = TRUE))))
-        abline(h = 0)
-        abline(v = 0)
-    }
-    
-}
-
-
-create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_value, validation_type) {
-    
-    if (!type %in% colnames(explanatory_power)) {
-        return("Type not yet calculated or does not apply for this model")
-    }
-    
-    values <- explanatory_power[,type]
-    
-    if (!is.null(values)) {
-        
-        title <- sprintf("%s\n thin = %s | %s | %s \n mean = %s",
-                         model_name,
-                         as.character(thinning_value),
-                         type,
-                         validation_type,
-                         as.character(mean(explanatory_power[,type], na.rm = TRUE)))
-        
-        plot(1:length(values),
-             values,
-             ylim = c(min(values), max(values)),
-             xlab = "Species",
-             ylab = sprintf("%s", type),
-             main = title)
-        
-        hist(values, xlab = sprintf("%s", type), main = title)
-    }
-    
-}
-
-create_waic_plot <- function(waic, model_name, thinning_value) {
-    print(str(waic))
-    print("")
-    print(waic)
-}
-
 
 # SCRIPT STARTS
 
@@ -163,11 +97,7 @@ for (model_number in 1:length(fitted_models)) {
     load(fitted_models[model_number]) # Load file into fitted_model
     model <- fitted_model
     model_name <- strsplit(basename(fitted_models[model_number]), "\\.")[[1]][1]
-    thinning_value <- extract_thinning_value(model_name)
     modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s.RData", model_name))
-    
-    # CREATE PDF FOR PLOTTING THE FIT VALUES
-    pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
     
     # Partition the data to training and test sets
     # use transect column as the partition column
@@ -190,26 +120,6 @@ for (model_number in 1:length(fitted_models)) {
                             partition_year)
     }
     
-    # CREATE PLOTS OF FIT VALUES
-    if (file.exists(modelfit_file)) {
-        load(modelfit_file)
-        create_modelfit_plot(explanatory_power, "TjurR2", model_name, thinning_value, "Explanatory power")
-        create_modelfit_plot(explanatory_power, "R2", model_name, thinning_value, "Explanatory power")
-        create_modelfit_plot(explanatory_power, "AUC", model_name, thinning_value, "Explanatory power")
-        create_modelfit_plot(explanatory_power, "SR2", model_name, thinning_value, "Explanatory power")
-        create_modelfit_plot(explanatory_power, "RMSE", model_name, thinning_value, "Explanatory power")
-        create_modelfit_plot(predictive_power_transect, "TjurR2", model_name, thinning_value, "Predictive power")
-        create_modelfit_plot(predictive_power_transect, "R2", model_name, thinning_value, "Predictive power")
-        create_modelfit_plot(predictive_power_transect, "AUC", model_name, thinning_value, "Predictive power")
-        create_modelfit_plot(predictive_power_transect, "SR2", model_name, thinning_value, "Predictive power")
-        create_modelfit_plot(predictive_power_transect, "RMSE", model_name, thinning_value, "Predictive power")
-        create_waic_plot(waic, model_name, thinning_value)
-    } else {
-        print(sprintf("Modelfit results not found for %s", model_name))
-    }
-    
-    # CLOSE PDF
-    dev.off()
     
 }
 

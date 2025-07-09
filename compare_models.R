@@ -1,5 +1,75 @@
 # SCRIPT FOR COMPARING MODELFITS
 
+
+# FUNCTIONS | GENERAL
+extract_thinning_value <- function(filename) {
+    parts <- strsplit(filename, "_")[[1]] 
+    thinning_value <- as.numeric(parts[length(parts) - 1])
+    print(thinning_value)
+    return(thinning_value)
+}
+
+
+# FUNCTIONS | MODEL QUALITY
+
+
+create_modelfit_plot_old <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
+    
+    if (!type %in% colnames(explanatory_power)) {
+        return("Type not yet calculated or does not apply for this model")
+    }
+    if (!is.null(explanatory_power[,type])) {
+        plot(explanatory_power[,type],
+             predictive_power[,type],
+             xlim = c(-1,1),
+             ylim = c(-1,1),
+             xlab = "explanatory power (MF)",
+             ylab = "predictive power (MFCV)",
+             main = sprintf("%s\n thin = %s: %s. \nmean(MF) = %s, mean(MFCV) = %s",
+                            model_name,
+                            as.character(thinning_value),
+                            type,
+                            as.character(mean(explanatory_power[,type], na.rm = TRUE)),
+                            as.character(mean(predictive_power[,type], na.rm = TRUE))))
+        abline(h = 0)
+        abline(v = 0)
+    }
+    
+}
+
+
+create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_value, validation_type) {
+    
+    if (!type %in% colnames(explanatory_power)) {
+        return("Type not yet calculated or does not apply for this model")
+    }
+    
+    values <- explanatory_power[,type]
+    
+    if (!is.null(values)) {
+        
+        title <- sprintf("%s\n thin = %s | %s | %s \n mean = %s",
+                         model_name,
+                         as.character(thinning_value),
+                         type,
+                         validation_type,
+                         as.character(mean(explanatory_power[,type], na.rm = TRUE)))
+        
+        plot(1:length(values),
+             values,
+             ylim = c(min(values), max(values)),
+             xlab = "Species",
+             ylab = sprintf("%s", type),
+             main = title)
+        
+        hist(values, xlab = sprintf("%s", type), main = title)
+    }
+    
+}
+
+
+
+
 # FUNCTIONS | MODEL COMPARISON
 
 # FUNCTION FOR PLOTTING MODEL PERFORMANCE METRICS
@@ -17,6 +87,36 @@ plot_metric <- function(data) {
 
 # LOAD IN MODELFITS
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
+
+
+for (modelfit_file_number in 1:length(modelfit_files)) {
+    
+    # GET MODEL INFORMATION
+    load(modelfit_files[modelfit_file_number])
+    model_name <- strsplit(basename(modelfit_files[modelfit_file_number]), "\\.")[[1]][1]
+    thinning_value <- extract_thinning_value(model_name)
+    modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s.RData", model_name))
+    
+    # CREATE PDF FOR PLOTTING THE FIT VALUES
+    pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
+    
+    # CREATE PLOTS OF FIT VALUES
+    create_modelfit_plot(explanatory_power, "TjurR2", model_name, thinning_value, "Explanatory power")
+    create_modelfit_plot(explanatory_power, "R2", model_name, thinning_value, "Explanatory power")
+    create_modelfit_plot(explanatory_power, "AUC", model_name, thinning_value, "Explanatory power")
+    create_modelfit_plot(explanatory_power, "SR2", model_name, thinning_value, "Explanatory power")
+    create_modelfit_plot(explanatory_power, "RMSE", model_name, thinning_value, "Explanatory power")
+    create_modelfit_plot(predictive_power_transect, "TjurR2", model_name, thinning_value, "Predictive power")
+    create_modelfit_plot(predictive_power_transect, "R2", model_name, thinning_value, "Predictive power")
+    create_modelfit_plot(predictive_power_transect, "AUC", model_name, thinning_value, "Predictive power")
+    create_modelfit_plot(predictive_power_transect, "SR2", model_name, thinning_value, "Predictive power")
+    create_modelfit_plot(predictive_power_transect, "RMSE", model_name, thinning_value, "Predictive power")
+    
+    # CLOSE PDF
+    dev.off()
+    
+}
+
 
 
 # START WITH OVERALL COMPARISONS
