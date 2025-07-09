@@ -1,6 +1,10 @@
 # SCRIPT FOR CALCULATING FIT VALUES FOR EACH MODEL
 
+overwrite_modelfits <- TRUE
+
+
 # FUNCTIONS FOR THE SCRIPT
+
 
 extract_thinning_value <- function(filename) {
     parts <- strsplit(filename, "_")[[1]] 
@@ -9,7 +13,7 @@ extract_thinning_value <- function(filename) {
     return(thinning_value)
 }
 
-calculate_modelfits <- function(folds, file, model, model_name) {
+calculate_modelfits <- function(folds, file, model, model_name, partition_transect, partition_year) {
     
     print(sprintf("Calculating fits for %s", model_name))
     print(sprintf("Calculation started %s", date()))
@@ -28,22 +32,45 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     rownames(explanatory_power) <- colnames(model$Y)
     
     
-    # CALCULATE PREDICTIVE POWER
+    # CALCULATE PREDICTIVE POWER BY TRANSECT
+    # Compute predicted values for test set, based on data fitted with training set
+    #predicted_values_test_set <- computePredictedValues(model, 
+    #                                                    partition = partition_transect,
+    #                                                    nParallel = 4)
+    # Compute measures of model fit based on the predicted values for test set
+    #predictive_power_transect <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    # Set species names as rownames
+    #predictive_power_transect <- as.data.frame(predictive_power_transect)
+    #rownames(predictive_power_transect) <- colnames(model$Y)
     
-    # Partition the data to training and test sets
-    # use transect column as the partition column
-    # this ensures, that when predicting based on the habitat types of transect, 
-    # the habitat types and occurrences for that transect have not yet been seen
-    partition <- createPartition(model, nfolds = folds, column = "Transect")
+    
+    # CALCULATE PREDICTIVE POWER BY YEAR
     # Compute predicted values for test set, based on data fitted with training set
     predicted_values_test_set <- computePredictedValues(model, 
-                                                        partition = partition,
+                                                        partition = partition_year,
                                                         nParallel = 4)
     # Compute measures of model fit based on the predicted values for test set
-    predictive_power <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    predictive_power_year <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
     # Set species names as rownames
-    predictive_power <- as.data.frame(predictive_power)
-    rownames(predictive_power) <- colnames(model$Y)
+    predictive_power_year <- as.data.frame(predictive_power_year)
+    rownames(predictive_power_year) <- colnames(model$Y)
+    
+    
+    
+    # PREDICTIVE POWER BY  FOCAL TRANSECT
+    # TO DO: Refactor so that focal transects and years are the same for every model
+    #number_of_focal_transects <- 1
+    #focal_transect_indices <- sample(1:length(unique(model$studyDesign$Transect)), number_of_focal_transects)
+    #focal_transects <- unique(model$studyDesign$Transect)[focal_transect_indices]
+    #partition <- (model$studyDesign$Transect == focal_transects[1]) * 1
+    #partition[partition == 0] <- 2
+    #predicted_values_test_set <- computePredictedValues(model,
+    #                                                    partition = partition,
+    #                                                    nParallel = 4)
+    #predictive_power_transect <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    #predictive_power_transect <- as.data.frame(predictive_power_transect)
+    
+    
     
     
     # CALCULATE WAIC
@@ -55,7 +82,8 @@ calculate_modelfits <- function(folds, file, model, model_name) {
     print("")
     
     # SAVE RESULTS TO FILE
-    save(explanatory_power, predictive_power, waic, file = file)
+    save(explanatory_power, predictive_power_transect, waic, file = file)
+    save(predictive_power_year, file = file.path(dir_modelfits, sprintf("modelfit_year_%s.RData", model_name)))
     
 }
 
@@ -85,7 +113,7 @@ create_modelfit_plot_old <- function(explanatory_power, predictive_power, type, 
 }
 
 
-create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_value) {
+create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_value, validation_type) {
     
     if (!type %in% colnames(explanatory_power)) {
         return("Type not yet calculated or does not apply for this model")
@@ -95,10 +123,11 @@ create_modelfit_plot <- function(explanatory_power, type, model_name, thinning_v
     
     if (!is.null(values)) {
         
-        title <- sprintf("%s\n thin = %s | %s \nmean = %s",
+        title <- sprintf("%s\n thin = %s | %s | %s \n mean = %s",
                          model_name,
                          as.character(thinning_value),
                          type,
+                         validation_type,
                          as.character(mean(explanatory_power[,type], na.rm = TRUE)))
         
         plot(1:length(values),
@@ -125,6 +154,9 @@ create_waic_plot <- function(waic, model_name, thinning_value) {
 # List filenames of fitted models
 fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
 
+partition_transect <- c()
+partition_year <- c()
+
 for (model_number in 1:length(fitted_models)) {
 
     # GET MODEL INFORMATION
@@ -137,21 +169,40 @@ for (model_number in 1:length(fitted_models)) {
     # CREATE PDF FOR PLOTTING THE FIT VALUES
     pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
     
+    # Partition the data to training and test sets
+    # use transect column as the partition column
+    # this ensures, that when predicting based on the habitat types of transect, 
+    # the habitat types and occurrences for that transect have not yet been seen
+    if (model_number <- 1) {
+        partition_transect <- createPartition(model, nfolds = modelfit_folds, column = "Transect")
+        partition_year <- createPartition(model, nfolds = modelfit_folds, column = "Year")
+    }
+    
     # CALCULATE FIT IF NEEDED
     if (file.exists(modelfit_file) & !overwrite_modelfits) {
         print(sprintf("Modelfits already calculated for %s", model_name))
     } else {
-        calculate_modelfits(modelfit_folds, modelfit_file, model, model_name)
+        calculate_modelfits(modelfit_folds, 
+                            modelfit_file, 
+                            model, 
+                            model_name, 
+                            partition_transect, 
+                            partition_year)
     }
     
     # CREATE PLOTS OF FIT VALUES
     if (file.exists(modelfit_file)) {
         load(modelfit_file)
-        create_modelfit_plot(explanatory_power, "TjurR2", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, "R2", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, "AUC", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, "SR2", model_name, thinning_value)
-        create_modelfit_plot(explanatory_power, "RMSE", model_name, thinning_value)
+        create_modelfit_plot(explanatory_power, "TjurR2", model_name, thinning_value, "Explanatory power")
+        create_modelfit_plot(explanatory_power, "R2", model_name, thinning_value, "Explanatory power")
+        create_modelfit_plot(explanatory_power, "AUC", model_name, thinning_value, "Explanatory power")
+        create_modelfit_plot(explanatory_power, "SR2", model_name, thinning_value, "Explanatory power")
+        create_modelfit_plot(explanatory_power, "RMSE", model_name, thinning_value, "Explanatory power")
+        create_modelfit_plot(predictive_power_transect, "TjurR2", model_name, thinning_value, "Predictive power")
+        create_modelfit_plot(predictive_power_transect, "R2", model_name, thinning_value, "Predictive power")
+        create_modelfit_plot(predictive_power_transect, "AUC", model_name, thinning_value, "Predictive power")
+        create_modelfit_plot(predictive_power_transect, "SR2", model_name, thinning_value, "Predictive power")
+        create_modelfit_plot(predictive_power_transect, "RMSE", model_name, thinning_value, "Predictive power")
         create_waic_plot(waic, model_name, thinning_value)
     } else {
         print(sprintf("Modelfit results not found for %s", model_name))
