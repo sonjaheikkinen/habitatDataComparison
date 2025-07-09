@@ -155,6 +155,43 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
         theme_minimal()
     
     
+    # FIT AND PREDICTIVE POWER AGAINST PREVALENCE 
+    
+    plot(species_prevalences[rownames(explanatory_power),]$prevalences, 
+         explanatory_power$AUC,
+         xlab = "Prevalence",
+         ylab = "AUC",
+         main = "Explanatory power")
+    plot(species_prevalences[rownames(explanatory_power),]$prevalences, 
+         explanatory_power$RMSE,
+         xlab = "Prevalence",
+         ylab = "RMSE",
+         main = "Explanatory power")
+    plot(species_prevalences[rownames(explanatory_power),]$prevalences, 
+         explanatory_power$TjurR2,
+         xlab = "Prevalence",
+         ylab = "TjurR2",
+         main = "Explanatory power")
+    
+    plot(species_prevalences[rownames(predictive_power),]$prevalences, 
+         predictive_power$AUC,
+         xlab = "Prevalence",
+         ylab = "AUC",
+         main = "Predictive power")
+    plot(species_prevalences[rownames(predictive_power),]$prevalences, 
+         predictive_power$RMSE,
+         xlab = "Prevalence",
+         ylab = "RMSE",
+         main = "Predictive power")
+    plot(species_prevalences[rownames(predictive_power),]$prevalences, 
+         predictive_power$TjurR2,
+         xlab = "Prevalence",
+         ylab = "TjurR2",
+         main = "Predictive power")
+    
+
+    
+    
     
 
     

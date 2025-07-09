@@ -48,10 +48,10 @@ for (species in colnames(occurrence)) {
         abundance <- abundance[, colnames(abundance) != species]
     }
 }
-species_prevalences <- data.frame(species = species_list,
-                                  samples = samples,
+species_prevalences <- data.frame(samples = samples,
                                   transects = transects,
-                                  prevalences <- prevalences)
+                                  prevalences = prevalences)
+rownames(species_prevalences) <- species_list
 
 
 # Select only forest species
