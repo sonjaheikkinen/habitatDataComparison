@@ -250,6 +250,116 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     
 }
 
+# COMPARE MODEL PERFORMANCE BETWEEN THINNING VALUES
+fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
+load(fitted_models[5])
+natura_thin_100 <- fitted_model
+load(fitted_models[6])
+natura_thin_1000 <- fitted_model
+explanatory_power_natura_thin_100 <- evaluateModelFit(hM = natura_thin_100, 
+                                                      predY = computePredictedValues(natura_thin_100))
+explanatory_power_natura_thin_100 <- as.data.frame(explanatory_power_natura_thin_100)
+explanatory_power_natura_thin_1000 <- evaluateModelFit(hM = natura_thin_1000, 
+                                                      predY = computePredictedValues(natura_thin_1000))
+explanatory_power_natura_thin_1000 <- as.data.frame(explanatory_power_natura_thin_1000)
+cor(explanatory_power_natura_thin_100$RMSE, explanatory_power_natura_thin_1000$RMSE)
+cor(explanatory_power_natura_thin_100$AUC, explanatory_power_natura_thin_1000$AUC)
+cor(explanatory_power_natura_thin_100$TjurR2, explanatory_power_natura_thin_1000$TjurR2)
+
+posterior_natura_thin_100 <- convertToCodaObject(natura_thin_100, 
+                                                 spNamesNumbers = c(T,F), 
+                                                 covNamesNumbers = c(T,F))
+posterior_natura_thin_1000 <- convertToCodaObject(natura_thin_1000, 
+                                                 spNamesNumbers = c(T,F), 
+                                                 covNamesNumbers = c(T,F))
+
+fixed_effect_parameter_names  <- c("Beta", "Gamma", "V")
+random_effect_parameter_names <- c("Eta", "Lambda", "Omega", "Alpha")
+randomlevel_names <- names(natura_thin_100$ranLevels) 
+
+for (chain in 1:4) {
+    print(sprintf("Chain %s", chain))
+    print("")
+    for (parameter_name in fixed_effect_parameter_names) {
+        natura_thin_100_parameter_values <- as.vector(posterior_natura_thin_100 [[parameter_name]][[chain]])
+        natura_thin_1000_parameter_values <- as.vector(posterior_natura_thin_1000[[parameter_name]][[chain]])
+        print(sprintf("Natura %s correlation between 100 and 1000, chain %s: %s",
+                parameter_name,
+                chain,
+                cor(natura_thin_100_parameter_values, natura_thin_1000_parameter_values)))
+        print("")
+    }
+    for (parameter_name in random_effect_parameter_names) {
+        for (randomlevel_number in 1:2) {
+            natura_thin_100_parameter_values <- as.vector(posterior_natura_thin_100 [[parameter_name]][[randomlevel_number]][[chain]])
+            natura_thin_1000_parameter_values <- as.vector(posterior_natura_thin_1000[[parameter_name]][[randomlevel_number]][[chain]])
+            print(sprintf("Natura %s %s correlation between 100 and 1000, chain %s: %s",
+                    parameter_name,
+                    randomlevel_names[randomlevel_number],
+                    chain,
+                    cor(natura_thin_100_parameter_values, natura_thin_1000_parameter_values)))
+        }
+        print("")
+    }
+    print("")
+}
+
+
+load(fitted_models[2])
+corine_thin_100 <- fitted_model
+load(fitted_models[3])
+corine_thin_1000 <- fitted_model
+explanatory_power_corine_thin_100 <- evaluateModelFit(hM = corine_thin_100, 
+                                                      predY = computePredictedValues(corine_thin_100))
+explanatory_power_corine_thin_100 <- as.data.frame(explanatory_power_corine_thin_100)
+explanatory_power_corine_thin_1000 <- evaluateModelFit(hM = corine_thin_1000, 
+                                                       predY = computePredictedValues(corine_thin_1000))
+explanatory_power_corine_thin_1000 <- as.data.frame(explanatory_power_corine_thin_1000)
+cor(explanatory_power_corine_thin_100$RMSE, explanatory_power_corine_thin_1000$RMSE)
+cor(explanatory_power_corine_thin_100$AUC, explanatory_power_corine_thin_1000$AUC)
+cor(explanatory_power_corine_thin_100$TjurR2, explanatory_power_corine_thin_1000$TjurR2)
+
+posterior_corine_thin_100 <- convertToCodaObject(corine_thin_100, 
+                                                 spNamesNumbers = c(T,F), 
+                                                 covNamesNumbers = c(T,F))
+posterior_corine_thin_1000 <- convertToCodaObject(corine_thin_1000, 
+                                                  spNamesNumbers = c(T,F), 
+                                                  covNamesNumbers = c(T,F))
+
+fixed_effect_parameter_names  <- c("Beta", "Gamma", "V")
+random_effect_parameter_names <- c("Eta", "Lambda", "Omega", "Alpha")
+randomlevel_names <- names(natura_thin_100$ranLevels) 
+
+
+for (chain in 1:4) {
+    print(sprintf("Chain %s", chain))
+    print("")
+    for (parameter_name in fixed_effect_parameter_names) {
+        corine_thin_100_parameter_values <- as.vector(posterior_corine_thin_100 [[parameter_name]][[chain]])
+        corine_thin_1000_parameter_values <- as.vector(posterior_corine_thin_1000[[parameter_name]][[chain]])
+        print(sprintf("Corine %s correlation between 100 and 1000, chain %s: %s",
+                      parameter_name,
+                      chain,
+                      cor(corine_thin_100_parameter_values, corine_thin_1000_parameter_values)))
+        print("")
+    }
+    for (parameter_name in random_effect_parameter_names) {
+        for (randomlevel_number in 1:2) {
+            corine_thin_100_parameter_values <- as.vector(posterior_corine_thin_100 [[parameter_name]][[randomlevel_number]][[chain]])
+            corine_thin_1000_parameter_values <- as.vector(posterior_corine_thin_1000[[parameter_name]][[randomlevel_number]][[chain]])
+            print(sprintf("Corine %s %s correlation between 100 and 1000, chain %s: %s",
+                          parameter_name,
+                          randomlevel_names[randomlevel_number],
+                          chain,
+                          cor(corine_thin_100_parameter_values, corine_thin_1000_parameter_values)))
+        }
+        print("")
+    }
+    print("")
+}
+
+
+
 
 
 # START WITH OVERALL COMPARISONS
