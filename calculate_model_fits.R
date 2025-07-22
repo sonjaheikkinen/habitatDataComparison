@@ -28,14 +28,14 @@ calculate_modelfits <- function(folds, file, model, model_name, partition_transe
     
     # CALCULATE PREDICTIVE POWER BY TRANSECT
     # Compute predicted values for test set, based on data fitted with training set
-    #predicted_values_test_set <- computePredictedValues(model, 
-    #                                                    partition = partition_transect,
-    #                                                    nParallel = 4)
+    predicted_values_test_set <- computePredictedValues(model, 
+                                                        partition = partition_transect,
+                                                        nParallel = 4)
     # Compute measures of model fit based on the predicted values for test set
-    #predictive_power_transect <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
+    predictive_power_transect <- evaluateModelFit(hM = model, predY = predicted_values_test_set)
     # Set species names as rownames
-    #predictive_power_transect <- as.data.frame(predictive_power_transect)
-    #rownames(predictive_power_transect) <- colnames(model$Y)
+    predictive_power_transect <- as.data.frame(predictive_power_transect)
+    rownames(predictive_power_transect) <- colnames(model$Y)
     
     
     # CALCULATE PREDICTIVE POWER BY YEAR
@@ -70,6 +70,9 @@ calculate_modelfits <- function(folds, file, model, model_name, partition_transe
     # CALCULATE WAIC
     waic <-  computeWAIC(model)
     
+    # CALCULATE WAIC BY COLUMN
+    waic_by_column <- computeWAIC(model, byColumn = TRUE)
+    
     
     
     print(sprintf("Calculation ended %s", date()))
@@ -77,8 +80,12 @@ calculate_modelfits <- function(folds, file, model, model_name, partition_transe
     
     # SAVE RESULTS TO FILE
     # TO DO: Combine all in same files, then edit saving so that everything goes to one file
-    save(explanatory_power, predictive_power_transect, waic, file = file)
-    save(predictive_power_year, file = file.path(dir_modelfits, sprintf("modelfit_year_%s.RData", model_name)))
+    save(explanatory_power, 
+         predictive_power_transect,
+         predictive_power_year,
+         waic, 
+         waic_by_column,
+         file = file)
     
 }
 
