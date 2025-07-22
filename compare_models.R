@@ -13,7 +13,12 @@ extract_thinning_value <- function(filename) {
 # FUNCTIONS | MODEL QUALITY
 
 
-create_modelfit_plot <- function(explanatory_power, predictive_power, type, model_name, thinning_value) {
+create_modelfit_plot <- function(explanatory_power,
+                                 predictive_power, 
+                                 predictive_power_type, 
+                                 type, 
+                                 model_name, 
+                                 thinning_value) {
     
     if (!type %in% colnames(explanatory_power)) {
         return("Type not yet calculated or does not apply for this model")
@@ -24,7 +29,7 @@ create_modelfit_plot <- function(explanatory_power, predictive_power, type, mode
              xlim = c(-1,1),
              ylim = c(-1,1),
              xlab = "explanatory power (MF)",
-             ylab = "predictive power (MFCV)",
+             ylab = sprintf("predictive power (MFCV) %s", predictive_power_type),
              main = sprintf("%s\n thin = %s: %s. \nmean(MF) = %s, mean(MFCV) = %s",
                             model_name,
                             as.character(thinning_value),
@@ -48,7 +53,11 @@ plot_fits_per_species <- function(type, data) {
             main = type)
 }
 
-plot_fits_against_continuous <- function(xdata, xlab, predictive_power, explanatory_power) {
+plot_fits_against_continuous <- function(xdata, 
+                                         xlab, 
+                                         predictive_power, 
+                                         explanatory_power,
+                                         predictive_power_type) {
     plot(xdata, 
          explanatory_power$AUC,
          xlab = xlab,
@@ -68,20 +77,24 @@ plot_fits_against_continuous <- function(xdata, xlab, predictive_power, explanat
          predictive_power$AUC,
          xlab = xlab,
          ylab = "AUC",
-         main = "Predictive power")
+         main = sprintf("Predictive power %s", predictive_power_type))
     plot(xdata, 
          predictive_power$RMSE,
          xlab = xlab,
          ylab = "RMSE",
-         main = "Predictive power")
+         main = sprintf("Predictive power %s", predictive_power_type))
     plot(xdata, 
          predictive_power$TjurR2,
          xlab = xlab,
          ylab = "TjurR2",
-         main = "Predictive power")
+         main = sprintf("Predictive power %s", predictive_power_type))
 }
 
-plot_fits_against_categorical <- function(xdata, xlab, explanatory_power, predictive_power) {
+plot_fits_against_categorical <- function(xdata, 
+                                          xlab, 
+                                          explanatory_power, 
+                                          predictive_power, 
+                                          predictive_power_type) {
     boxplot(explanatory_power$AUC ~ xdata,
             xlab = xlab,
             ylab = "AUC",
@@ -97,15 +110,15 @@ plot_fits_against_categorical <- function(xdata, xlab, explanatory_power, predic
     boxplot(predictive_power$AUC ~ xdata,
             xlab = xlab,
             ylab = "AUC",
-            main = "Predictive power")
+            main = sprintf("Predictive power %s", predictive_power_type))
     boxplot(predictive_power$RMSE ~ xdata,
             xlab = xlab,
             ylab = "RMSE",
-            main = "Predictive power")
+            main = sprintf("Predictive power %s", predictive_power_type))
     boxplot(predictive_power$TjurR2 ~ xdata,
             xlab = xlab,
             ylab = "TjurR2",
-            main = "Predictive power")
+            main = sprintf("Predictive power %s", predictive_power_type))
 }
 
 
@@ -154,24 +167,27 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     if (!is.null(predictive_power_transect)) {
         create_modelfit_plot(explanatory_power, 
                              predictive_power_transect, 
+                             "Transect",
                              "TjurR2", 
                              model_name, 
                              thinning_value)
         create_modelfit_plot(explanatory_power, 
                              predictive_power_transect,
+                             "Transect",
                              "AUC", 
                              model_name, 
                              thinning_value)
         create_modelfit_plot(explanatory_power,
                              predictive_power_transect,
-                             "RMSE", 
+                             "Transect",
+                             "RMSE Transect", 
                              model_name, 
                              thinning_value)
     }
     
     # LOOK AT VALUES FOR EACH SPECIES
     explanatory_power$Species <- rownames(explanatory_power)
-    predictive_power$Species <- rownames(predictive_power)
+    predictive_power_transect$Species <- rownames(predictive_power_transect)
     old_par <- par(no.readonly = TRUE) 
     par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
     par(mfrow = c(1, 3)) 
@@ -181,10 +197,10 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     title(main = "Explanatory power",
           outer = TRUE,
           line = -3)
-    plot_fits_per_species("TjurR2", predictive_power)
-    plot_fits_per_species("AUC", predictive_power)
-    plot_fits_per_species("RMSE", predictive_power)
-    title(main = "Predictive power",
+    plot_fits_per_species("TjurR2", predictive_power_transect)
+    plot_fits_per_species("AUC", predictive_power_transect)
+    plot_fits_per_species("RMSE", predictive_power_transect)
+    title(main = "Predictive power transect",
           outer = TRUE,
           line = -3)
     par(old_par)
@@ -204,15 +220,15 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
         scale_fill_manual(values = c("red", "yellow", "blue")) +
         theme_minimal()
     
-    predictive_power_ordered <- predictive_power[order(predictive_power$AUC), ]
-    predictive_power_ordered$Species <- NULL
-    long_predictive_power <- stack(predictive_power_ordered)
-    long_predictive_power$Species <- rep(rownames(predictive_power_ordered), 3)
-    long_predictive_power$Species <- factor(long_predictive_power$Species, 
-                                             levels = rev(rownames(predictive_power_ordered)))
-    ggplot(long_predictive_power, aes(x = values, y = Species, fill = ind)) +
+    predictive_power_transect_ordered <- predictive_power_transect[order(predictive_power_transect$AUC), ]
+    predictive_power_transect_ordered$Species <- NULL
+    long_predictive_power_transect <- stack(predictive_power_transect_ordered)
+    long_predictive_power_transect$Species <- rep(rownames(predictive_power_transect_ordered), 3)
+    long_predictive_power_transect$Species <- factor(long_predictive_power_transect$Species, 
+                                             levels = rev(rownames(predictive_power_transect_ordered)))
+    ggplot(long_predictive_power_transect, aes(x = values, y = Species, fill = ind)) +
         geom_col(position = "identity", alpha = 0.5) +
-        labs(x = "Value", y = "Species", title = "Predictive power") +
+        labs(x = "Value", y = "Species", title = "Predictive power transect") +
         scale_fill_manual(values = c("red", "yellow", "blue")) +
         theme_minimal()
     
@@ -221,26 +237,31 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     plot_fits_against_continuous(species_prevalences[rownames(explanatory_power),]$prevalences,
                                  "Prevalence",
                                  explanatory_power,
-                                 predictive_power)
+                                 predictive_power_transect,
+                                 "Transect")
     
     
     # PLOTS AGAINST TRAITS
     plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Feeding,
                                   "Feeding",
                                   explanatory_power,
-                                  predictive_power)
+                                  predictive_power_transect,
+                                  "Transect")
     plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Mig,
                                   "Migration",
                                   explanatory_power,
-                                  predictive_power)
+                                  predictive_power_transect,
+                                  "Transect")
     plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$Mass,
                                  "Mass",
                                  explanatory_power,
-                                 predictive_power)
+                                 predictive_power_transect,
+                                 "Transect")
     plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$LogMass,
                                  "LogMass",
                                  explanatory_power,
-                                 predictive_power)
+                                 predictive_power_transect,
+                                 "Transect")
     
     
 
