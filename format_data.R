@@ -370,6 +370,33 @@ trait_data$LogMass <- log(trait_data$Mass)
 # Name rows based on species
 rownames(trait_data) <- trait_data$Species
 
+
+# Add species phylogenetic order as trait
+
+# First group the species to order level
+order_names <- c("Sorsalinnut",
+                 "Kanalinnut",
+                 "Kuikkalinnut",
+                 "Rantalinnut",
+                 "Kiitäjälinnut",
+                 "Pöllölinnut",
+                 "Tikkalinnut",
+                 "Päiväpetolinnut",
+                 "Varpuslinnut",
+                 "Jalohaukkalinnut",
+                 "Käkilinnut",
+                 "Kyyhkylinnut")
+groups <- cutree(taxonomy, 12) # Jaa lahkotasolle (manuaalisesti selvitetty)
+
+species_orders <- c()
+for (species in rownames(trait_data)) {
+    species_order <- groups[species]
+    species_order_name <- order_names[species_order]
+    species_orders <- c(species_orders, species_order_name)
+}
+trait_data$Order <- species_orders
+
+
 # Order species to same order as they are in observation data
 trait_data <- trait_data[observed_species,]
 
