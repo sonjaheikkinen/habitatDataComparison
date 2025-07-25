@@ -57,8 +57,8 @@ plot_fits_against_continuous <- function(xdata,
                                          xlab, 
                                          predictive_power, 
                                          explanatory_power,
-                                         waic,
-                                         predictive_power_type) {
+                                         predictive_power_year,
+                                         waic) {
     plot(xdata, 
          explanatory_power$AUC,
          xlab = xlab,
@@ -74,21 +74,39 @@ plot_fits_against_continuous <- function(xdata,
          xlab = xlab,
          ylab = "TjurR2",
          main = "Explanatory power")
+    
     plot(xdata, 
-         predictive_power$AUC,
+         predictive_power_transect$AUC,
          xlab = xlab,
          ylab = "AUC",
-         main = sprintf("Predictive power %s", predictive_power_type))
+         main = "Predictive power transect")
     plot(xdata, 
-         predictive_power$RMSE,
+         predictive_power_transect$RMSE,
          xlab = xlab,
          ylab = "RMSE",
-         main = sprintf("Predictive power %s", predictive_power_type))
+         main = "Predictive power transect")
     plot(xdata, 
-         predictive_power$TjurR2,
+         predictive_power_transect$TjurR2,
          xlab = xlab,
          ylab = "TjurR2",
-         main = sprintf("Predictive power %s", predictive_power_type))
+         main = "Predictive power transect")
+    
+    plot(xdata, 
+         predictive_power_year$AUC,
+         xlab = xlab,
+         ylab = "AUC",
+         main = "Predictive power year")
+    plot(xdata, 
+         predictive_power_year$RMSE,
+         xlab = xlab,
+         ylab = "RMSE",
+         main = "Predictive power year")
+    plot(xdata, 
+         predictive_power_year$TjurR2,
+         xlab = xlab,
+         ylab = "TjurR2",
+         main = "Predictive power year")
+    
     plot(xdata, 
          waic,
          xlab = xlab,
@@ -99,9 +117,9 @@ plot_fits_against_continuous <- function(xdata,
 plot_fits_against_categorical <- function(xdata, 
                                           xlab, 
                                           explanatory_power, 
-                                          predictive_power, 
-                                          waic,
-                                          predictive_power_type) {
+                                          predictive_power_transect, 
+                                          predictive_power_year,
+                                          waic) {
     boxplot(explanatory_power$AUC ~ xdata,
             xlab = xlab,
             ylab = "AUC",
@@ -114,18 +132,33 @@ plot_fits_against_categorical <- function(xdata,
             xlab = xlab,
             ylab = "TjurR2",
             main = "Explanatory power")
-    boxplot(predictive_power$AUC ~ xdata,
+    
+    boxplot(predictive_power_transect$AUC ~ xdata,
             xlab = xlab,
             ylab = "AUC",
-            main = sprintf("Predictive power %s", predictive_power_type))
-    boxplot(predictive_power$RMSE ~ xdata,
+            main = "Predictive power transect")
+    boxplot(predictive_power_transect$RMSE ~ xdata,
             xlab = xlab,
             ylab = "RMSE",
-            main = sprintf("Predictive power %s", predictive_power_type))
-    boxplot(predictive_power$TjurR2 ~ xdata,
+            main = "Predictive power transect")
+    boxplot(predictive_power_transect$TjurR2 ~ xdata,
             xlab = xlab,
             ylab = "TjurR2",
-            main = sprintf("Predictive power %s", predictive_power_type))
+            main = "Predictive power transect")
+    
+    boxplot(predictive_power_year$AUC ~ xdata,
+            xlab = xlab,
+            ylab = "AUC",
+            main = "Predictive power year")
+    boxplot(predictive_power_year$RMSE ~ xdata,
+            xlab = xlab,
+            ylab = "RMSE",
+            main = "Predictive power year")
+    boxplot(predictive_power_year$TjurR2 ~ xdata,
+            xlab = xlab,
+            ylab = "TjurR2",
+            main = "Predictive power year")
+    
     boxplot(waic ~ xdata,
             xlab = xlab,
             ylab = "WAIC",
@@ -176,30 +209,48 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
     
     # CREATE PLOTS FOR PREDICTIVE POWER VS. EXPLANATORY POWER
-    if (!is.null(predictive_power_transect)) {
-        create_modelfit_plot(explanatory_power, 
-                             predictive_power_transect, 
-                             "Transect",
-                             "TjurR2", 
-                             model_name, 
-                             thinning_value)
-        create_modelfit_plot(explanatory_power, 
-                             predictive_power_transect,
-                             "Transect",
-                             "AUC", 
-                             model_name, 
-                             thinning_value)
-        create_modelfit_plot(explanatory_power,
-                             predictive_power_transect,
-                             "Transect",
-                             "RMSE", 
-                             model_name, 
-                             thinning_value)
-    }
+    create_modelfit_plot(explanatory_power, 
+                         predictive_power_transect, 
+                         "Transect",
+                         "TjurR2", 
+                         model_name, 
+                         thinning_value)
+    create_modelfit_plot(explanatory_power, 
+                         predictive_power_transect,
+                         "Transect",
+                         "AUC", 
+                         model_name, 
+                         thinning_value)
+    create_modelfit_plot(explanatory_power,
+                         predictive_power_transect,
+                         "Transect",
+                         "RMSE", 
+                         model_name, 
+                         thinning_value)
+    create_modelfit_plot(explanatory_power, 
+                         predictive_power_year, 
+                         "Year",
+                         "TjurR2", 
+                         model_name, 
+                         thinning_value)
+    create_modelfit_plot(explanatory_power, 
+                         predictive_power_year,
+                         "Year",
+                         "AUC", 
+                         model_name, 
+                         thinning_value)
+    create_modelfit_plot(explanatory_power,
+                         predictive_power_year,
+                         "Year",
+                         "RMSE", 
+                         model_name, 
+                         thinning_value)
+
     
     # LOOK AT VALUES FOR EACH SPECIES
     explanatory_power$Species <- rownames(explanatory_power)
     predictive_power_transect$Species <- rownames(predictive_power_transect)
+    predictive_power_year$Species <- rownames(predictive_power_year)
     waic_df <- data.frame(WAIC = waic_by_column)
     waic_df$Species <- rownames(explanatory_power)
     old_par <- par(no.readonly = TRUE) 
@@ -214,6 +265,15 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     plot_fits_per_species("TjurR2", predictive_power_transect)
     plot_fits_per_species("AUC", predictive_power_transect)
     plot_fits_per_species("RMSE", predictive_power_transect)
+    title(main = "Predictive power transect",
+          outer = TRUE,
+          line = -3)
+    plot_fits_per_species("TjurR2", predictive_power_year)
+    plot_fits_per_species("AUC", predictive_power_year)
+    plot_fits_per_species("RMSE", predictive_power_year)
+    title(main = "Predictive power year",
+          outer = TRUE,
+          line = -3)
     plot_fits_per_species("WAIC", waic_df)
     par(old_par)
     
@@ -225,8 +285,8 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
                                  "Prevalence",
                                  explanatory_power,
                                  predictive_power_transect,
-                                 waic_by_column,
-                                 "Transect")
+                                 predictive_power_year,
+                                 waic_by_column)
     
     
     # PLOTS AGAINST TRAITS
@@ -234,26 +294,26 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
                                   "Feeding",
                                   explanatory_power,
                                   predictive_power_transect,
-                                  waic_by_column,
-                                  "Transect")
+                                  predictive_power_year,
+                                  waic_by_column)
     plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Mig,
                                   "Migration",
                                   explanatory_power,
                                   predictive_power_transect,
-                                  waic_by_column,
-                                  "Transect")
+                                  predictive_power_year,
+                                  waic_by_column)
     plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$Mass,
                                  "Mass",
                                  explanatory_power,
                                  predictive_power_transect,
-                                 waic_by_column,
-                                 "Transect")
+                                 predictive_power_year,
+                                 waic_by_column)
     plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$LogMass,
                                  "LogMass",
                                  explanatory_power,
                                  predictive_power_transect,
-                                 waic_by_column,
-                                 "Transect")
+                                 predictive_power_year,
+                                 waic_by_column)
     
 
     
