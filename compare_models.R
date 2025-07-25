@@ -57,6 +57,7 @@ plot_fits_against_continuous <- function(xdata,
                                          xlab, 
                                          predictive_power, 
                                          explanatory_power,
+                                         waic,
                                          predictive_power_type) {
     plot(xdata, 
          explanatory_power$AUC,
@@ -88,12 +89,18 @@ plot_fits_against_continuous <- function(xdata,
          xlab = xlab,
          ylab = "TjurR2",
          main = sprintf("Predictive power %s", predictive_power_type))
+    plot(xdata, 
+         waic,
+         xlab = xlab,
+         ylab = "WAIC",
+         main = "WAIC")
 }
 
 plot_fits_against_categorical <- function(xdata, 
                                           xlab, 
                                           explanatory_power, 
                                           predictive_power, 
+                                          waic,
                                           predictive_power_type) {
     boxplot(explanatory_power$AUC ~ xdata,
             xlab = xlab,
@@ -119,6 +126,10 @@ plot_fits_against_categorical <- function(xdata,
             xlab = xlab,
             ylab = "TjurR2",
             main = sprintf("Predictive power %s", predictive_power_type))
+    boxplot(waic ~ xdata,
+            xlab = xlab,
+            ylab = "WAIC",
+            main = "WAIC")
 }
 
 
@@ -140,12 +151,13 @@ plot_metric <- function(data) {
 
 # SCRIPT STARTS
 
-# LOAD IN MODELFITS
+# LOAD IN MODELFITS AND DATA FOR COMPARISONS
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
 load(file.path(dir_data, "species_prevalences.RData"))
 load(file.path(dir_data, "trait_data.RData"))
 trait_data <- as.data.frame(trait_data)
 rownames(trait_data) <- trait_data$Species
+load(file = file.path(dir_data, "phylogeny_data.RData"))
 
 
 
@@ -180,7 +192,7 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
         create_modelfit_plot(explanatory_power,
                              predictive_power_transect,
                              "Transect",
-                             "RMSE Transect", 
+                             "RMSE", 
                              model_name, 
                              thinning_value)
     }
@@ -188,6 +200,8 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     # LOOK AT VALUES FOR EACH SPECIES
     explanatory_power$Species <- rownames(explanatory_power)
     predictive_power_transect$Species <- rownames(predictive_power_transect)
+    waic_df <- data.frame(WAIC = waic_by_column)
+    waic_df$Species <- rownames(explanatory_power)
     old_par <- par(no.readonly = TRUE) 
     par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
     par(mfrow = c(1, 3)) 
@@ -200,37 +214,10 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     plot_fits_per_species("TjurR2", predictive_power_transect)
     plot_fits_per_species("AUC", predictive_power_transect)
     plot_fits_per_species("RMSE", predictive_power_transect)
-    title(main = "Predictive power transect",
-          outer = TRUE,
-          line = -3)
+    plot_fits_per_species("WAIC", waic_df)
     par(old_par)
     
     
-    # COMPARE EACH VALUE FOR EACH SPECIES
-    
-    explanatory_power_ordered <- explanatory_power[order(explanatory_power$AUC), ]
-    explanatory_power_ordered$Species <- NULL
-    long_explanatory_power <- stack(explanatory_power_ordered)
-    long_explanatory_power$Species <- rep(rownames(explanatory_power_ordered), 3)
-    long_explanatory_power$Species <- factor(long_explanatory_power$Species, 
-                                             levels = rev(rownames(explanatory_power_ordered)))
-    ggplot(long_explanatory_power, aes(x = values, y = Species, fill = ind)) +
-        geom_col(position = "identity", alpha = 0.5) +
-        labs(x = "Value", y = "Species", title = "Explanatory power") +
-        scale_fill_manual(values = c("red", "yellow", "blue")) +
-        theme_minimal()
-    
-    predictive_power_transect_ordered <- predictive_power_transect[order(predictive_power_transect$AUC), ]
-    predictive_power_transect_ordered$Species <- NULL
-    long_predictive_power_transect <- stack(predictive_power_transect_ordered)
-    long_predictive_power_transect$Species <- rep(rownames(predictive_power_transect_ordered), 3)
-    long_predictive_power_transect$Species <- factor(long_predictive_power_transect$Species, 
-                                             levels = rev(rownames(predictive_power_transect_ordered)))
-    ggplot(long_predictive_power_transect, aes(x = values, y = Species, fill = ind)) +
-        geom_col(position = "identity", alpha = 0.5) +
-        labs(x = "Value", y = "Species", title = "Predictive power transect") +
-        scale_fill_manual(values = c("red", "yellow", "blue")) +
-        theme_minimal()
     
     
     # FIT AND PREDICTIVE POWER AGAINST PREVALENCE 
@@ -238,6 +225,7 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
                                  "Prevalence",
                                  explanatory_power,
                                  predictive_power_transect,
+                                 waic_by_column,
                                  "Transect")
     
     
@@ -246,23 +234,26 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
                                   "Feeding",
                                   explanatory_power,
                                   predictive_power_transect,
+                                  waic_by_column,
                                   "Transect")
     plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Mig,
                                   "Migration",
                                   explanatory_power,
                                   predictive_power_transect,
+                                  waic_by_column,
                                   "Transect")
     plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$Mass,
                                  "Mass",
                                  explanatory_power,
                                  predictive_power_transect,
+                                 waic_by_column,
                                  "Transect")
     plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$LogMass,
                                  "LogMass",
                                  explanatory_power,
                                  predictive_power_transect,
+                                 waic_by_column,
                                  "Transect")
-    
     
 
     
