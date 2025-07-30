@@ -341,6 +341,10 @@ barplot(sort(year_prevalence),
 
 par(old_par)
 
+
+plot(species_order, sample_prevalence[species_order])
+
+
 pheatmap(t(combined_data),
          cluster_rows = FALSE,
          cluster_cols = FALSE)
@@ -431,13 +435,31 @@ plot_spatially(natura_transect_averages, "Effort", title = "Transect length", te
 
 
 # Spatial plots for habitat types
-par(mfrow = c(3, 4))
-for (type in colnames(fractions_natura)) {
+
+natura_forest_types <- c("Luonnonmetsät", 
+                         "Tunturikoivikot", 
+                         "Lehdot", 
+                         "Tulvametsät")
+par(mfrow = c(2, 2))
+for (type in natura_forest_types) {
+    plot_spatially(natura_transect_averages, type, title = type, text=TRUE)
+}
+par(mfrow = c(2, 4))
+for (type in setdiff(colnames(fractions_natura), natura_forest_types)) {
     plot_spatially(natura_transect_averages, type, title = type, text=TRUE)
 }
 
-par(mfrow = c(4, 5))
-for (type in colnames(fractions_corine)) {
+corine_forest_types <- c("Havumetsät.kivennäismaalla", 
+                         "Sekametsät.kivennäismaalla", 
+                         "Sekametsät.turvemaalla", 
+                         "Lehtimetsät.kivennäismaalla", 
+                         "Havumetsät.kalliomaalla")
+par(mfrow = c(2, 3))
+for (type in corine_forest_types) {
+    plot_spatially(corine_transect_averages, type, title = type, text=TRUE)
+}
+par(mfrow = c(3, 4))
+for (type in setdiff(colnames(fractions_corine), corine_forest_types)) {
     plot_spatially(corine_transect_averages, type, title = type, text=TRUE)
 }
 
