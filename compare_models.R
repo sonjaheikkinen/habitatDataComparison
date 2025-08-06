@@ -28,14 +28,21 @@ create_modelfit_plot <- function(explanatory_power,
              predictive_power[,type],
              xlim = c(-1,1),
              ylim = c(-1,1),
-             xlab = "explanatory power (MF)",
-             ylab = sprintf("predictive power (MFCV) %s", predictive_power_type),
-             main = sprintf("%s\n thin = %s: %s. \nmean(MF) = %s, mean(MFCV) = %s",
+             xlab = "explanatory power",
+             ylab = sprintf("predictive power %s", predictive_power_type),
+             cex.main = 0.8,
+             main = sprintf("%s\n thin = %s: %s. \nexp pw: [%.3f, %.3f], mean = %.3f, sd = %.3f \npred pw: [%.3f, %.3f], mean = %.3f, sd = %.3f\n",
                             model_name,
                             as.character(thinning_value),
                             type,
-                            as.character(mean(explanatory_power[,type], na.rm = TRUE)),
-                            as.character(mean(predictive_power[,type], na.rm = TRUE))))
+                            min(explanatory_power[,type]),
+                            max(explanatory_power[,type]),
+                            mean(explanatory_power[,type], na.rm = TRUE),
+                            sd(explanatory_power[,type]),
+                            min(predictive_power[,type]),
+                            max(predictive_power[,type]),
+                            mean(predictive_power[,type], na.rm = TRUE),
+                            sd(predictive_power[,type])))
         abline(h = 0)
         abline(v = 0)
     }
@@ -245,6 +252,28 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
                          "RMSE", 
                          model_name, 
                          thinning_value)
+    
+    old_par <- par(no.readonly = TRUE) 
+    par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+    waic_values <- waic_by_column
+    names(waic_values) <- rownames(explanatory_power)
+    ordered_values <- sort(waic_values, decreasing = FALSE)
+    barplot(ordered_values,
+            horiz = TRUE,
+            las = 1,    
+            cex.names = 0.7,
+            main = sprintf("%s\n thin = %s: %s. \n[%.3f, %.3f], mean = %.3f, sd = %.3f",
+                           model_name,
+                           as.character(thinning_value),
+                           "WAIC",
+                           min(waic_values),
+                           max(waic_values),
+                           mean(waic_values, na.rm = TRUE),
+                           sd(waic_values)))
+    par(old_par)
+    
+    
+    
 
     
     # LOOK AT VALUES FOR EACH SPECIES
