@@ -307,6 +307,24 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     par(old_par)
     
     
+    # SPECIES COMPARISON
+    # For metrics where smaller is better = multiply by -1 to change the direction
+    # Scale all metrics to 0-1 for comparison
+    species_comparison_df <- data.frame(exp_pw_TjurR2 = scale_to_range(explanatory_power$TjurR2, 0, 1),
+                                        exp_pw_AUC = scale_to_range(explanatory_power$AUC, 0, 1),
+                                        exp_pw_RMSE = scale_to_range(-1 * explanatory_power$RMSE, 0, 1),
+                                        pred_pw_transect_TjurR2 = scale_to_range(predictive_power_transect$TjurR2, 0, 1),
+                                        pred_pw_transect_AUC = scale_to_range(predictive_power_transect$AUC, 0, 1),
+                                        pred_pw_transect_RMSE = scale_to_range(-1 * predictive_power_transect$RMSE, 0, 1),
+                                        pred_pw_year_TjurR2 = scale_to_range(predictive_power_year$TjurR2, 0, 1),
+                                        pred_pw_year_AUC = scale_to_range(predictive_power_year$AUC, 0, 1),
+                                        pred_pw_year_RMSE = scale_to_range(-1 * predictive_power_year$RMSE, 0, 1),
+                                        waic = scale_to_range(-1 * waic_by_column, 0, 1))
+    rownames(species_comparison_df) <- rownames(explanatory_power)
+    pheatmap(species_comparison_df, 
+             main = sprintf("Species model fit comparison \n%s", model_name))
+    
+    
     
     
     # FIT AND PREDICTIVE POWER AGAINST PREVALENCE 
