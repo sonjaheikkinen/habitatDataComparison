@@ -60,117 +60,7 @@ plot_fits_per_species <- function(type, data) {
             main = type)
 }
 
-plot_fits_against_continuous <- function(xdata, 
-                                         xlab, 
-                                         predictive_power, 
-                                         explanatory_power,
-                                         predictive_power_year,
-                                         waic) {
-    plot(xdata, 
-         explanatory_power$AUC,
-         xlab = xlab,
-         ylab = "AUC",
-         main = "Explanatory power")
-    plot(xdata, 
-         explanatory_power$RMSE,
-         xlab = xlab,
-         ylab = "RMSE",
-         main = "Explanatory power")
-    plot(xdata, 
-         explanatory_power$TjurR2,
-         xlab = xlab,
-         ylab = "TjurR2",
-         main = "Explanatory power")
-    
-    plot(xdata, 
-         predictive_power_transect$AUC,
-         xlab = xlab,
-         ylab = "AUC",
-         main = "Predictive power transect")
-    plot(xdata, 
-         predictive_power_transect$RMSE,
-         xlab = xlab,
-         ylab = "RMSE",
-         main = "Predictive power transect")
-    plot(xdata, 
-         predictive_power_transect$TjurR2,
-         xlab = xlab,
-         ylab = "TjurR2",
-         main = "Predictive power transect")
-    
-    plot(xdata, 
-         predictive_power_year$AUC,
-         xlab = xlab,
-         ylab = "AUC",
-         main = "Predictive power year")
-    plot(xdata, 
-         predictive_power_year$RMSE,
-         xlab = xlab,
-         ylab = "RMSE",
-         main = "Predictive power year")
-    plot(xdata, 
-         predictive_power_year$TjurR2,
-         xlab = xlab,
-         ylab = "TjurR2",
-         main = "Predictive power year")
-    
-    plot(xdata, 
-         waic,
-         xlab = xlab,
-         ylab = "WAIC",
-         main = "WAIC")
-}
 
-plot_fits_against_categorical <- function(xdata, 
-                                          xlab, 
-                                          explanatory_power, 
-                                          predictive_power_transect, 
-                                          predictive_power_year,
-                                          waic) {
-    boxplot(explanatory_power$AUC ~ xdata,
-            xlab = xlab,
-            ylab = "AUC",
-            main = "Explanatory power")
-    boxplot(explanatory_power$RMSE ~ xdata,
-            xlab = xlab,
-            ylab = "RMSE",
-            main = "Explanatory power")
-    boxplot(explanatory_power$TjurR2 ~ xdata,
-            xlab = xlab,
-            ylab = "TjurR2",
-            main = "Explanatory power")
-    
-    boxplot(predictive_power_transect$AUC ~ xdata,
-            xlab = xlab,
-            ylab = "AUC",
-            main = "Predictive power transect")
-    boxplot(predictive_power_transect$RMSE ~ xdata,
-            xlab = xlab,
-            ylab = "RMSE",
-            main = "Predictive power transect")
-    boxplot(predictive_power_transect$TjurR2 ~ xdata,
-            xlab = xlab,
-            ylab = "TjurR2",
-            main = "Predictive power transect")
-    
-    boxplot(predictive_power_year$AUC ~ xdata,
-            xlab = xlab,
-            ylab = "AUC",
-            main = "Predictive power year")
-    boxplot(predictive_power_year$RMSE ~ xdata,
-            xlab = xlab,
-            ylab = "RMSE",
-            main = "Predictive power year")
-    boxplot(predictive_power_year$TjurR2 ~ xdata,
-            xlab = xlab,
-            ylab = "TjurR2",
-            main = "Predictive power year")
-    
-    boxplot(waic ~ xdata,
-            xlab = xlab,
-            ylab = "WAIC",
-            main = "WAIC")
-}
 
 
 
@@ -189,6 +79,79 @@ plot_metric <- function(data) {
         theme_minimal()
 }
 
+
+
+# FUNCTION FOR PLOTTING SCALED PERFORMANCE VALUES 
+plot_performance <- function(data, aggregation_column, orders) {
+    
+    aggregated_natura <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                   data = subset(data, type == "Natura"),
+                                   FUN = mean)
+    
+    aggregated_corine <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                   data = subset(data, type == "Corine"),
+                                   FUN = mean)
+    
+    aggregated_difference <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                       data = subset(data, type == "Difference"),
+                                       FUN = mean)
+    
+    aggregated_difference$winners <- ifelse(aggregated_corine$value > aggregated_natura$value, "corine", "natura")
+    
+    natura_plots <- create_metric_plots(aggregated_natura, aggregation_column, orders$natura)
+    corine_plots <- create_metric_plots(aggregated_corine, aggregation_column, orders$corine)
+    difference_plots <- create_difference_plots(aggregated_difference, aggregation_column, orders$difference)
+    
+    grid.arrange(natura_plots, 
+                 corine_plots,
+                 difference_plots,
+                 ncol = 1)
+    
+}
+
+create_metric_plots <- function(data, aggregation_column, order) {
+    
+    if (!is.null(order)) {
+        data[,aggregation_column] <- factor(data[,aggregation_column],
+                                            levels = order)
+    }
+    
+    plots <- ggplot(data, aes(x = .data[[aggregation_column]], y = value, fill = metric)) +
+        geom_col(width = 0.6) +
+        coord_flip() +
+        facet_wrap(~ metric, nrow = 1) +
+        labs(x = aggregation_column, y = "Value") +
+        theme_minimal()
+    
+    return (plots)
+}    
+    
+    
+create_difference_plots <- function(data, aggregation_column, order) {
+    
+    if (!is.null(order)) {
+        data[,aggregation_column] <- factor(data[,aggregation_column],
+                                            levels = order)
+    }
+    
+    plots <- ggplot(data, aes(x = .data[[aggregation_column]], y = value, fill = winners)) +
+        geom_col(width = 0.6) +
+        coord_flip() +
+        facet_wrap(~ metric, nrow = 1) +
+        labs(x = aggregation_column, y = "Difference") +
+        scale_fill_manual(values = c("natura" = "red", "corine" = "blue")) +
+        theme_minimal()
+    return (plots)
+}
+
+
+    
+
+
+
+
+
+
 # SCRIPT STARTS
 
 # LOAD IN MODELFITS AND DATA FOR COMPARISONS
@@ -204,375 +167,247 @@ load(file = file.path(dir_data, "phylogeny_data.RData"))
 # QUALITY OF MODELS
 
 
+# CREATE PDF FOR PLOTTING THE FIT VALUES
+pdf(file = file.path(dir_results, sprintf("model_comparisons.pdf")))
+
+
+modelfit_results <- list()
+model_names <- c("Corine", "Natura")
+
 for (modelfit_file_number in 1:length(modelfit_files)) {
     
     # GET MODEL INFORMATION
     load(modelfit_files[modelfit_file_number])
-    model_name <- strsplit(basename(modelfit_files[modelfit_file_number]), "\\.")[[1]][1]
+    model_name <- model_names[modelfit_file_number]
     thinning_value <- extract_thinning_value(model_name)
     modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s.RData", model_name))
     
-    # CREATE PDF FOR PLOTTING THE FIT VALUES
-    pdf(file = file.path(dir_results, sprintf("modelfit_results_%s.pdf", model_name)))
     
-    # CREATE PLOTS FOR PREDICTIVE POWER VS. EXPLANATORY POWER
-    create_modelfit_plot(explanatory_power, 
-                         predictive_power_transect, 
-                         "Transect",
-                         "TjurR2", 
-                         model_name, 
-                         thinning_value)
-    create_modelfit_plot(explanatory_power, 
-                         predictive_power_transect,
-                         "Transect",
-                         "AUC", 
-                         model_name, 
-                         thinning_value)
-    create_modelfit_plot(explanatory_power,
-                         predictive_power_transect,
-                         "Transect",
-                         "RMSE", 
-                         model_name, 
-                         thinning_value)
-    create_modelfit_plot(explanatory_power, 
-                         predictive_power_year, 
-                         "Year",
-                         "TjurR2", 
-                         model_name, 
-                         thinning_value)
-    create_modelfit_plot(explanatory_power, 
-                         predictive_power_year,
-                         "Year",
-                         "AUC", 
-                         model_name, 
-                         thinning_value)
-    create_modelfit_plot(explanatory_power,
-                         predictive_power_year,
-                         "Year",
-                         "RMSE", 
-                         model_name, 
-                         thinning_value)
-    
-    old_par <- par(no.readonly = TRUE) 
-    par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
-    waic_values <- waic_by_column
-    names(waic_values) <- rownames(explanatory_power)
-    ordered_values <- sort(waic_values, decreasing = FALSE)
-    barplot(ordered_values,
-            horiz = TRUE,
-            las = 1,    
-            cex.names = 0.7,
-            main = sprintf("%s\n thin = %s: %s. \n[%.3f, %.3f], mean = %.3f, sd = %.3f",
-                           model_name,
-                           as.character(thinning_value),
-                           "WAIC",
-                           min(waic_values),
-                           max(waic_values),
-                           mean(waic_values, na.rm = TRUE),
-                           sd(waic_values)))
-    par(old_par)
-    
-    
-    
+    # LOAD MODELFIT RESULTS
+    modelfit_results[[model_name]] <- list(explanatory_power = explanatory_power,
+                                           predictive_power_transect = predictive_power_transect,
+                                           predictive_power_year = predictive_power_year,
+                                           waic = waic,
+                                           waic_by_column = waic_by_column)
 
-    
-    # LOOK AT VALUES FOR EACH SPECIES
-    explanatory_power$Species <- rownames(explanatory_power)
-    predictive_power_transect$Species <- rownames(predictive_power_transect)
-    predictive_power_year$Species <- rownames(predictive_power_year)
-    waic_df <- data.frame(WAIC = waic_by_column)
-    waic_df$Species <- rownames(explanatory_power)
-    old_par <- par(no.readonly = TRUE) 
-    par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
-    par(mfrow = c(1, 3)) 
-    plot_fits_per_species("TjurR2", explanatory_power)
-    plot_fits_per_species("AUC", explanatory_power)
-    plot_fits_per_species("RMSE", explanatory_power)
-    title(main = "Explanatory power",
-          outer = TRUE,
-          line = -3)
-    plot_fits_per_species("TjurR2", predictive_power_transect)
-    plot_fits_per_species("AUC", predictive_power_transect)
-    plot_fits_per_species("RMSE", predictive_power_transect)
-    title(main = "Predictive power transect",
-          outer = TRUE,
-          line = -3)
-    plot_fits_per_species("TjurR2", predictive_power_year)
-    plot_fits_per_species("AUC", predictive_power_year)
-    plot_fits_per_species("RMSE", predictive_power_year)
-    title(main = "Predictive power year",
-          outer = TRUE,
-          line = -3)
-    plot_fits_per_species("WAIC", waic_df)
-    par(old_par)
-    
-    
-    # SPECIES COMPARISON
-    # For metrics where smaller is better = multiply by -1 to change the direction
-    # Scale all metrics to 0-1 for comparison
-    species_comparison_df <- data.frame(exp_pw_TjurR2 = scale_to_range(explanatory_power$TjurR2, 0, 1),
-                                        exp_pw_AUC = scale_to_range(explanatory_power$AUC, 0, 1),
-                                        exp_pw_RMSE = scale_to_range(-1 * explanatory_power$RMSE, 0, 1),
-                                        pred_pw_transect_TjurR2 = scale_to_range(predictive_power_transect$TjurR2, 0, 1),
-                                        pred_pw_transect_AUC = scale_to_range(predictive_power_transect$AUC, 0, 1),
-                                        pred_pw_transect_RMSE = scale_to_range(-1 * predictive_power_transect$RMSE, 0, 1),
-                                        pred_pw_year_TjurR2 = scale_to_range(predictive_power_year$TjurR2, 0, 1),
-                                        pred_pw_year_AUC = scale_to_range(predictive_power_year$AUC, 0, 1),
-                                        pred_pw_year_RMSE = scale_to_range(-1 * predictive_power_year$RMSE, 0, 1),
-                                        waic = scale_to_range(-1 * waic_by_column, 0, 1))
-    rownames(species_comparison_df) <- rownames(explanatory_power)
-    pheatmap(species_comparison_df, 
-             main = sprintf("Species model fit comparison \n%s", model_name))
-    
-    
-    
-    
-    # FIT AND PREDICTIVE POWER AGAINST PREVALENCE 
-    plot_fits_against_continuous(species_prevalences[rownames(explanatory_power),]$prevalences,
-                                 "Prevalence",
-                                 explanatory_power,
-                                 predictive_power_transect,
-                                 predictive_power_year,
-                                 waic_by_column)
-    
-    
-    # PLOTS AGAINST TRAITS
-    plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Feeding,
-                                  "Feeding",
-                                  explanatory_power,
-                                  predictive_power_transect,
-                                  predictive_power_year,
-                                  waic_by_column)
-    plot_fits_against_categorical(trait_data[rownames(explanatory_power), ]$Mig,
-                                  "Migration",
-                                  explanatory_power,
-                                  predictive_power_transect,
-                                  predictive_power_year,
-                                  waic_by_column)
-    plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$Mass,
-                                 "Mass",
-                                 explanatory_power,
-                                 predictive_power_transect,
-                                 predictive_power_year,
-                                 waic_by_column)
-    plot_fits_against_continuous(trait_data[rownames(explanatory_power), ]$LogMass,
-                                 "LogMass",
-                                 explanatory_power,
-                                 predictive_power_transect,
-                                 predictive_power_year,
-                                 waic_by_column)
-    
-
-    
-    # CLOSE PDF
-    dev.off()
     
 }
 
-# COMPARE MODEL PERFORMANCE BETWEEN THINNING VALUES
-fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
-load(fitted_models[5])
-natura_thin_100 <- fitted_model
-load(fitted_models[6])
-natura_thin_1000 <- fitted_model
-explanatory_power_natura_thin_100 <- evaluateModelFit(hM = natura_thin_100, 
-                                                      predY = computePredictedValues(natura_thin_100))
-explanatory_power_natura_thin_100 <- as.data.frame(explanatory_power_natura_thin_100)
-explanatory_power_natura_thin_1000 <- evaluateModelFit(hM = natura_thin_1000, 
-                                                      predY = computePredictedValues(natura_thin_1000))
-explanatory_power_natura_thin_1000 <- as.data.frame(explanatory_power_natura_thin_1000)
-cor(explanatory_power_natura_thin_100$RMSE, explanatory_power_natura_thin_1000$RMSE)
-cor(explanatory_power_natura_thin_100$AUC, explanatory_power_natura_thin_1000$AUC)
-cor(explanatory_power_natura_thin_100$TjurR2, explanatory_power_natura_thin_1000$TjurR2)
+number_of_rows <- nrow(modelfit_results$Natura$explanatory_power)
+number_of_categories <- 3
+number_of_models <- 2
+species_list <- rownames(modelfit_results$Natura$explanatory_power)
 
-posterior_natura_thin_100 <- convertToCodaObject(natura_thin_100, 
-                                                 spNamesNumbers = c(T,F), 
-                                                 covNamesNumbers = c(T,F))
-posterior_natura_thin_1000 <- convertToCodaObject(natura_thin_1000, 
-                                                 spNamesNumbers = c(T,F), 
-                                                 covNamesNumbers = c(T,F))
+results_dataframe_base <- data.frame(model = c(rep("Natura", number_of_rows * number_of_categories),
+                                               rep("Corine", number_of_rows * number_of_categories)),
+                                     metric = rep(c(rep("Explanatory_power", number_of_rows),
+                                                    rep("Predictive_power_transect", number_of_rows),
+                                                    rep("Predictive_power_year", number_of_rows)),
+                                                  number_of_models))
+tjurr2_results <- results_dataframe_base
+tjurr2_results$value <- c(modelfit_results$Natura$explanatory_power$TjurR2,
+                          modelfit_results$Natura$predictive_power_transect$TjurR2,
+                          modelfit_results$Natura$predictive_power_year$TjurR2,
+                          modelfit_results$Corine$explanatory_power$TjurR2,
+                          modelfit_results$Corine$predictive_power_transect$TjurR2,
+                          modelfit_results$Corine$predictive_power_year$TjurR2)
+tjurr2_results$species <- rep(species_list, number_of_models * number_of_categories)
 
-fixed_effect_parameter_names  <- c("Beta", "Gamma", "V")
-random_effect_parameter_names <- c("Eta", "Lambda", "Omega", "Alpha")
-randomlevel_names <- names(natura_thin_100$ranLevels) 
-
-for (chain in 1:4) {
-    print(sprintf("Chain %s", chain))
-    print("")
-    for (parameter_name in fixed_effect_parameter_names) {
-        natura_thin_100_parameter_values <- as.vector(posterior_natura_thin_100 [[parameter_name]][[chain]])
-        natura_thin_1000_parameter_values <- as.vector(posterior_natura_thin_1000[[parameter_name]][[chain]])
-        print(sprintf("Natura %s correlation between 100 and 1000, chain %s: %s",
-                parameter_name,
-                chain,
-                cor(natura_thin_100_parameter_values, natura_thin_1000_parameter_values)))
-        print("")
-    }
-    for (parameter_name in random_effect_parameter_names) {
-        for (randomlevel_number in 1:2) {
-            natura_thin_100_parameter_values <- as.vector(posterior_natura_thin_100 [[parameter_name]][[randomlevel_number]][[chain]])
-            natura_thin_1000_parameter_values <- as.vector(posterior_natura_thin_1000[[parameter_name]][[randomlevel_number]][[chain]])
-            print(sprintf("Natura %s %s correlation between 100 and 1000, chain %s: %s",
-                    parameter_name,
-                    randomlevel_names[randomlevel_number],
-                    chain,
-                    cor(natura_thin_100_parameter_values, natura_thin_1000_parameter_values)))
-        }
-        print("")
-    }
-    print("")
-}
+auc_results <- results_dataframe_base
+auc_results$value <- c(modelfit_results$Natura$explanatory_power$AUC,
+                          modelfit_results$Natura$predictive_power_transect$AUC,
+                          modelfit_results$Natura$predictive_power_year$AUC,
+                          modelfit_results$Corine$explanatory_power$AUC,
+                          modelfit_results$Corine$predictive_power_transect$AUC,
+                          modelfit_results$Corine$predictive_power_year$AUC)
+auc_results$species <- rep(species_list, number_of_models * number_of_categories)
 
 
-load(fitted_models[2])
-corine_thin_100 <- fitted_model
-load(fitted_models[3])
-corine_thin_1000 <- fitted_model
-explanatory_power_corine_thin_100 <- evaluateModelFit(hM = corine_thin_100, 
-                                                      predY = computePredictedValues(corine_thin_100))
-explanatory_power_corine_thin_100 <- as.data.frame(explanatory_power_corine_thin_100)
-explanatory_power_corine_thin_1000 <- evaluateModelFit(hM = corine_thin_1000, 
-                                                       predY = computePredictedValues(corine_thin_1000))
-explanatory_power_corine_thin_1000 <- as.data.frame(explanatory_power_corine_thin_1000)
-cor(explanatory_power_corine_thin_100$RMSE, explanatory_power_corine_thin_1000$RMSE)
-cor(explanatory_power_corine_thin_100$AUC, explanatory_power_corine_thin_1000$AUC)
-cor(explanatory_power_corine_thin_100$TjurR2, explanatory_power_corine_thin_1000$TjurR2)
+rmse_results <- results_dataframe_base
+rmse_results$value <- c(modelfit_results$Natura$explanatory_power$RMSE,
+                          modelfit_results$Natura$predictive_power_transect$RMSE,
+                          modelfit_results$Natura$predictive_power_year$RMSE,
+                          modelfit_results$Corine$explanatory_power$RMSE,
+                          modelfit_results$Corine$predictive_power_transect$RMSE,
+                          modelfit_results$Corine$predictive_power_year$RMSE)
+rmse_results$species <- rep(species_list, number_of_models * number_of_categories)
 
-posterior_corine_thin_100 <- convertToCodaObject(corine_thin_100, 
-                                                 spNamesNumbers = c(T,F), 
-                                                 covNamesNumbers = c(T,F))
-posterior_corine_thin_1000 <- convertToCodaObject(corine_thin_1000, 
-                                                  spNamesNumbers = c(T,F), 
-                                                  covNamesNumbers = c(T,F))
-
-fixed_effect_parameter_names  <- c("Beta", "Gamma", "V")
-random_effect_parameter_names <- c("Eta", "Lambda", "Omega", "Alpha")
-randomlevel_names <- names(natura_thin_100$ranLevels) 
-
-
-for (chain in 1:4) {
-    print(sprintf("Chain %s", chain))
-    print("")
-    for (parameter_name in fixed_effect_parameter_names) {
-        corine_thin_100_parameter_values <- as.vector(posterior_corine_thin_100 [[parameter_name]][[chain]])
-        corine_thin_1000_parameter_values <- as.vector(posterior_corine_thin_1000[[parameter_name]][[chain]])
-        print(sprintf("Corine %s correlation between 100 and 1000, chain %s: %s",
-                      parameter_name,
-                      chain,
-                      cor(corine_thin_100_parameter_values, corine_thin_1000_parameter_values)))
-        print("")
-    }
-    for (parameter_name in random_effect_parameter_names) {
-        for (randomlevel_number in 1:2) {
-            corine_thin_100_parameter_values <- as.vector(posterior_corine_thin_100 [[parameter_name]][[randomlevel_number]][[chain]])
-            corine_thin_1000_parameter_values <- as.vector(posterior_corine_thin_1000[[parameter_name]][[randomlevel_number]][[chain]])
-            print(sprintf("Corine %s %s correlation between 100 and 1000, chain %s: %s",
-                          parameter_name,
-                          randomlevel_names[randomlevel_number],
-                          chain,
-                          cor(corine_thin_100_parameter_values, corine_thin_1000_parameter_values)))
-        }
-        print("")
-    }
-    print("")
-}
+waic_results <- data.frame(model = c(rep("Natura", number_of_rows),
+                                     rep("Corine", number_of_rows)),
+                           value = c(modelfit_results$Natura$waic_by_column,
+                                     modelfit_results$Corine$waic_by_column))
 
 
 
 
 
-# START WITH OVERALL COMPARISONS
+# PLOT AVERAGE COMPARISONS
 
-# EXTRACT MEAN MODELFIT VALUES FROM EACH FILE
-waic_list <- list()
-rmse_list <- list()
-auc_list <- list()
-tjurr2_list <- list()
-for (file_number in 1:length(modelfit_files)) {
-    
-    model_name <- strsplit(basename(modelfit_files[file_number]), "\\.")[[1]][1]
-    
-    load(modelfit_files[file_number])
-    
-    waic_list[[model_name]] <- waic
-    rmse_list[[model_name]] <- mean(explanatory_power$RMSE)
-    auc_list[[model_name]] <- mean(explanatory_power$AUC)
-    tjurr2_list[[model_name]] <- mean(explanatory_power$TjurR2)
-    
-    
-}
+overall_tjurr2_comparison_plot <- ggplot(tjurr2_results, 
+                                         aes(x = metric, y = value, fill = model)) +
+                                    geom_boxplot(position = position_dodge()) +
+                                    labs(x = "Metric", y = "Tjur R²") +
+                                    scale_fill_manual(values = c("Natura" = "lightblue",
+                                                                 "Corine" = "dodgerblue")) +
+                                    theme_minimal() +
+                                    geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+                                    coord_flip()
 
-
-# CONVERT LISTS TO DATAFRAMES FOR PLOTTING
-waic_df <- data.frame(Model = names(waic_list), Value = unlist(waic_list), Metric = "WAIC")
-rmse_df <- data.frame(Model = names(rmse_list), Value = unlist(rmse_list), Metric = "RMSE")
-auc_df <- data.frame(Model = names(auc_list), Value = unlist(auc_list), Metric = "AUC")
-tjurr2_df <- data.frame(Model = names(tjurr2_list), Value = unlist(tjurr2_list), Metric = "TjurR2")
+overall_auc_comparison_plot <- ggplot(auc_results, 
+                                         aes(x = metric, y = value, fill = model)) +
+                                    geom_boxplot(position = position_dodge()) +
+                                    labs(x = "Metric", y = "AUC") +
+                                    scale_fill_manual(values = c("Natura" = "lightblue",
+                                                                 "Corine" = "dodgerblue")) +
+                                    theme_minimal() +
+                                    geom_hline(yintercept = 0.5, linetype = "dashed", color = "red") +
+                                    coord_flip() 
 
 
-# PLOT METRICS
-plot_metric(waic_df)
-plot_metric(rmse_df)
-plot_metric(auc_df)
-plot_metric(tjurr2_df)
+overall_rmse_comparison_plot <- ggplot(rmse_results, 
+                                         aes(x = metric, y = value, fill = model)) +
+                                    geom_boxplot(position = position_dodge()) +
+                                    labs(x = "Metric", y = "RMSE") +
+                                    scale_fill_manual(values = c("Natura" = "lightblue",
+                                                                 "Corine" = "dodgerblue")) +
+                                    theme_minimal() +
+                                    coord_flip()
+
+overall_waic_comparison_plot <- ggplot(waic_results, 
+                                       aes(x = model, y = value, fill = model)) +
+                                    geom_boxplot() +
+                                    labs(x = "Model", y = "WAIC") +
+                                    scale_fill_manual(values = c("Natura" = "lightblue",
+                                                                 "Corine" = "dodgerblue")) +
+                                    theme_minimal() +
+                                    coord_flip()
 
 
-rmse_df <- NULL
-auc_df<- NULL
-tjurr2_df <- NULL
-
-# NEXT COMPARISONS BY SPECIES
-for (file_number in 1:length(modelfit_files)) {
-    
-    model_name <- strsplit(basename(modelfit_files[file_number]), "\\.")[[1]][1]
-    
-    load(modelfit_files[file_number])
-    
-    initial_dataframe <- data.frame(species = rownames(explanatory_power))
-    
-    if (is.null(rmse_df)) {
-        rmse_df <- initial_dataframe
-    }
-    if (is.null(auc_df)) {
-        auc_df <- initial_dataframe
-    }
-    if(is.null(tjurr2_df)) {
-        tjurr2_df <- initial_dataframe
-    }
-    
-    rmse_df[,model_name] <- explanatory_power$RMSE
-    auc_df[,model_name] <- explanatory_power$AUC
-    tjurr2_df[,model_name] <- explanatory_power$TjurR2
-    
-}
-
-rownames(rmse_df) <- rmse_df$species
-rmse_df$species <- NULL
-rownames(auc_df) <- auc_df$species
-auc_df$species <- NULL
-rownames(tjurr2_df) <- tjurr2_df$species
-tjurr2_df$species <- NULL
-
-pheatmap(rmse_df)
-pheatmap(auc_df)
-pheatmap(tjurr2_df)
-
-# FIT LINEAR MODEL TO EXPLAIN FIT USING MODELLING APPROACH
-# TO DO: Add species as random effect?
-long_rmse <- stack(rmse_df)
-long_auc <- stack(auc_df)
-long_tjurr2 <- stack(tjurr2_df)
-
-lm_rmse <- lm(values ~ ind, data = long_rmse)
-summary(lm_rmse)
-lm_auc <- lm(values ~ ind, data = long_auc)
-summary(lm_auc)
-lm_tjurr2 <- lm(values ~ ind, data = long_tjurr2)
-summary(lm_tjurr2)
 
 
-plot(auc_df$modelfit_probit_corine_thin_300_fitted, 
-     auc_df$modelfit_probit_natura_thin_300_fitted)
-abline(a = 0, b = 1)
+
+grid.arrange(overall_tjurr2_comparison_plot,
+             overall_auc_comparison_plot,
+             overall_rmse_comparison_plot,
+             overall_waic_comparison_plot,
+             heights = c(3, 3, 3, 1.7),
+             ncol = 1)
+
+
+
+
+
+# SPECIES COMPARISON
+
+
+# FIRST SCALE THE METRICS
+# For metrics where smaller is better = multiply by -1 to change the direction
+# Scale all metrics to 0-1 for comparison
+
+max_waic <- max(max(modelfit_results$Natura$waic_by_column), max(modelfit_results$Corine$waic_by_column))
+max_exp_rmse <- max(max(modelfit_results$Natura$explanatory_power$RMSE), max(modelfit_results$Corine$explanatory_power$RMSE))
+max_pred_transect_rmse <- max(max(modelfit_results$Natura$predictive_power_transect$RMSE), max(modelfit_results$Corine$predictive_power_transect$RMSE))
+max_pred_year_rmse <- max(max(modelfit_results$Natura$predictive_power_year$RMSE), max(modelfit_results$Corine$predictive_power_year$RMSE))
+
+natura_species_comparison_df <- data.frame(scaled_waic = (-1 * modelfit_results$Natura$waic_by_column) + max_waic,
+                                           exp_pw_TjurR2 = modelfit_results$Natura$explanatory_power$TjurR2,
+                                           exp_pw_AUC = modelfit_results$Natura$explanatory_power$AUC,
+                                           scaled_exp_pw_RMSE = (-1 * modelfit_results$Natura$explanatory_power$RMSE) + max_exp_rmse,
+                                           pred_pw_transect_TjurR2 = modelfit_results$Natura$predictive_power_transect$TjurR2,
+                                           pred_pw_transect_AUC = modelfit_results$Natura$predictive_power_transect$AUC,
+                                           scaled_pred_pw_transect_RMSE = (-1 * modelfit_results$Natura$predictive_power_transect$RMSE) + max_pred_transect_rmse,
+                                           pred_pw_year_TjurR2 = modelfit_results$Natura$predictive_power_year$TjurR2,
+                                           pred_pw_year_AUC = modelfit_results$Natura$predictive_power_year$AUC,
+                                           scaled_pred_pw_year_RMSE = (-1 * modelfit_results$Natura$predictive_power_year$RMSE) + max_pred_year_rmse)
+
+corine_species_comparison_df <- data.frame(scaled_waic = (-1 * modelfit_results$Corine$waic_by_column) + max_waic,
+                                           exp_pw_TjurR2 = modelfit_results$Corine$explanatory_power$TjurR2,
+                                           exp_pw_AUC = modelfit_results$Corine$explanatory_power$AUC,
+                                           scaled_exp_pw_RMSE = (-1 * modelfit_results$Corine$explanatory_power$RMSE) + max_exp_rmse,
+                                           pred_pw_transect_TjurR2 = modelfit_results$Corine$predictive_power_transect$TjurR2,
+                                           pred_pw_transect_AUC = modelfit_results$Corine$predictive_power_transect$AUC,
+                                           scaled_pred_pw_transect_RMSE = (-1 * modelfit_results$Corine$predictive_power_transect$RMSE) + max_pred_transect_rmse,
+                                           pred_pw_year_TjurR2 = modelfit_results$Corine$predictive_power_year$TjurR2,
+                                           pred_pw_year_AUC = modelfit_results$Corine$predictive_power_year$AUC,
+                                           scaled_pred_pw_year_RMSE = (-1 * modelfit_results$Corine$predictive_power_year$RMSE) + max_pred_year_rmse)
+
+natura_corine_absolute_difference <- abs(abs(natura_species_comparison_df) - abs(corine_species_comparison_df))
+
+natura_species_comparison_df$average <- apply(natura_species_comparison_df, 1, mean)
+rownames(natura_species_comparison_df) <- species_list
+corine_species_comparison_df$average <- apply(corine_species_comparison_df, 1, mean)
+rownames(corine_species_comparison_df) <- species_list
+natura_corine_absolute_difference$average <- apply(natura_corine_absolute_difference, 1, mean)
+rownames(natura_corine_absolute_difference) <- species_list
+
+
+
+# TRANSFORM TO LONG FORMAT
+types <- c("Natura", "Corine", "Difference")
+metrics <- colnames(natura_species_comparison_df)
+species <- rownames(natura_species_comparison_df)
+number_of_types <- length(types)
+number_of_metrics <- length(metrics)
+number_of_species <- length(species)
+long_df <- data.frame(type = rep(types, each = number_of_metrics * number_of_species),
+                      metric = rep(metrics, each = number_of_species, times = number_of_types),
+                      species = rep(species, times = number_of_types * number_of_metrics),
+                      value = c(as.vector(as.matrix(natura_species_comparison_df)),
+                                as.vector(as.matrix(corine_species_comparison_df)),
+                                as.vector(as.matrix(natura_corine_absolute_difference))))
+
+
+# ADD TRAITS TO DF
+long_df$sample_prevalence <- species_prevalences[long_df$species, c("samples")]
+long_df$transect_prevalence <- species_prevalences[long_df$species, c("transects")]
+long_df$year_prevalence <- species_prevalences[long_df$species, c("years")]
+long_df$feeding <- trait_data[long_df$species, c("Feeding")]
+long_df$mass <- trait_data[long_df$species, c("Mass")]
+long_df$logmass <- trait_data[long_df$species, c("LogMass")]
+long_df$migration <- trait_data[long_df$species, c("Mig")]
+
+
+# CREATE FACTORS FOR PLOT ORDERING
+
+metric_order <- c("average", colnames(natura_species_comparison_df[1:length(natura_species_comparison_df) - 1]))
+
+long_df$metric <- factor(long_df$metric, levels = metric_order)
+
+species_orders <- list()
+species_orders$natura <- species[order(natura_species_comparison_df$average, decreasing = TRUE)]
+species_orders$corine <- species[order(corine_species_comparison_df$average, decreasing = TRUE)]
+natura_wins <- natura_species_comparison_df$average > corine_species_comparison_df$average
+species_orders$difference <- species[order(natura_wins, 
+                                           natura_corine_absolute_difference$average,
+                                           decreasing = c(TRUE, TRUE))]
+
+
+
+
+
+
+# CREATE PLOTS
+plot_performance(long_df, "species", species_orders)
+plot_performance(long_df, "sample_prevalence", NULL)
+plot_performance(long_df, "transect_prevalence", NULL)
+plot_performance(long_df, "year_prevalence", NULL)
+plot_performance(long_df, "feeding", NULL)
+plot_performance(long_df, "migration", NULL)
+
+
+
+
+
+
+# COMPARE MODEL PERFORMANCE USING LINEAR MODELS
+
+
+
+
+
+
+
+
+dev.off()
 
 

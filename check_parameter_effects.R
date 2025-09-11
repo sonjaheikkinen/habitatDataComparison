@@ -109,7 +109,9 @@ for (model_number in 1:length(fitted_models)) {
                        file_parameter_estimates)
         
         # PLOT VARIANCE PARTITIONING
-        partitioning_colors <- rainbow(nrow(variance_partitioning$vals))
+        #partitioning_colors <- rainbow(nrow(variance_partitioning$vals))
+        partitioning_colors <- c("gold", "darkorange", "grey", "blue", "red", "darkgreen", "green", "lightseagreen", "forestgreen")
+        partitioning_colors <- rev(partitioning_colors)
         plotVariancePartitioning(hM = model, 
                                  VP = variance_partitioning,
                                  main = sprintf("Proportion of explained variance, %s", model_name), 
@@ -119,8 +121,8 @@ for (model_number in 1:length(fitted_models)) {
         
         
         # SAME FOR RAW VARIANCE
-        raw_variance_partition_order <- 1:number_of_species
-        #raw_variance_partition_order <- order(R2, decreasing = TRUE)
+        #raw_variance_partition_order <- 1:number_of_species
+        raw_variance_partition_order <- order(R2, decreasing = TRUE)
 
         # TRANSFORM VARIANCE PARTITIONING TO RAW VARIANCE PARTITIONING IF R2 EXISTS
         if (!is.null(R2)) {
@@ -147,6 +149,8 @@ for (model_number in 1:length(fitted_models)) {
                                      VP = raw_variance_partitioning,
                                      main = sprintf("Proportion of raw variance, %s",model_name),
                                      cex.main = 0.8, 
+                                     las = 2,
+                                     cex.names = 0.5,
                                      cols = partitioning_colors, 
                                      args.leg = list(bg = "white", cex = 0.7),
                                      ylim = c(0,1))
@@ -162,65 +166,144 @@ for (model_number in 1:length(fitted_models)) {
         # GET POSTERIOR ESTIMATES FOR ENVIRONMENTAL VARIABLE EFFECTS
         posterior_estimates_beta <- getPostEstimate(model, parName = "Beta")
         file_beta_estimates <- file.path(dir_results, sprintf("parameter_estimates_Beta_%s.xlsx", model_name))
-        mean_estimates <- as.data.frame(t(posterior_estimates_beta$mean))
-        mean_estimates <- cbind(model$spNames, mean_estimates)
-        colnames(mean_estimates) <- c("Species", model$covNames)
+        # posterior mean df: covariates x species
+        beta_posterior_means <- as.data.frame(t(posterior_estimates_beta$mean))
+        beta_posterior_means <- cbind(model$spNames, beta_posterior_means)
+        colnames(beta_posterior_means) <- c("Species", model$covNames)
         
         # GET SUPPORT VALUES FOR THE ESTIMATES
-        support_estimates <- as.data.frame(t(posterior_estimates_beta$support))
-        support_estimates <- cbind(model$spNames, support_estimates)
-        colnames(support_estimates) <- c("Species", model$covNames)
+        support_for_beta_positive <- as.data.frame(t(posterior_estimates_beta$support))
+        support_for_beta_positive <- cbind(model$spNames, support_for_beta_positive)
+        colnames(support_for_beta_positive) <- c("Species", model$covNames)
         
         # GET NEGATIVE SUPPORT VALUES FOR THE ESTIMATES
-        negative_support_estimates <- as.data.frame(t(posterior_estimates_beta$supportNeg))
-        negative_support_estimates <- cbind(model$spNames, negative_support_estimates)
-        colnames(negative_support_estimates) <- c("Species", model$covNames)
-        values <- list("Posterior mean" = mean_estimates,
-                       "Pr(x>0)" = support_estimates,
-                       "Pr(x<0)" = negative_support_estimates)
+        support_for_beta_negative <- as.data.frame(t(posterior_estimates_beta$supportNeg))
+        support_for_beta_negative <- cbind(model$spNames, support_for_beta_negative)
+        colnames(support_for_beta_negative) <- c("Species", model$covNames)
+        
+        values <- list("Posterior mean" = beta_posterior_means,
+                       "Pr(x>0)" = support_for_beta_positive,
+                       "Pr(x<0)" = support_for_beta_negative)
         writexl::write_xlsx(values, path = file_beta_estimates)
         
         
-        # SHOW SPECIES NAMES IN BETA PLOT IF THERE IS AT MOST 30 SPECIES
-        show_species_names <- (is.null(model$phyloTree) && model$ns <= 30) 
-        
         # CREATE BETA PLOT
-        plot_tree <- !is.null(model$phyloTree)
+        
+        old_par <- par(no.readonly = TRUE) 
+        par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
         plotBeta(model, 
                  post = posterior_estimates_beta, 
                  supportLevel = support_level, 
                  param = "Sign",
-                 plotTree = plot_tree,
                  covNamesNumbers = c(TRUE,FALSE),
-                 spNamesNumbers = c(show_species_names, FALSE),
+                 spNamesNumbers = c(TRUE, FALSE),
+                 colors = colorRampPalette(c("blue", "white", "red")),
                  cex = c(0.6,0.6,0.8))
-        title <- sprintf("BetaPlot, %s", model_name)
-        if (!is.null(model$phyloTree)) {
-            posterior <- convertToCodaObject(model)
-            rho_values <- unlist(poolMcmcChains(posterior$Rho))
-            title <- sprintf("%s, E[rho] = %f, Pr[rho>0] = %f",
-                             title,
-                             round(mean(rho_values), 2),
-                             round(mean(rho_values > 0), 2))
-        }
-        title(main = title, line = 2.5, cex.main = 0.8)
+        title(main = sprintf("BetaPlot, sign of posterior estimate \n%s", 
+                             model_name), 
+              line = -0.5)
+        plotBeta(model, 
+                 post = posterior_estimates_beta, 
+                 supportLevel = support_level, 
+                 param = "Mean",
+                 covNamesNumbers = c(TRUE,FALSE),
+                 spNamesNumbers = c(TRUE, FALSE),
+                 colors = colorRampPalette(c("blue", "white", "red")),
+                 cex = c(0.6,0.6,0.8))
+        title(main = sprintf("BetaPlot, mean of posterior estimate \n%s", 
+                             model_name), 
+              line = -0.5)
+        beta_posterior_means_for_heatmap <- beta_posterior_means[,3:ncol(beta_posterior_means)]
+        support_for_beta_positive_for_heatmap <- support_for_beta_positive[,3:ncol(support_for_beta_positive)]
+        support_for_beta_negative_for_heatmap <- support_for_beta_negative[,3:ncol(support_for_beta_negative)]
+        cells_with_no_support <- (support_for_beta_positive_for_heatmap < support_level) & (support_for_beta_negative_for_heatmap < support_level)
+        beta_posterior_means_for_heatmap[cells_with_no_support] <- NA
+                                                                                
+        beta_minimum_posterior_mean <- min(beta_posterior_means_for_heatmap, na.rm = TRUE)
+        beta_maximum_posterior_mean <- max(beta_posterior_means_for_heatmap, na.rm = TRUE)
+        number_of_negative_breaks <- 100
+        number_of_positive_breaks <- 100
+        negative_breaks <- seq(beta_minimum_posterior_mean, 0, length.out = number_of_negative_breaks)
+        positive_breaks <- seq(0, beta_maximum_posterior_mean, length.out = number_of_positive_breaks)
+        negative_breaks <- negative_breaks[1:length(negative_breaks) - 1]
+        
+        color_palette_breaks <- c(negative_breaks, positive_breaks)
+        colors <- c(
+            colorRampPalette(c("blue", "lightblue"))(number_of_negative_breaks - 1),  # zero was removed  
+            colorRampPalette(c("pink", "red"))(number_of_positive_breaks)  
+        )
+        pheatmap(beta_posterior_means_for_heatmap,
+                 color = colors,
+                 breaks = color_palette_breaks,
+                 cluster_cols = FALSE,
+                 cluster_rows = FALSE,
+                 main = "Posterior means without intercept")
+        pheatmap(t(apply(beta_posterior_means[,3:ncol(beta_posterior_means)], 1, rank)),
+                 main = "Ranked posterior means without intercept")
+        par(old_par)
     }
+    
+    # PLOT CREDIBLE INTERVAL
+    
+    
 
     
     # GAMMA PLOT (EFFECTS OF TRAITS ON SPECIES RESPONSES TO COVARIATES)
     # IF TRAITS AND COVARIATES INCLUDE OTHER THINGS BESIDES INTERCEPT
     if (number_of_traits > 1 & number_of_covariates > 1) {
-        posterior_gamma <- getPostEstimate(model, parName = "Gamma")
+        
+        # GET POSTERIOR ESTIMATES FOR GAMMA
+        posterior_estimates_gamma <- getPostEstimate(model, parName = "Gamma")
+        gamma_posterior_means <- as.data.frame(t(posterior_estimates_gamma$mean))
+        gamma_posterior_means <- cbind(model$trNames, gamma_posterior_means)
+        rownames(gamma_posterior_means) <- model$trNames
+        colnames(gamma_posterior_means) <- c("Trait", model$covNames)
+        
+        # GET SUPPORT VALUES FOR THE ESTIMATES
+        support_for_gamma_positive <- as.data.frame(t(posterior_estimates_gamma$support))
+        support_for_gamma_positive <- cbind(model$trNames, support_for_gamma_positive)
+        rownames(support_for_gamma_positive) <- model$trNames
+        colnames(support_for_gamma_positive) <- c("Trait", model$covNames)
+        
+        # GET NEGATIVE SUPPORT VALUES FOR THE ESTIMATES
+        support_for_gamma_negative <- as.data.frame(t(posterior_estimates_gamma$supportNeg))
+        support_for_gamma_negative <- cbind(model$trNames, support_for_gamma_negative)
+        rownames(support_for_gamma_negative) <- model$trNames
+        colnames(support_for_gamma_negative) <- c("Trait", model$covNames)
+        
+        
         plotGamma(model, 
-                  post = posterior_gamma, 
+                  post = posterior_estimates_gamma, 
                   supportLevel = support_level, 
                   param = "Sign",
                   covNamesNumbers = c(TRUE,FALSE),
-                  trNamesNumbers = c(number_of_traits < 21, FALSE),
+                  trNamesNumbers = c(TRUE, FALSE),
                   cex = c(0.6,0.6,0.8))
-        title(main = sprintf("GammaPlot %s", model_name), 
+        title(main = sprintf("GammaPlot sign %s", model_name), 
               line = 2.5,
               cex.main = 0.8)
+
+        
+        gamma_posterior_means_for_heatmap <- gamma_posterior_means[,3:ncol(gamma_posterior_means)]
+        support_for_gamma_positive_for_heatmap <- support_for_gamma_positive[,3:ncol(support_for_gamma_positive)]
+        support_for_gamma_negative_for_heatmap <- support_for_gamma_negative[,3:ncol(support_for_gamma_negative)]
+        cells_with_no_support <- (support_for_gamma_positive_for_heatmap < support_level) & (support_for_gamma_negative_for_heatmap < support_level)
+        gamma_posterior_means_for_heatmap[cells_with_no_support] <- NA
+        
+        max_absolute_value_of_gamma <- max(abs(max(gamma_posterior_means_for_heatmap, na.rm = TRUE)),
+                                          abs(min(gamma_posterior_means_for_heatmap, na.rm = TRUE)))
+        color_palette_breaks <- seq(-max_absolute_value_of_gamma, 
+                                    max_absolute_value_of_gamma,
+                                    length.out = 101)
+        pheatmap(gamma_posterior_means_for_heatmap,
+                 color = colorRampPalette(c("blue", "white", "red"))(100),
+                 breaks = color_palette_breaks,
+                 cluster_cols = FALSE,
+                 cluster_rows = FALSE,
+                 main = "Gamma posterior means without intercept")
+        pheatmap(t(apply(gamma_posterior_means[,3:ncol(gamma_posterior_means)], 1, rank)),
+                 main = "Ranked gamma posterior means without intercept")
+        
     }
     
     # RANDOM LEVEL ASSOCIATIONS
@@ -240,7 +323,7 @@ for (model_number in 1:length(fitted_models)) {
                                         + (random_level_support < (1 - support_level)) > 0
                                      ) * sign(random_level_mean)
             
-            show_species_names <- number_of_species <= 30
+            show_species_names <- TRUE
  
             if (!show_species_names) {
                 colnames(omega_support_values) <- rep("", number_of_species)
@@ -259,13 +342,13 @@ for (model_number in 1:length(fitted_models)) {
             
             
             # CONSTRUCT TITLE FOR PLOT
-            title <- sprintf("Associations, %s: %s", 
+            title <- sprintf("Association signs, %s: %s", 
                              model_name,
                              names(model$ranLevels)[[random_level_number]])
             if (model$ranLevels[[random_level_number]]$sDim > 0) {
                 posterior <- convertToCodaObject(model)
                 alpha_values <- unlist(poolMcmcChains(posterior$Alpha[[random_level_number]][,1]))
-                title <- sprintf("%s, E[alpha%s] = %s, Pr[alpha%s > 0] = %f",
+                title <- sprintf("%s\n, E[alpha%s] = %s, Pr[alpha%s > 0] = %f",
                                  title,
                                  random_level_number,
                                  round(mean(alpha_values), 2),
@@ -279,19 +362,29 @@ for (model_number in 1:length(fitted_models)) {
                      main = title,
                      cex.main = 0.8)
             
+            # HEATMAP FOR CORRELATIONS
+            species_associations_df <- random_level_mean
+            species_associations_df <- omega_support_values * species_associations_df
+            pheatmap(species_associations_df[plot_order, plot_order],
+                     cluster_rows = FALSE,
+                     cluster_cols = FALSE,
+                     main = sprintf("Species associations %s\n%s",
+                                    names(model$ranLevels)[[random_level_number]],
+                                    model_name))
+            
             # WRITE ESTIMATES TO FILE
-            mean_estimates <- as.data.frame(omega_matrices[[random_level_number]]$mean)
-            mean_estimates <- cbind(model$spNames, mean_estimates)
-            colnames(mean_estimates)[1] <- ""
-            support_estimates <- as.data.frame(omega_matrices[[random_level_number]]$support)
-            support_estimates <- cbind(model$spNames, support_estimates)
-            colnames(support_estimates)[1] = ""
-            negative_support_estimates <- as.data.frame(1-omega_matrices[[random_level_number]]$support)
-            negative_support_estimates <- cbind(model$spNames, negative_support_estimates)
-            colnames(negative_support_estimates)[1] <- ""
-            values <- list("Posterior mean" = mean_estimates,
-                           "Pr(x>0)" = support_estimates,
-                           "Pr(x<0)" = negative_support_estimates)
+            omega_posterior_means <- as.data.frame(omega_matrices[[random_level_number]]$mean)
+            omega_posterior_means <- cbind(model$spNames, omega_posterior_means)
+            colnames(omega_posterior_means)[1] <- ""
+            support_for_omega_positive <- as.data.frame(omega_matrices[[random_level_number]]$support)
+            support_for_omega_positive <- cbind(model$spNames, support_for_omega_positive)
+            colnames(support_for_omega_positive)[1] = ""
+            support_for_omega_negative <- as.data.frame(1-omega_matrices[[random_level_number]]$support)
+            support_for_omega_negative <- cbind(model$spNames, support_for_omega_negative)
+            colnames(support_for_omega_negative)[1] <- ""
+            values <- list("Posterior mean" = omega_posterior_means,
+                           "Pr(x>0)" = support_for_omega_positive,
+                           "Pr(x<0)" = support_for_omega_negative)
             file_omega = file.path(dir_results, 
                                    sprintf("parameter_estimates_omega_%s_%s.xlsx",
                                            model_name,

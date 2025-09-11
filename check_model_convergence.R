@@ -32,18 +32,78 @@ plot_convergence <- function(variable, model_name, psrf_point_estimates) {
     par(mfrow=c(1,1))
 } 
 
+ownEffectiveSize <- function(x)
+{
+    if (is.mcmc.list(x))
+    {
+        ##RGA changed to sum across all chains
+        ess <- do.call("rbind",lapply(x,ownEffectiveSize))
+        ans <- apply(ess,2,sum)
+    }
+    else
+    {
+        x <- as.mcmc(x)
+        x <- as.matrix(x)
+        spec <- test(x)$spec
+        ans <- ifelse(spec==0, 0, nrow(x) * apply(x, 2, var)/spec)
+    }
+    return(ans)
+}
+
+
+test <- function(x)
+{
+    x <- as.matrix(x)
+    v0 <- order <- numeric(ncol(x))
+    names(v0) <- names(order) <- colnames(x)
+    z <- 1:nrow(x)
+    for (i in 1:ncol(x))
+    {
+        lm.out <- lm(x[,i] ~ z)
+        if (identical(all(sd(residuals(lm.out)) ==  0), TRUE)) {
+            v0[i] <- 0
+            order[i] <- 0
+        }
+        else {
+            ar.out <- ar(x[,i], aic=TRUE)
+            v0[i] <- ar.out$var.pred/(1 - sum(ar.out$ar))^2
+            order[i] <- ar.out$order
+        }
+    }
+    return(list(spec=v0, order=order))
+}
+
 save_convergence_info <- function(samples, variable, model_name, convergence_file) {
     #samples <- filter_zero_columns(samples)
-    psrf <- gelman.diag(samples, multivariate = FALSE)$psrf
+    psrf <- gelman.diag(samples, multivariate = FALSE, autoburnin = FALSE)$psrf
     print(psrf)
+    psrf_problem_file <- file.path(dir_results, sprintf("psrf_issues/%s.txt", model_name))
+    append_to_file(sprintf("\n\n%s\n", variable), psrf_problem_file)
+    for (row_number in 1:nrow(psrf)) {
+        row_name <- rownames(psrf)[row_number]
+        row_values <- psrf[row_number,]
+        psrf_point_estimate <- row_values[1]
+        if (psrf_point_estimate > 1.1) {
+            append_to_file(sprintf("%s %s\n", row_name, psrf_point_estimate), psrf_problem_file)
+        }
+    }
     append_to_file(sprintf("%s\n", summary(psrf)[,1]), file = convergence_file)
     append_to_file("\n\n", file = convergence_file)
     psrf_point_estimates <- psrf[,1]
     plot_convergence(variable, model_name, psrf_point_estimates)
-    plot_histogram(effectiveSize(samples),
+    effective_sizes <- ownEffectiveSize(samples)
+    effectiveSize_problem_file <- file.path(dir_results, sprintf("effectiveSize_issues/%s.txt", model_name))
+    append_to_file(sprintf("\n\n%s\n", variable), effectiveSize_problem_file)
+    for (index in 1:length(effective_sizes)) {
+        name <- names(effective_sizes)[index]
+        effective_size <- effective_sizes[index]
+        if (effective_size < 1000) {
+            append_to_file(sprintf("%s %s\n", name, effective_size), effectiveSize_problem_file)
+        }
+    }
+    plot_histogram(effective_sizes,
                    sprintf("Effective size of %s", variable))
     combined_samples <- as.mcmc.list(samples)
-    par(mfrow = c(4, 2))
     traceplot(combined_samples[,1],
               main = sprintf("Traceplot of %s, %s", 
                              variable,
@@ -51,24 +111,33 @@ save_convergence_info <- function(samples, variable, model_name, convergence_fil
     # TO DO: Visualize traces for all variables, not just first
     par(mfrow = c(2, 2))
     acf_colors <- rainbow(ncol(as.data.frame(combined_samples[[1]])))
+    acf_problem_file <- file.path(dir_results, sprintf("acf_issues/%s.txt", model_name))
+    append_to_file(sprintf("\n\n%s\n", variable), acf_problem_file)
     for (chain in 1:4) {
+        append_to_file(sprintf("\n\nChain %s\n", chain), acf_problem_file)
         combined_samples_chain <- as.data.frame(combined_samples[[chain]])
-        acf <- acf(as.numeric(combined_samples_chain[,1]),
-                plot = FALSE)
-        plot(acf$lag, acf$acf, 
-             col = acf_colors[1],
-             ylim = c(-1, 1),
-             main = sprintf("Chain %s", chain),
-             xlab = "Lag", ylab = "ACF")
-        if (ncol(combined_samples_chain) > 1) {
-            for (col in 2:ncol(combined_samples_chain)) {
-                acf <- acf(as.numeric(combined_samples_chain[,col]),
-                           plot = FALSE)
+        for (column in 1:ncol(combined_samples_chain)) {
+            acf <- acf(as.numeric(combined_samples_chain[,column]),
+                       plot = FALSE)
+            confidence_upper_limit <- qnorm((1 + (1 - 0.05))/2)/sqrt(acf$n.used)
+            confidence_lower_limit <- -confidence_upper_limit
+            if (column == 1) {
+                plot(acf$lag, acf$acf, 
+                     col = acf_colors[column],
+                     ylim = c(-1, 1),
+                     main = sprintf("Chain %s", chain),
+                     xlab = "Lag", ylab = "ACF")
+                abline(confidence_upper_limit, 0, col = "lightgrey")
+                abline(confidence_lower_limit, 0, col = "lightgrey")
+            } else {
                 points(acf$lag, 
-                      acf$acf,
-                      col = acf_colors[col])
+                       acf$acf,
+                       col = acf_colors[column])
             }
-            
+            if (any(abs(acf$acf[2:length(acf$acf)]) > 0.2)) {
+                column_name <- colnames(combined_samples_chain)[column]
+                append_to_file(sprintf("\n%s", column_name), acf_problem_file)
+            }
         }
     }
     title(main = sprintf("Autocorrelation of %s", variable),

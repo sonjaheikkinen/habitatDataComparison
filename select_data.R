@@ -31,17 +31,22 @@ transects_selected_shp <- transects_shp[transects_shp$Numero %in% spatiotemporal
 species_list <- c()
 samples <- c()
 transects <- c()
+years <- c()
 prevalences <- c()
 for (species in colnames(occurrence)) {
     species_occurrence <- occurrence[,species]
     number_of_transects_where_species_has_occurrence <- sum(tapply(species_occurrence, 
                                                                    spatiotemporal_context$Transect, 
                                                                    function(x) any(x == 1)))
+    number_of_years_where_species_has_occurrence <- sum(tapply(species_occurrence,
+                                                               spatiotemporal_context$Year,
+                                                               function(x) any(x == 1)))
     number_of_samples_species_is_found_in <- sum(species_occurrence)
     prevalence <- number_of_samples_species_is_found_in / nrow(occurrence)
     species_list <- c(species_list, species)
     samples <- c(samples, number_of_samples_species_is_found_in)
     transects <- c(transects, number_of_transects_where_species_has_occurrence)
+    years <- c(years, number_of_years_where_species_has_occurrence)
     prevalences <- c(prevalences, prevalence)
     if (number_of_transects_where_species_has_occurrence < 3) {
         occurrence <- occurrence[, colnames(occurrence) != species]
@@ -50,6 +55,7 @@ for (species in colnames(occurrence)) {
 }
 species_prevalences <- data.frame(samples = samples,
                                   transects = transects,
+                                  years = years,
                                   prevalences = prevalences)
 rownames(species_prevalences) <- species_list
 

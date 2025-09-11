@@ -79,12 +79,13 @@ formula_corine <- as.formula(sprintf("~Effort:(%s+Temperature+Rainfall+PatchDens
                                            collapse = "+")))
 forest_formula_natura <- ~Effort:(Luonnonmetsät + Tunturikoivikot +  Lehdot + Tulvametsät +
                                   Temperature + Rainfall + PatchDensity)
-#forest_formula_natura <- ~Luonnonmetsät
 forest_formula_corine <- ~Effort:(Havumetsät.kivennäismaalla + 
                                   Sekametsät.kivennäismaalla + Sekametsät.turvemaalla + 
                                   Lehtimetsät.kivennäismaalla +
                                   Havumetsät.kalliomaalla + 
                                   Temperature + Rainfall + PatchDensity)
+forest_natura_no_effort_formula <- ~(Luonnonmetsät + Tunturikoivikot +  Lehdot + Tulvametsät +
+                                      Temperature + Rainfall + PatchDensity)
 
 
 
@@ -153,6 +154,17 @@ probit_natura_forest <- Hmsc(Y = occurrence,
                       studyDesign = study_design,
                       ranLevels = list("Transect" = randomlevel_spatial,
                                        "Year" = randomlevel_temporal))
+forest_natura_no_effort <- Hmsc(Y = occurrence, 
+                             XData = env_data_natura,
+                             XFormula = forest_natura_no_effort_formula,
+                             TrData = trait_data,
+                             TrFormula = trait_formula,
+                             #phyloTree = phylogeny_data,
+                             distr = "probit",
+                             studyDesign = study_design,
+                             ranLevels = list("Transect" = randomlevel_spatial,
+                                              "Year" = randomlevel_temporal))
+
 
 probit_corine_forest <- Hmsc(Y = occurrence, 
                       XData = env_data_corine,
@@ -242,8 +254,8 @@ lognormal_corine <- Hmsc(Y = abundance,
 
 
 # SAVE MODELS
-model_list <- list(probit_natura_forest, probit_corine_forest)
-names(model_list) <- c("probit_natura_forest", "probit_corine_forest")
+model_list <- list(forest_natura_no_effort)
+names(model_list) <- c("forest_natura_no_effort")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 

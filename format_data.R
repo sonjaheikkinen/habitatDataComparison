@@ -428,6 +428,7 @@ writeVector(transects_shp,
 save(species_traits, file = file.path(dir_data, "species_traits.RData"))
 save(species_alternative_names, file = file.path(dir_data, "species_alternative_names.RData"))
 save(taxonomy, file = file.path(dir_data, "taxonomy.RData"))
+save(transect_lengths, file = file.path(dir_data, "transect_lengths.RData"))
 #save(temperature_data, file = file.path(dir_data, "temperature_data.RData"))
 #save(rainfall_data, file = file.path(dir_data, "rainfall_data.RData"))
 

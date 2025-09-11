@@ -15,6 +15,7 @@ load(file = file.path(dir_data, "pca_results_natura.RData"))
 load(file = file.path(dir_data, "pca_results_corine.RData"))
 load(file = file.path(dir_data, "phylogeny_data.RData"))
 load(file = file.path(dir_data, "trait_data.RData"))
+load(file = file.path(dir_data, "transect_lengths.RData"))
 transects_shp <- vect(file.path(dir_data, "transects_selected.shp"))
 natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls"))
 corine_classification <- read_excel(file.path(dir_data, "CorineMaanpeite2018Luokat.xls"))
@@ -27,10 +28,6 @@ names_corine <- data.frame(value = corine_classification$Value, name = corine_cl
 # TRANSECT NAMES FOR COORDINATE DATA
 transect_coordinates$Transect <- rownames(transect_coordinates)
 
-
-
-
-pdf(file.path(dir_results, sprintf("exploratory_analysis_final.pdf")))
 
 
 # SPATIOTEMPORAL_CONTEXT OVERVIEW
@@ -72,12 +69,18 @@ title(main = "Natura and Corine types in study area, with included transects",
 
 # HABITAT TYPES OVERVIEW
 
-# Frequency of values in the entire raster
-natura_total_frequencies <- freq(natura_raster)
+# Create mask to only include areas with named natura values in calculations
+natura_values_without_name <- c(0, 9999, NA)
+natura_mask <- !natura_raster %in% natura_values_without_name
+# Frequency of named values in the entire natura raster
+masked_natura_raster <- mask(natura_raster, natura_mask, maskvalues=FALSE)
+natura_total_frequencies <- freq(masked_natura_raster)
 natura_total_frequencies$fraction <- natura_total_frequencies$count / sum(natura_total_frequencies$count)
 natura_total_frequencies$region <- "Total"
-corine_cropped <- crop(corine_raster, natura_raster)
-corine_total_frequencies <- freq(corine_cropped)
+# Frequency values of Corine within the natura raster area
+resampled_corine_raster <- resample(corine_raster, natura_raster, method = "near")
+masked_corine_raster <- mask(resampled_corine_raster, natura_mask, maskvalues=FALSE)
+corine_total_frequencies <- freq(masked_corine_raster)
 corine_total_frequencies$fraction <- corine_total_frequencies$count / sum(corine_total_frequencies$count)
 corine_total_frequencies$region <- "Total"
 
@@ -85,14 +88,14 @@ corine_total_frequencies$region <- "Total"
 buffer_area <- buffer(transects_shp, width = buffer_width)
 
 # Mask raster with buffer
-natura_masked <- mask(natura_raster, buffer_area)
-corine_masked <- mask(corine_cropped, buffer_area)
+natura_buffer_areas <- mask(masked_natura_raster, buffer_area)
+corine_buffer_areas <- mask(masked_corine_raster, buffer_area)
 
 # Frequency within buffer
-natura_buffer_frequencies <- freq(natura_masked)
+natura_buffer_frequencies <- freq(natura_buffer_areas)
 natura_buffer_frequencies$fraction <- natura_buffer_frequencies$count / sum(natura_buffer_frequencies$count)
 natura_buffer_frequencies$region <- "Buffer"
-corine_buffer_frequencies <- freq(corine_masked)
+corine_buffer_frequencies <- freq(corine_buffer_areas)
 corine_buffer_frequencies$fraction <- corine_buffer_frequencies$count / sum(corine_buffer_frequencies$count)
 corine_buffer_frequencies$region <- "Buffer"
 
@@ -110,8 +113,6 @@ corine_frequencies_combined <- merge(
     by.y = "value",
     all.x = TRUE
 )
-
-# Add habitat type names
 natura_frequencies_combined <- merge(
     natura_frequencies_combined, 
     names_natura[, c("value", "name")], 
@@ -119,6 +120,22 @@ natura_frequencies_combined <- merge(
     by.y = "value",
     all.x = TRUE
 )
+
+# Remove values that are only found from total and values that are not in selected
+for (name in natura_frequencies_combined$name) {
+    rows_for_name <- natura_frequencies_combined[natura_frequencies_combined$name == name,,drop = FALSE]
+    if (nrow(rows_for_name) == 1 || !make.names(name) %in% colnames(fractions_natura)) {
+        natura_frequencies_combined <- natura_frequencies_combined[natura_frequencies_combined$name != name,]
+    }
+}
+for (name in corine_frequencies_combined$name) {
+    rows_for_name <- corine_frequencies_combined[corine_frequencies_combined$name == name,,drop = FALSE]
+    if (nrow(rows_for_name) == 1 || !make.names(name) %in% colnames(fractions_corine)) {
+        corine_frequencies_combined <- corine_frequencies_combined[corine_frequencies_combined$name != name,]
+    }
+}
+
+
 
 
 natura_barplot <- ggplot(natura_frequencies_combined, aes(x = name, y = fraction, fill = region)) +
@@ -160,29 +177,31 @@ corine_fractions_long <- data.frame(
 )
 
 
-natura_boxplot <- ggplot(natura_fractions_long, aes(x = variable, y = fraction)) +
-    geom_boxplot() +
-    coord_flip() +
-    labs(title = "2A Natura transect fractions", 
-         x = "Habitat type", 
-         y = "Fraction") +
-    theme_minimal()
+natura_ridgeline <- ggplot(natura_fractions_long, 
+                           aes(x = fraction, y = variable, fill = variable)) +
+                    geom_density_ridges(scale = 1.2, alpha = 0.7) +
+                    labs(title = "2A Natura transect fractions", 
+                         x = "Fraction", 
+                         y = "Habitat type") + 
+                    theme_minimal() + 
+                    theme(legend.position = "none")
 
-corine_boxplot <- ggplot(corine_fractions_long, aes(x = variable, y = fraction)) +
-    geom_boxplot() +
-    coord_flip() +
-    labs(title = "2B Corine transect fractions", 
-         x = "Land cover type", 
-         y = "Fraction") +
-    theme_minimal()
+corine_ridgeline <- ggplot(corine_fractions_long, 
+                           aes(x = fraction, y = variable, fill = variable)) + 
+                    geom_density_ridges(scale = 1.2, alpha = 0.7) +
+                    labs(title = "2B Corine transect fractions", 
+                         x = "Fraction", 
+                         y = "Land cover type") + 
+                    theme_minimal() +
+                    theme(legend.position = "none")
 
 
 # Arrange all plots to grid
 grid.arrange(
     natura_barplot,
     corine_barplot,
-    natura_boxplot,
-    corine_boxplot,
+    natura_ridgeline,
+    corine_ridgeline,
     ncol = 2
 )
 
@@ -239,9 +258,34 @@ pheatmap(cor(env_data_corine[,corine_correlation_columns]),
          cluster_rows = FALSE,
          cluster_cols = FALSE)
 
+# CALCULATE ENVIRONMENTAL DATA
+
+# Average  over transect
+natura_transect_averages <- aggregate(env_data_natura, 
+                                      by = list(Transect = spatiotemporal_context$Transect),
+                                      FUN = mean, na.rm = TRUE)
+natura_transect_averages <- merge(natura_transect_averages, 
+                                  transect_coordinates, 
+                                  by.x = "Transect", 
+                                  by.y = "Transect",
+                                  all.x = TRUE)
+corine_transect_averages <- aggregate(env_data_corine, 
+                                      by = list(Transect = spatiotemporal_context$Transect),
+                                      FUN = mean, na.rm = TRUE)
+corine_transect_averages <- merge(corine_transect_averages, 
+                                  transect_coordinates, 
+                                  by.x = "Transect", 
+                                  by.y = "Transect",
+                                  all.x = TRUE)
+
+# Average environmental variables over year
+natura_year_averages <- aggregate(env_data_natura, 
+                                  by = list(Year = spatiotemporal_context$Year),
+                                  FUN = mean, na.rm = TRUE)
 
 
-# ABUNDANCE DISTRIBUTIONS
+
+# CALCULATE ABUNDANCE DATA
 abundance_df <- as.data.frame(abundance)
 abundance_long <- stack(abundance_df)
 colnames(abundance_long) <- c("Abundance", "Species")
@@ -260,22 +304,93 @@ abundance_years_df$Year <- NULL
 abundance_years_long <- stack(abundance_years_df)
 colnames(abundance_years_long) <- c("Abundance", "Species")
 
+abundance_sample_averages_by_species <- aggregate(abundance_df,
+                                                  by = list(Sample = spatiotemporal_context$Sample),
+                                                  FUN = mean)
+rownames(abundance_sample_averages_by_species) <- abundance_sample_averages_by_species$Sample
+abundance_sample_averages_by_species$Sample <- NULL
+abundance_sample_averages <- data.frame(Abundance = rowMeans(abundance_sample_averages_by_species),
+                                        Sample = rownames(abundance_sample_averages_by_species))
+
+abundance_transect_averages_by_species <- aggregate(abundance_df,
+                                                    by = list(Transect = spatiotemporal_context$Transect),
+                                                    FUN = mean)
+rownames(abundance_transect_averages_by_species) <- abundance_transect_averages_by_species$Transect
+abundance_transect_averages_by_species$Transect <- NULL
+abundance_transect_averages <- data.frame(Abundance = rowMeans(abundance_transect_averages_by_species),
+                                          Transect = rownames(abundance_transect_averages_by_species))
+abundance_transect_averages <- merge(abundance_transect_averages, 
+                                     transect_coordinates, 
+                                     by.x = "Transect", 
+                                     by.y = "Transect",
+                                     all.x = TRUE)
+
+
+transect_species_richness <- c()
+for (transect in natura_transect_averages$Transect) {
+    row_indices_transect <- which(spatiotemporal_context$Transect == transect)
+    occurrences_for_transect <- occurrence[row_indices_transect, , drop=FALSE]
+    samples_species_richnesses <- rowSums(occurrences_for_transect)
+    species_richness <- mean(samples_species_richnesses)
+    transect_species_richness <- c(transect_species_richness, species_richness)
+}
+transect_species_richness <- data.frame(richness = transect_species_richness,
+                                        x = natura_transect_averages$x,
+                                        y = natura_transect_averages$y)
+
+
+average_year_abundance_by_species <- aggregate(abundance_df,
+                                               by = list(Year = spatiotemporal_context$Year),
+                                               FUN = mean)
+average_year_abundance <- average_year_abundance_by_species
+rownames(average_year_abundance) <- average_year_abundance$Year
+average_year_abundance$Year <- NULL
+average_year_abundance <- rowMeans(average_year_abundance)
+year_species_richness <- c()
+transects_sampled <- c()
+for (year in natura_year_averages$Year) {
+    row_indices_year <- which(spatiotemporal_context$Year == year)
+    occurrences_for_year <- occurrence[row_indices_year, , drop=FALSE]
+    samples_species_richnesses <- rowSums(occurrences_for_year)
+    species_richness <- mean(samples_species_richnesses)
+    year_species_richness <- c(year_species_richness, species_richness)
+    transects_sampled <- c(transects_sampled, length(row_indices_year))
+}
+
+abundance_year_averages <- data.frame(Abundance = average_year_abundance,
+                                      Year = names(average_year_abundance))
+
+
+# CREATE ABUNDANCE PLOTS
+
 total <- ggplot(abundance_long, aes(x = Abundance, color = Species)) +
-    geom_freqpoly(binwidth = 5, size = 1) +
+    geom_freqpoly(binwidth = 5, linewidth = 1) +
+    geom_freqpoly(data = abundance_sample_averages,
+                  aes(x = Abundance),
+                  binwidth = 5, size = 1.2,
+                  color = "black") +
     scale_colour_manual(values = rainbow(ncol(abundance))) +
     theme_minimal() +
     labs(title = "Species abundance across samples",
          x = "Abundance", y = "Count") +
     theme(legend.position = "none")
 transect <- ggplot(abundance_transects_long, aes(x = Abundance, color = Species)) +
-    geom_freqpoly(binwidth = 5, size = 1) +
+    geom_freqpoly(binwidth = 5, linewidth = 1) +
+    geom_freqpoly(data = abundance_transect_averages,
+                  aes(x = Abundance),
+                  binwidth = 5, size = 1.2,
+                  color = "black") +
     scale_colour_manual(values = rainbow(ncol(abundance))) +
     theme_minimal() +
     labs(title = "Species abundance across transects",
          x = "Abundance", y = "Count") +
     theme(legend.position = "none")
 year <- ggplot(abundance_years_long, aes(x = Abundance, color = Species)) +
-    geom_freqpoly(binwidth = 5, size = 1) +
+    geom_freqpoly(binwidth = 5, linewidth = 1) +
+    geom_freqpoly(data = abundance_year_averages,
+                  aes(x = Abundance),
+                  binwidth = 5, size = 1.2,
+                  color = "black") +
     scale_colour_manual(values = rainbow(ncol(abundance))) +
     theme_minimal() +
     labs(title = "Species abundance across years",
@@ -342,14 +457,44 @@ barplot(sort(year_prevalence),
 par(old_par)
 
 
-plot(species_order, sample_prevalence[species_order])
 
 
 pheatmap(t(combined_data),
          cluster_rows = FALSE,
-         cluster_cols = FALSE)
+         cluster_cols = FALSE,
+         main = "Species prevalences in samples, transects, and years  ")
 
 
+old_par <- par(no.readonly = TRUE) 
+par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
+par(mfrow = c(1, 1))
+
+species_positions <- 1:ncol(combined_data)
+plot(combined_data[c("sample"),],
+     species_positions,
+     col = "red",
+     ylab = "",
+     xlab = "Prevalence",
+     yaxt = "n",
+     main = "Species prevalences")
+axis(2, 
+     at = species_positions, 
+     labels = colnames(combined_data), 
+     las = 2,
+     cex.axis = 0.5)
+points(combined_data[c("transect"),],
+       species_positions,
+       col = "green")
+points(combined_data[c("year"),],
+       species_positions,
+       col = "blue")
+legend("topright", 
+       legend = c("Sample", "Transect", "Year"),
+       col = c("red", "green", "blue"), 
+       pch = 21)
+
+
+par(old_par)
 
 
 
@@ -357,46 +502,9 @@ pheatmap(t(combined_data),
 # SPATIAL AND TEMPORAL PLOTS 
 
 
-# Average  over transect
-natura_transect_averages <- aggregate(env_data_natura, 
-                                      by = list(Transect = spatiotemporal_context$Transect),
-                                      FUN = mean, na.rm = TRUE)
-natura_transect_averages <- merge(natura_transect_averages, 
-                                  transect_coordinates, 
-                                  by.x = "Transect", 
-                                  by.y = "Transect",
-                                  all.x = TRUE)
-corine_transect_averages <- aggregate(env_data_corine, 
-                                      by = list(Transect = spatiotemporal_context$Transect),
-                                      FUN = mean, na.rm = TRUE)
-corine_transect_averages <- merge(corine_transect_averages, 
-                                  transect_coordinates, 
-                                  by.x = "Transect", 
-                                  by.y = "Transect",
-                                  all.x = TRUE)
-abundance_transect_averages_by_species <- aggregate(abundance_df,
-                                                    by = list(Transect = spatiotemporal_context$Transect),
-                                                    FUN = mean)
-rownames(abundance_transect_averages_by_species) <- abundance_transect_averages_by_species$Transect
-abundance_transect_averages_by_species$Transect <- NULL
-abundance_transect_averages <- data.frame(Abundance = rowMeans(abundance_transect_averages_by_species),
-                                          Transect = rownames(abundance_transect_averages_by_species))
-abundance_transect_averages <- merge(abundance_transect_averages, 
-                                     transect_coordinates, 
-                                     by.x = "Transect", 
-                                     by.y = "Transect",
-                                     all.x = TRUE)
-transect_species_richness <- c()
-for (transect in natura_transect_averages$Transect) {
-    row_indices_transect <- which(spatiotemporal_context$Transect == transect)
-    occurrences_for_transect <- occurrence[row_indices_transect, , drop=FALSE]
-    samples_species_richnesses <- rowSums(occurrences_for_transect)
-    species_richness <- mean(samples_species_richnesses)
-    transect_species_richness <- c(transect_species_richness, species_richness)
-}
-transect_species_richness <- data.frame(richness = transect_species_richness,
-                                        x = natura_transect_averages$x,
-                                        y = natura_transect_averages$y)
+
+
+
 
 
 
@@ -463,30 +571,171 @@ for (type in setdiff(colnames(fractions_corine), corine_forest_types)) {
     plot_spatially(corine_transect_averages, type, title = type, text=TRUE)
 }
 
+par(mfrow = c(1, 2))
 
-
-# Average environmental variables over year
-natura_year_averages <- aggregate(env_data_natura, 
-                                  by = list(Year = spatiotemporal_context$Year),
-                                  FUN = mean, na.rm = TRUE)
-
-average_year_abundance_by_species <- aggregate(abundance_df,
-                                  by = list(Year = spatiotemporal_context$Year),
-                                  FUN = mean)
-average_year_abundance <- average_year_abundance_by_species
-rownames(average_year_abundance) <- average_year_abundance$Year
-average_year_abundance$Year <- NULL
-average_year_abundance <- rowMeans(average_year_abundance)
-year_species_richness <- c()
-transects_sampled <- c()
-for (year in natura_year_averages$Year) {
-    row_indices_year <- which(spatiotemporal_context$Year == year)
-    occurrences_for_year <- occurrence[row_indices_year, , drop=FALSE]
-    samples_species_richnesses <- rowSums(occurrences_for_year)
-    species_richness <- mean(samples_species_richnesses)
-    year_species_richness <- c(year_species_richness, species_richness)
-    transects_sampled <- c(transects_sampled, length(row_indices_year))
+colors <- rainbow(length(natura_forest_types))
+plot(natura_transect_averages$x,
+     natura_transect_averages$y,
+     col = "black")
+for (transect_number in 1:nrow(natura_transect_averages)) {
+    transect_values <- natura_transect_averages[transect_number,]
+    biggest_fraction <- 0
+    biggest_type <- 1
+    for (type_number in 1:length(natura_forest_types)) {
+        type <- natura_forest_types[type_number]
+        type_value <- transect_values[type]
+        if (type_value > biggest_fraction) {
+            biggest_fraction <- type_value
+            biggest_type <- type_number
+        }
+    }
+    points(transect_values$x,
+           transect_values$y,
+           col = colors[biggest_type])
 }
+legend("topleft",
+       legend = natura_forest_types,
+       col = colors,
+       cex = 0.5,
+       pch = 21,
+       bty = "n")
+
+colors <- rainbow(length(corine_forest_types))
+plot(corine_transect_averages$x,
+     corine_transect_averages$y,
+     col = "black")
+for (transect_number in 1:nrow(corine_transect_averages)) {
+    transect_values <- corine_transect_averages[transect_number,]
+    biggest_fraction <- 0
+    biggest_type <- 1
+    for (type_number in 1:length(corine_forest_types)) {
+        type <- corine_forest_types[type_number]
+        type_value <- transect_values[type]
+        if (type_value > biggest_fraction) {
+            biggest_fraction <- type_value
+            biggest_type <- type_number
+        }
+    }
+    points(transect_values$x,
+           transect_values$y,
+           col = colors[biggest_type])
+}
+legend("topleft",
+       legend = corine_forest_types,
+       col = colors,
+       cex = 0.5,
+       pch = 21,
+       bty = "n")
+
+
+
+# SPECIES VS ENVIRONMENT TRANSECT SCATTERPLOTS
+
+par(mfrow = c(2, 2))
+
+plot(abundance_transect_averages$Abundance, 
+     natura_transect_averages[,natura_forest_types[1]],
+     col = colors[1],
+     xlab = "Average transect abundance",
+     ylab = "Fraction of type",
+     main = "Abundance vs. Natura type fraction")
+for (type_number in 2:length(natura_forest_types)) {
+    points(abundance_transect_averages$Abundance,
+           natura_transect_averages[, natura_forest_types[type_number]],
+           col = colors[type_number])
+}
+legend("topleft",
+       legend = natura_forest_types,
+       col = colors,
+       cex = 0.7,
+       pch = 21,
+       bty = "n")
+
+plot(transect_species_richness$richness, 
+     natura_transect_averages[,natura_forest_types[1]],
+     col = colors[1],
+     xlab = "Transect species richness",
+     ylab = "Fraction of type",
+     main = "Richness vs. Natura type fraction")
+for (type_number in 2:length(natura_forest_types)) {
+    points(transect_species_richness$richness,
+           natura_transect_averages[, natura_forest_types[type_number]],
+           col = colors[type_number])
+}
+legend("topleft",
+       legend = natura_forest_types,
+       col = colors,
+       cex = 0.7,
+       pch = 21,
+       bty = "n")
+
+
+colors <- rainbow(length(corine_forest_types))
+
+plot(abundance_transect_averages$Abundance, 
+     corine_transect_averages[,corine_forest_types[1]],
+     col = colors[1],
+     xlab = "Average transect abundance",
+     ylab = "Fraction of type",
+     main = "Abundance vs. Corine type fraction")
+for (type_number in 2:length(corine_forest_types)) {
+    points(abundance_transect_averages$Abundance,
+           corine_transect_averages[, corine_forest_types[type_number]],
+           col = colors[type_number])
+}
+legend("topleft",
+       legend = corine_forest_types,
+       col = colors,
+       cex = 0.7,
+       pch = 21,
+       bty = "n")
+plot(transect_species_richness$richness, 
+     corine_transect_averages[,corine_forest_types[1]],
+     col = colors[1],
+     xlab = "Transect species richness",
+     ylab = "Fraction of type",
+     main = "Richness vs. Corine type fraction")
+for (type_number in 2:length(corine_forest_types)) {
+    points(transect_species_richness$richness,
+           corine_transect_averages[, corine_forest_types[type_number]],
+           col = colors[type_number])
+}
+legend("topleft",
+       legend = corine_forest_types,
+       col = colors,
+       cex = 0.7,
+       pch = 21,
+       bty = "n")
+
+
+variables_to_plot <- c("Temperature", 
+                       "Rainfall", 
+                       "PatchDensity", 
+                       "Effort")
+
+for (covariate in variables_to_plot) {
+    plot(abundance_transect_averages$Abundance, 
+         corine_transect_averages[,covariate],
+         xlab = "Average transect abundance",
+         ylab = sprintf("%s", covariate),
+         main = sprintf("Abundance vs. %s", covariate))
+    plot(transect_species_richness$richness, 
+         corine_transect_averages[,covariate],
+         xlab = "Transect species richness",
+         ylab = sprintf("%s", covariate),
+         main = sprintf("Richness vs. %s", covariate))
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Temporal plots
@@ -584,8 +833,8 @@ species_prevalences <- species_prevalences[sorted_indices]
 color_palette <- colorRampPalette(c("red", "blue"))(length(species_prevalences))
 colors <- color_palette[rank(species_prevalences)]
 
+par(mfrow = c(1, 1))
 old_par <- par(no.readonly = TRUE) 
-par(mfrow = c(1, 2))
 par(mar = c(old_par$mar[1], 10, old_par$mar[3], old_par$mar[4]))
 barplot(species_site_fidelities,
         horiz = TRUE,
@@ -593,8 +842,46 @@ barplot(species_site_fidelities,
         col = colors,
         main = "Species site fidelity (colored by prevalence)",
         xlab = "Site Fidelity")
-plot(species_prevalences, species_site_fidelities)
+plot(species_prevalences, 
+     species_site_fidelities,
+     xlab = "Prevalence",
+     ylab = "Site fidelity",
+     main = "Species site fidelities vs. prevalence")
+text(species_prevalences,
+     species_site_fidelities,
+     labels = names(species_site_fidelities),
+     cex = 0.7,
+     pos = 3)
 par(old_par)
+
+
+# EXPLORE TRANSECT EFFORT AGAINST TYPES
+selected_transects <- unique(spatiotemporal_context$Transect)
+natura_fractions_and_effort <- fractions_natura[selected_transects,]
+natura_fractions_and_effort$effort <- rep(0, nrow(natura_fractions_and_effort))
+for (transect in rownames(natura_fractions_and_effort)) {
+    effort_for_transect <- transect_lengths[transect]
+    natura_fractions_and_effort[transect,]$effort <- effort_for_transect
+}
+
+
+
+
+for (type in natura_forest_types) {
+    colors <- c()
+    for (value in natura_fractions_and_effort[,type]) {
+        if (value == 0) {
+            colors <- c(colors, "red")
+        } else {
+            colors <- c(colors, "blue")
+        }
+    }
+    plot(natura_fractions_and_effort$effort, 
+         natura_fractions_and_effort[,type],
+         col = colors,
+         main = sprintf("%s", type))
+}
+
 
 
 
