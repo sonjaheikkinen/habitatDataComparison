@@ -1,6 +1,6 @@
 # SCRIPT FOR CALCULATING FIT VALUES FOR EACH MODEL
 
-overwrite_modelfits <- TRUE
+overwrite_modelfits <- FALSE
 
 
 # FUNCTIONS FOR THE SCRIPT
