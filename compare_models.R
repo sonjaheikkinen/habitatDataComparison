@@ -115,9 +115,9 @@ plot_performance <- function(data,
     aggregated_difference <- subset(aggregated_difference, metric %in% which_difference)
     
     if (plot_type == "line") {
-        natura_plots <- create_metric_plot_line(aggregated_natura, aggregation_column, orders$natura, colors, "Natura metric averages")
-        corine_plots <- create_metric_plot_line(aggregated_corine, aggregation_column, orders$corine, colors, "Corine metric averages")
-        difference_plots <- create_difference_plot_line(aggregated_difference, aggregation_column, orders$difference, colors, "Metric differences")
+        natura_plots <- create_metric_plot_line(aggregated_natura, aggregation_column, orders$natura, colors, "Natura")
+        corine_plots <- create_metric_plot_line(aggregated_corine, aggregation_column, orders$corine, colors, "Corine")
+        difference_plots <- create_difference_plot_line(aggregated_difference, aggregation_column, orders$difference, colors)
     } else {
         natura_plots <- create_metric_plots(aggregated_natura, aggregation_column, orders$natura)
         corine_plots <- create_metric_plots(aggregated_corine, aggregation_column, orders$corine)
@@ -164,7 +164,7 @@ create_metric_plot_line <- function(data, aggregation_column, order, colors, tit
         scale_colour_manual(values = colors) +
         theme_minimal() +
         labs(
-            title = sprintf("%s for each %s value", title, aggregation_column),
+            title = sprintf("Scaled %s metric averages", title),
             x = aggregation_column,
             y = "Average metric value"
         )
@@ -195,7 +195,7 @@ create_difference_plots <- function(data, aggregation_column, order) {
 }
 
 
-create_difference_plot_line <- function(data, aggregation_column, order, colors, title) {
+create_difference_plot_line <- function(data, aggregation_column, order, colors) {
     
     
     if (!is.null(order)) {
@@ -211,7 +211,7 @@ create_difference_plot_line <- function(data, aggregation_column, order, colors,
         scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
         theme_minimal() +
         labs(
-            title = sprintf("%s heatmap", title),
+            title = "Scaled metric differences heatmap",
             x = aggregation_column,
             y = "Metric",
             fill = "Value"
@@ -493,14 +493,23 @@ long_df$prevalence_group_equal_interval <- cut(
     labels = FALSE
 )
 
-# Add transect prevalence group with equal number of species in each group
-long_df$prevalence_group_equal_species <- cut(
-    long_df$transect_prevalence,
-    breaks = quantile(long_df$transect_prevalence, probs = seq(0, 1, 0.2), na.rm = TRUE),
-    include.lowest = TRUE,
-    labels = FALSE
-)
+long_df$prevalence_group_equal_species <- cut(long_df$transect_prevalence,
+                                              breaks = quantile(long_df$transect_prevalence, 
+                                                                probs = seq(0, 1, 0.2), 
+                                                                na.rm = TRUE),
+                                              include.lowest = TRUE,
+                                              labels = FALSE)
 
+
+# Add mass groups with equal number of species in each group
+min_val <- min(long_df$logmass, na.rm = TRUE)
+max_val <- max(long_df$logmass, na.rm = TRUE)
+long_df$logmass_group_equal_interval <- cut(long_df$logmass,
+                                            breaks = seq(min_val, 
+                                                         max_val, 
+                                                         length.out = 6),
+                                            include.lowest = TRUE,
+                                            labels = FALSE)
 
 
 
@@ -604,6 +613,34 @@ plot_performance(long_df,
                  metric_order[no_averages], 
                  colors,
                  "line")
+plot_performance(long_df, 
+                 "migration", 
+                 NULL, 
+                 c(TRUE, TRUE, TRUE), 
+                 metric_order[no_averages], 
+                 metric_order[no_averages],
+                 metric_order[no_averages], 
+                 colors,
+                 "line")
+plot_performance(long_df, 
+                 "logmass", 
+                 NULL, 
+                 c(TRUE, TRUE, TRUE), 
+                 metric_order[no_averages], 
+                 metric_order[no_averages],
+                 metric_order[no_averages], 
+                 colors,
+                 "line")
+plot_performance(long_df, 
+                 "logmass_group_equal_interval", 
+                 NULL, 
+                 c(TRUE, TRUE, TRUE), 
+                 metric_order[no_averages], 
+                 metric_order[no_averages],
+                 metric_order[no_averages], 
+                 colors,
+                 "line")
+
 
 
 plot_performance(long_df, "sample_prevalence", NULL, c(TRUE, FALSE, TRUE), c("scaled_waic", "exp_pw_AUC"), NULL,  c("average", "scaled_waic", "exp_pw_AUC"))
@@ -667,7 +704,7 @@ for (metric_name in names(metrics_dataframes)) {
 
 # Perform t-test
 test_results <- list()
-for (metric_name in names(metrics_dataframes)) {
+for (metric_name in names(metrics_dataframes)[1:10]) {
     data <- metrics_dataframes[[metric_name]]
     result <- t.test(data$values_natura, data$values_corine, paired = TRUE)
     test_results[[metric_name]] <- result

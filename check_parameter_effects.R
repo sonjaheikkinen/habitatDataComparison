@@ -9,6 +9,12 @@ append_to_file("Additional information regarding parameter estimates\n\n", file_
 # GET MODELS WITH HIGHEST THINNING VALUE
 fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
 
+variance_partitionings <- list()
+raw_variance_partitionings <- list()
+
+associations <- list()
+
+
 # LOOP TROUGH MODELS
 for (model_number in 1:length(fitted_models)) {
     
@@ -21,6 +27,7 @@ for (model_number in 1:length(fitted_models)) {
     number_of_species <- model$ns
     number_of_covariates <- model$nc # Includes intercept, and breakdowns for categorical variables
     number_of_traits <- model$nt
+    
     
     # OPEN PDF FOR GRAPHS
     pdf(file = file.path(dir_results, sprintf("parameter_estimates_%s.pdf", model_name)))
@@ -47,6 +54,8 @@ for (model_number in 1:length(fitted_models)) {
         
         # CALCULATE VARIANCE PARTITIONING
         variance_partitioning <- computeVariancePartitioning(model)
+        variance_partitionings[[model_name]] <- variance_partitioning
+        
         
         # CALCULATE MODEL FIT
         predicted_values <- computePredictedValues(model)
@@ -110,7 +119,7 @@ for (model_number in 1:length(fitted_models)) {
         
         # PLOT VARIANCE PARTITIONING
         #partitioning_colors <- rainbow(nrow(variance_partitioning$vals))
-        partitioning_colors <- c("gold", "darkorange", "grey", "blue", "red", "darkgreen", "green", "lightseagreen", "forestgreen")
+        partitioning_colors <- c("gold", "yellow", "dodgerblue", "blue", "lightblue", "darkgreen", "green", "lightgreen", "forestgreen")
         partitioning_colors <- rev(partitioning_colors)
         plotVariancePartitioning(hM = model, 
                                  VP = variance_partitioning,
@@ -137,6 +146,8 @@ for (model_number in 1:length(fitted_models)) {
             
             # ORDER RAW VARIANCE IN THE SELECTED ORDER
             raw_variance_partitioning$vals <- raw_variance_partitioning$vals[,raw_variance_partition_order]
+            raw_variance_partitionings[[model_name]] <- raw_variance_partitioning
+            
             
             # APPEND SPECIES NAMES IN CORRECT ORDER TO FILE 
             append_to_file("\nraw variance partitioning order\n\n", file_parameter_estimates)
@@ -154,9 +165,16 @@ for (model_number in 1:length(fitted_models)) {
                                      cols = partitioning_colors, 
                                      args.leg = list(bg = "white", cex = 0.7),
                                      ylim = c(0,1))
+            
+            
+            ranked_vals <- apply(variance_partitioning$vals, 2, rank, ties.method = "first")
+            
+            # Keep the same row and column names
+            rownames(ranked_vals) <- rownames(variance_partitioning$vals)
+            colnames(ranked_vals) <- colnames(variance_partitioning$vals)
+            
         }
     }
-
     
     # CREATE BETA PLOT (EFFECT OF ENVIRONMENTAL VARIABLES ON SPECIES)
     # AND SAVE THE SUPPORT VALUES FOR EACH ESTIMATE
@@ -372,6 +390,13 @@ for (model_number in 1:length(fitted_models)) {
                                     names(model$ranLevels)[[random_level_number]],
                                     model_name))
             
+            # SAVE ASSOCIATIONS FOR CORRELATION TEST
+            association_name <- sprintf("%s_%s", 
+                                        names(model$ranLevels)[random_level_number],
+                                        model_name)
+            associations[[association_name]] <- species_associations_df[plot_order, plot_order]
+            
+            
             # WRITE ESTIMATES TO FILE
             omega_posterior_means <- as.data.frame(omega_matrices[[random_level_number]]$mean)
             omega_posterior_means <- cbind(model$spNames, omega_posterior_means)
@@ -396,6 +421,109 @@ for (model_number in 1:length(fitted_models)) {
     dev.off()
     
 }
+
+
+# VARIANCE PLOTS AND CORRELATIONS
+
+
+plot(colSums(raw_variance_partitionings[[1]]$vals),
+     colSums(raw_variance_partitionings[[2]]$vals))
+
+cor(colSums(raw_variance_partitionings[[1]]$vals),
+     colSums(raw_variance_partitionings[[2]]$vals))
+
+
+
+corine_habitat_variables <- c("Effort:Havumetsät.kivennäismaalla",
+                              "Effort:Sekametsät.kivennäismaalla",
+                              "Effort:Sekametsät.turvemaalla",
+                              "Effort:Lehtimetsät.kivennäismaalla",
+                              "Effort:Havumetsät.kalliomaalla")
+
+comparable_variances_corine <- data.frame(t(raw_variance_partitionings[[1]]$vals), check.names = FALSE)
+comparable_variances_corine$HabitatVariables <- rowSums(comparable_variances_corine[,corine_habitat_variables])
+comparable_variances_corine <- t(comparable_variances_corine[,setdiff(colnames(comparable_variances_corine),
+                                                              corine_habitat_variables)])
+
+natura_habitat_variables <- c("Effort:Luonnonmetsät",
+                              "Effort:Tunturikoivikot",
+                              "Effort:Lehdot",
+                              "Effort:Tulvametsät")
+
+comparable_variances_natura <- data.frame(t(raw_variance_partitionings[[2]]$vals), check.names = FALSE)
+comparable_variances_natura$HabitatVariables <- rowSums(comparable_variances_natura[,natura_habitat_variables])
+comparable_variances_natura <- t(comparable_variances_natura[,setdiff(colnames(comparable_variances_natura),
+                                                                      natura_habitat_variables)])
+
+
+colors <- rainbow(ncol(comparable_variances_corine))
+
+plot(comparable_variances_corine[,1] ,
+     comparable_variances_natura[,1],
+     col = colors[1])
+for (i in 2:ncol(comparable_variances_corine)) {
+    points(comparable_variances_corine[,i],
+           comparable_variances_natura[,i],
+           col = colors[i])
+}
+
+correlations <- c()
+for (species in colnames(comparable_values_corine)) {
+    correlations <- c(correlations,
+                      cor(comparable_variances_corine[,species],
+                          comparable_variances_natura[,species]))
+}
+
+correlation_data <- data.frame(correlation = correlations,
+                               species = colnames(comparable_values_corine))
+
+ggplot(correlation_data, aes(x = reorder(species, correlation), y = correlation)) +
+    geom_bar(stat = "identity", fill = "dodgerblue") +
+    labs(title = "Explained variance correlation between models", x = "Species", y = "Correlation") +
+    coord_flip()
+    theme_minimal()
+
+
+
+rowmeans_long_df <- data.frame(mean = c(rowMeans(comparable_variances_corine),
+                                        rowMeans(comparable_variances_natura)),
+                               variable = c(rownames(comparable_variances_corine),
+                                            rownames(comparable_variances_natura)),
+                               type = c(rep("corine", nrow(comparable_variances_corine)),
+                                        rep("natura", nrow(comparable_variances_natura))))
+
+
+
+ggplot(rowmeans_long_df, aes(x = variable, y = mean, fill = type)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = "Mean explained variance by each variable", x = "Variable", y = "Mean explained variance") +
+    theme_minimal()
+
+
+
+# SPECIES ASSOCIATIONS PLOTS AND CORRELATIONS
+
+corine_transect_associations <- associations$Transect_3_probit_corine_forest_thin_100_samples_500_fitted
+natura_transect_associations <- associations$Transect_3_probit_natura_forest_thin_100_samples_500_fitted
+
+natura_transect_associations <- natura_transect_associations[rownames(corine_transect_associations), 
+                                                             colnames(corine_transect_associations)]
+
+
+# Extract upper triangle values
+corine_upper_triangle_indices <- which(upper.tri(corine_transect_associations, diag = F), arr.ind = TRUE )
+corine_values <- data.frame(col = dimnames(corine_transect_associations)[[2]][corine_upper_triangle_indices[,2]],
+                            row = dimnames(corine_transect_associations)[[1]][corine_upper_triangle_indices[,1]],
+                            value = corine_transect_associations[corine_upper_triangle_indices])
+rownames(corine_values) <- paste(corine_values$row, corine_values$col, sep = " ")
+natura_upper_triangle_indices <- which(upper.tri(natura_transect_associations, diag = F), arr.ind = TRUE )
+natura_values <- data.frame(col = dimnames(natura_transect_associations)[[2]][natura_upper_triangle_indices[,2]],
+                            row = dimnames(natura_transect_associations)[[1]][natura_upper_triangle_indices[,1]],
+                            value = natura_transect_associations[natura_upper_triangle_indices])
+rownames(natura_values) <- paste(natura_values$row, natura_values$col, sep = " ")
+
+
+
 
 
 
