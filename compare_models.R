@@ -82,6 +82,34 @@ plot_metric <- function(data) {
 
 
 # FUNCTION FOR PLOTTING SCALED PERFORMANCE VALUES 
+
+plot_difference_line <- function(data,
+                                 aggregation_column,
+                                 colors) {
+    natura <- subset(data, type == "Natura")
+    corine <- subset(data, type == "Corine")
+    difference <- natura 
+    difference$value <- natura$value - corine$value
+    aggregated_difference <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                       data = difference,
+                                       FUN = mean)
+    
+    data <- aggregated_difference
+    
+    ggplot(data, aes(x = .data[[aggregation_column]], y = value, group = metric, color = metric)) +
+        geom_line() +
+        scale_colour_manual(values = colors) +
+        theme_minimal() +
+        geom_hline(yintercept = 0, col = "black") +
+        labs(
+            title = sprintf("Difference averaged over %s", aggregation_column),
+            x = aggregation_column,
+            y = "Average metric difference"
+        )
+    
+}
+
+
 plot_performance <- function(data, 
                              aggregation_column, 
                              orders, 
@@ -117,7 +145,7 @@ plot_performance <- function(data,
     if (plot_type == "line") {
         natura_plots <- create_metric_plot_line(aggregated_natura, aggregation_column, orders$natura, colors, "Natura")
         corine_plots <- create_metric_plot_line(aggregated_corine, aggregation_column, orders$corine, colors, "Corine")
-        difference_plots <- create_difference_plot_line(aggregated_difference, aggregation_column, orders$difference, colors)
+        difference_plots <- create_difference_plot_heatmap(aggregated_difference, aggregation_column, orders$difference, colors)
     } else {
         natura_plots <- create_metric_plots(aggregated_natura, aggregation_column, orders$natura)
         corine_plots <- create_metric_plots(aggregated_corine, aggregation_column, orders$corine)
@@ -195,7 +223,65 @@ create_difference_plots <- function(data, aggregation_column, order) {
 }
 
 
-create_difference_plot_line <- function(data, aggregation_column, order, colors) {
+analyze_difference <- function(data,
+                               aggregation_column,
+                               which_difference) {
+    
+        
+
+        aggregated_natura <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                       data = subset(data, type == "Natura"),
+                                       FUN = mean)
+        aggregated_corine <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                       data = subset(data, type == "Corine"),
+                                       FUN = mean)
+        aggregated_difference <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
+                                           data = subset(data, type == "Difference"),
+                                           FUN = mean)
+    
+        aggregated_difference$winners <- ifelse(aggregated_corine$value > aggregated_natura$value, 
+                                                "corine", 
+                                                "natura")
+        aggregated_difference$value <- ifelse(aggregated_difference$winners == "corine", 
+                                              -1 * aggregated_difference$value, 
+                                              aggregated_difference$value)
+        
+        aggregated_difference <- subset(aggregated_difference, metric %in% which_difference)
+        
+        difference_plots <- create_difference_plot_heatmap(aggregated_difference, aggregation_column)
+        
+        plots <- list(difference_plots)
+        
+        grid.arrange(grobs = plots,
+                     ncol = 1)
+        
+        
+        difference <- subset(data, type == "Difference")
+        natura <- subset(data, type == "Natura")
+        corine <- subset(data, type == "Corine")
+        difference$winner <- ifelse(natura$value > corine$value,
+                                           "natura",
+                                           "corine")
+        difference$value <- ifelse(difference$winner == "corine",
+                                   -1 * difference$value,
+                                   difference$value)
+        difference$natura_winner <- as.numeric(difference$winner == "natura")
+        difference <- subset(difference, metric %in% which_difference)
+        
+        natura_wins <- table(difference[[aggregation_column]], difference$value > 0)
+        natura_wins <- data.frame(wins = natura_wins[,"TRUE"],
+                                  losses = natura_wins[,"FALSE"],
+                                  fraction = natura_wins[,"TRUE"] / rowSums(natura_wins))
+        print(natura_wins)
+        
+        fit <- glm(natura_winner ~ get(aggregation_column), data = difference, family = binomial)
+        summary(fit)
+        
+}
+
+
+
+create_difference_plot_heatmap <- function(data, aggregation_column, order = NULL) {
     
     
     if (!is.null(order)) {
@@ -238,6 +324,8 @@ create_difference_plot_line <- function(data, aggregation_column, order, colors)
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
 load(file.path(dir_data, "species_prevalences.RData"))
 load(file.path(dir_data, "trait_data.RData"))
+load(file.path(dir_data, "env_data_natura.RData"))
+load(file.path(dir_data, "env_data_corine.RData"))
 trait_data <- as.data.frame(trait_data)
 rownames(trait_data) <- trait_data$Species
 load(file = file.path(dir_data, "phylogeny_data.RData"))
@@ -353,7 +441,7 @@ overall_rmse_comparison_plot <- ggplot(rmse_results,
                                     coord_flip()
 
 overall_waic_comparison_plot <- ggplot(waic_results, 
-                                       aes(x = model, y s= value, fill = model)) +
+                                       aes(x = model, y= value, fill = model)) +
                                     geom_boxplot() +
                                     labs(x = "Model", y = "WAIC") +
                                     scale_fill_manual(values = c("Natura" = "lightblue",
@@ -373,6 +461,170 @@ grid.arrange(overall_tjurr2_comparison_plot,
              ncol = 1)
 
 
+
+# UNSCALED PAIRED T-TEST
+metric_order <- c("average", 
+                  "average_rmse",
+                  "average_tjurr2",
+                  "average_auc",
+                  "average_explanatory_power",
+                  "average_predictive_power_transect",
+                  "average_predictive_power_year",
+                  "exp_pw_TjurR2",
+                  "pred_pw_transect_TjurR2",
+                  "pred_pw_year_TjurR2",
+                  "exp_pw_AUC",
+                  "pred_pw_transect_AUC",
+                  "pred_pw_year_AUC",
+                  "scaled_exp_pw_RMSE",
+                  "scaled_pred_pw_transect_RMSE",
+                  "scaled_pred_pw_year_RMSE",
+                  "scaled_waic")
+all_true <- rep(TRUE, times = length(metrics))
+all_false <- rep(FALSE, times = length(metrics))
+only_averages <- all_false
+only_averages[1:7] <- TRUE
+no_averages <- all_true
+no_averages[1:7] <- FALSE
+
+
+
+
+
+
+# First transform data to wide format for t-test
+metric_dataframe <- data.frame(values_natura = waic_results[waic_results$model == "Natura",]$value,
+                               values_corine = waic_results[waic_results$model == "Corine",]$value,
+                               species = species_list,
+                               metric = rep("WAIC", length(species_list)))
+add_metric <- function(dataframe, metric_data, species_list,metric_name) {
+    types <- c("Explanatory_power", "Predictive_power_transect", "Predictive_power_year")
+    for (metric_type in types) {
+        dataframe <- rbind(dataframe, data.frame(values_natura = metric_data[metric_data$model == "Natura" & metric_data$metric == metric_type,]$value,
+                                                 values_corine = metric_data[metric_data$model == "Corine" & metric_data$metric == metric_type,]$value,
+                                                 species = species_list,
+                                                 metric = rep(sprintf("%s_%s", metric_name, metric_type), length(species_list))))
+    }
+    return (dataframe)
+}
+metric_dataframe <- add_metric(metric_dataframe, rmse_results, species_list, "RMSE")
+metric_dataframe <- add_metric(metric_dataframe, tjurr2_results, species_list, "TjurR2")
+metric_dataframe <- add_metric(metric_dataframe, auc_results, species_list, "AUC")
+
+
+# Check for skew in the differences
+difference_between_corine_and_natura <- metric_dataframe$values_natura - metric_dataframe$values_corine
+hist(difference_between_corine_and_natura)
+
+
+# Perform t-test
+result_total <- t.test(metric_dataframe$values_natura, metric_dataframe$values_corine, paired = TRUE)
+print(result_total)
+
+for (metric in unique(metric_dataframe$metric)) {
+    print(metric)
+    print(t.test(metric_dataframe[metric_dataframe$metric == metric, ]$values_natura, 
+                          metric_dataframe[metric_dataframe$metric == metric, ]$values_corine, 
+                          paired = TRUE))
+}
+
+
+
+# UNSCALED CORRELATION
+metric_dataframe_wide_natura <- data.frame(WAIC = metric_dataframe[metric_dataframe$metric == "WAIC",]$values_natura)
+metric_dataframe_wide_corine <- data.frame(WAIC = metric_dataframe[metric_dataframe$metric == "WAIC",]$values_corine)
+for (metric in unique(metric_dataframe$metric)) {
+    metric_dataframe_wide_natura[,metric] <- metric_dataframe[metric_dataframe$metric == metric,]$values_natura
+    metric_dataframe_wide_corine[,metric] <- metric_dataframe[metric_dataframe$metric == metric,]$values_corine
+}
+
+correlations <- data.frame(metric = unique(metric_dataframe$metric),
+                           value = rep(0, length(unique(metric_dataframe$metric))))
+
+for (metric in unique(metric_dataframe$metric)) {
+    correlations[correlations$metric == metric,]$value <- cor(metric_dataframe_wide_natura[,metric],
+                                                        metric_dataframe_wide_corine[,metric])
+}
+print(ggplot(correlations, aes(x = reorder(metric, value), y = value)) +
+          geom_col(fill = "dodgerblue") +
+          coord_flip() +  
+          labs(x = "Metric", y = "Value", title = "Metric correlations between models") +
+          theme_minimal())
+
+
+pheatmap(cor(metric_dataframe_wide_corine),
+         display_numbers = TRUE,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE)
+
+pheatmap(cor(metric_dataframe_wide_natura),
+         display_numbers = TRUE,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE)
+
+
+
+# UNSCALED TRAIT COMPARISON
+metric_dataframe_wide_difference <- metric_dataframe_wide_natura - metric_dataframe_wide_corine
+rownames(metric_dataframe_wide_difference) <- species_list
+
+for (metric in colnames(metric_dataframe_wide_difference)) {
+    df_for_metric <- metric_dataframe_wide_difference[,metric,drop=FALSE]
+    df_for_metric <- df_for_metric[order(df_for_metric[,metric]),,drop=FALSE]  
+    mass <- trait_data[trait_data$Species == df_for_metric$species,]$Mass
+    df_for_metric_long <- data.frame(species = rep(rownames(df_for_metric), 2),
+                                     attribute = c(rep(metric, nrow(df_for_metric)),
+                                                   rep("mass", nrow(df_for_metric))),
+                                     value = c(df_for_metric[,metric],
+                                               mass / max(mass)))
+    df_for_metric_long$species <- factor(rownames(df_for_metric), 
+                                       levels = rownames(df_for_metric))
+    colors <- rainbow(length(unique(df_for_metric_long$attribute)))
+    ggplot(df_for_metric_long, aes(x = species, y = value, group = attribute, color = attribute)) +
+        geom_line() +
+        scale_colour_manual(values = colors) +
+        theme_minimal() +
+        labs(title = sprintf("%s", metric),
+            x = "Species",
+            y = "Value"
+        ) + 
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+}
+
+colors <- c("steelblue1", "steelblue2", "steelblue3", 
+            "yellow1", "yellow2", "yellow3", 
+            "green1", "darkgreen", "forestgreen", 
+            "red")
+
+metric_dataframe_long <- data.frame(type = c(rep("Natura", nrow(metric_dataframe)),
+                                             rep("Corine", nrow(metric_dataframe))),
+                                    value = c(metric_dataframe$values_natura, 
+                                              metric_dataframe$values_corine),
+                                    species = rep(metric_dataframe$species, 2),
+                                    metric = rep(metric_dataframe$metric, 2))
+metric_dataframe_long$mass <- trait_data[metric_dataframe_long$species,]$Mass
+metric_dataframe_long$logmass <- trait_data[metric_dataframe_long$species,]$LogMass
+metric_dataframe_long$feeding <- trait_data[metric_dataframe_long$species,]$Feeding
+metric_dataframe_long$mig <- trait_data[metric_dataframe_long$species,]$Mig
+metric_dataframe_long$transect_prevalence <- species_prevalences[metric_dataframe_long$species,]$transects
+metric_dataframe_long$year_prevalence <- species_prevalences[metric_dataframe_long$species,]$years
+metric_dataframe_long$sample_prevalence <- species_prevalences[metric_dataframe_long$species,]$samples
+par(mfrow = c(2, 3))
+grid.arrange(plot_difference_line(metric_dataframe_long, "logmass", colors),
+             plot_difference_line(metric_dataframe_long, "feeding", colors),
+             plot_difference_line(metric_dataframe_long, "mig", colors),
+             plot_difference_line(metric_dataframe_long, "transect_prevalence", colors))
+
+
+pheatmap(cor(metric_dataframe_wide_difference, cbind(transect_prevalence = species_prevalences[rownames(metric_dataframe_wide_difference), c("transects")], 
+                                                     mass = trait_data[rownames(metric_dataframe_wide_difference),]$Mass)),
+         display_numbers = TRUE,
+         cluster_rows = FALSE)
+
+                                
+
+sapply(metric_dataframe_wide_natura, min, na.rm = TRUE)
+sapply(metric_dataframe_wide_natura, max, na.rm = TRUE)
 
 
 
@@ -516,23 +768,6 @@ long_df$logmass_group_equal_interval <- cut(long_df$logmass,
 
 # CREATE FACTORS FOR PLOT ORDERING
 
-metric_order <- c("average", 
-                  "average_rmse",
-                  "average_tjurr2",
-                  "average_auc",
-                  "average_explanatory_power",
-                  "average_predictive_power_transect",
-                  "average_predictive_power_year",
-                  "exp_pw_TjurR2",
-                  "pred_pw_transect_TjurR2",
-                  "pred_pw_year_TjurR2",
-                  "exp_pw_AUC",
-                  "pred_pw_transect_AUC",
-                  "pred_pw_year_AUC",
-                  "scaled_exp_pw_RMSE",
-                  "scaled_pred_pw_transect_RMSE",
-                  "scaled_pred_pw_year_RMSE",
-                  "scaled_waic")
 
 long_df$metric <- factor(long_df$metric, levels = metric_order)
 
@@ -549,16 +784,6 @@ species_orders$difference <- species[order(natura_wins,
 
 
 # CREATE SPECIES VS FIT PLOTS
-all_true <- rep(TRUE, times = length(metrics))
-all_false <- rep(FALSE, times = length(metrics))
-only_averages <- all_false
-only_averages[1:7] <- TRUE
-no_averages <- all_true
-no_averages[1:7] <- FALSE
-
-
-
-plot_performance(long_df, "species", species_orders, c(FALSE, FALSE, TRUE), NULL, NULL, metric_order[only_averages])
 
 
 
@@ -567,12 +792,17 @@ max_absolute_difference <- max(natura_corine_absolute_difference)
 color_palette_breaks <- seq(-max_absolute_difference, 
                             max_absolute_difference,
                             length.out = 11)
-pheatmap(natura_bigger[,metric_order[8:length(metric_order)]],
-         cluster_cols = FALSE)
+species_division <- pheatmap(natura_bigger[,metric_order[8:length(metric_order)]],
+                            cluster_cols = FALSE)
+species_clusters <- cluster_assignments <- cutree(species_division$tree_row, k = 2)
 pheatmap(signed_difference[,metric_order[8:length(metric_order)]],
          color = colorRampPalette(c("blue", "white", "red"))(10),
          breaks = color_palette_breaks,
          cluster_cols = FALSE)
+
+
+
+
 
 
 
@@ -598,7 +828,7 @@ colors <- c("steelblue1", "steelblue2", "steelblue3",
 plot_performance(long_df, 
                  "transect_prevalence", 
                  NULL, 
-                 c(TRUE, TRUE, TRUE), 
+                 c(FALSE, FALSE, TRUE), 
                  metric_order[no_averages], 
                  metric_order[no_averages],
                  metric_order[no_averages], 
@@ -607,7 +837,7 @@ plot_performance(long_df,
 plot_performance(long_df, 
                  "feeding", 
                  NULL, 
-                 c(TRUE, TRUE, TRUE), 
+                 c(FALSE, FALSE, TRUE), 
                  metric_order[no_averages], 
                  metric_order[no_averages],
                  metric_order[no_averages], 
@@ -642,15 +872,21 @@ plot_performance(long_df,
                  "line")
 
 
+long_df$feeding_category <- ifelse(long_df$feeding %in% c("M", "O"),
+                                   "generalist",
+                                   "specialist")
 
-plot_performance(long_df, "sample_prevalence", NULL, c(TRUE, FALSE, TRUE), c("scaled_waic", "exp_pw_AUC"), NULL,  c("average", "scaled_waic", "exp_pw_AUC"))
 
-plot_performance(long_df, "year_prevalence", NULL, c(TRUE, FALSE, TRUE), c("scaled_waic", "exp_pw_TjurR2"), NULL,  c("average", "scaled_waic", "exp_pw_TjurR2"))
+analyze_difference(long_df, 
+                 "feeding_category", 
+                 metric_order[no_averages])
+analyze_difference(long_df, 
+                   "mass", 
+                   metric_order[no_averages])
 
-plot_performance(long_df, "prevalence_group_equal_interval", NULL, c(TRUE, TRUE, TRUE), metric_order[only_averages], metric_order[only_averages], metric_order[only_averages])
-plot_performance(long_df, "prevalence_group_equal_interval", NULL, c(TRUE, TRUE, TRUE), metric_order[no_averages], metric_order[no_averages], metric_order[no_averages])
-plot_performance(long_df, "prevalence_group_equal_species", NULL, c(TRUE, TRUE, TRUE), metric_order[only_averages], metric_order[only_averages], metric_order[only_averages])
-plot_performance(long_df, "prevalence_group_equal_species", NULL, c(TRUE, TRUE, TRUE), metric_order[no_averages], metric_order[no_averages], metric_order[no_averages])
+
+
+
 
 
 
@@ -662,12 +898,147 @@ barplot(table(species_prevalences[unique(long_df$species), c("years")]))
 
 
 
+# FIT VS HABITATS PLOTS
+
+fitted_models <- list.files(dir_fitted, pattern="*.RData", full.names=TRUE)
+
+corine_habitat_variables <- c("Havumetsät.kivennäismaalla",
+                              "Sekametsät.kivennäismaalla",
+                              "Sekametsät.turvemaalla",
+                              "Lehtimetsät.kivennäismaalla",
+                              "Havumetsät.kalliomaalla",
+                              "CorinePatchDensity")
+env_data_corine$CorinePatchDensity <- env_data_corine$PatchDensity
+natura_habitat_variables <- c("Luonnonmetsät",
+                              "Tunturikoivikot",
+                              "Lehdot",
+                              "Tulvametsät",
+                              "NaturaPatchDensity")
+env_data_natura$NaturaPatchDensity <- env_data_natura$PatchDensity
+other_variables <- c("Temperature",
+                     "Rainfall")
+
+for (variable in c(corine_habitat_variables, natura_habitat_variables, other_variables)) {
+    long_df[,variable] <- rep(0, nrow(long_df))
+}
+
+for (species in unique(long_df$species)) {
+    load(fitted_models[[1]])
+    rows_for_species <- fitted_model$Y[,species] == 1
+    env_data_natura_species <- env_data_natura[rows_for_species,]
+    env_data_corine_species <- env_data_corine[rows_for_species,]
+    for (variable in natura_habitat_variables) {
+        long_df[long_df$species == species, variable] <- mean(env_data_natura_species[,variable])
+        
+    }
+    for (variable in corine_habitat_variables) {
+        long_df[long_df$species == species, variable] <- mean(env_data_corine_species[,variable])
+    }
+    for (variable in other_variables) {
+        long_df[long_df$species == species, variable] <- mean(env_data_natura_species[,variable])
+    }
+}
 
 
-# CREATE FIT VS TRAIT PLOTS
+for (variable in c(corine_habitat_variables, natura_habitat_variables, other_variables)) {
+    grouped_variable_name <- sprintf("grouped_%s", variable)
+    long_df[,grouped_variable_name] <- cut(long_df[,variable],
+                                           breaks = seq(min(long_df[,variable]), 
+                                                        max(long_df[,variable]), 
+                                                        length.out = 6),
+                                           include.lowest = TRUE,
+                                           labels = FALSE)
+    plot_performance(long_df, 
+                     grouped_variable_name, 
+                     NULL, 
+                     c(TRUE, TRUE, TRUE), 
+                     metric_order[no_averages], 
+                     metric_order[no_averages],
+                     metric_order[no_averages], 
+                     colors,
+                     "line")
+}
 
-plot_performance(long_df, "feeding", NULL)
-plot_performance(long_df, "migration", NULL)
+
+
+
+# CHECK SPECIES TRAIT CORRELATIONS
+
+species_traits_and_ecological_traits <- c("sample_prevalence",
+                                          "transect_prevalence",
+                                          "year_prevalence",
+                                          "feeding",
+                                          "mass",
+                                          "logmass",
+                                          "migration",
+                                          "Havumetsät.kivennäismaalla",
+                                          "Sekametsät.kivennäismaalla",
+                                          "Sekametsät.turvemaalla",
+                                          "Lehtimetsät.kivennäismaalla",
+                                          "Havumetsät.kalliomaalla",
+                                          "NaturaPatchDensity",
+                                          "CorinePatchDensity",
+                                          "Luonnonmetsät",
+                                          "Tunturikoivikot",
+                                          "Lehdot",
+                                          "Tulvametsät",
+                                          "Temperature",
+                                          "Rainfall")
+species_expanded_traits <- unique(long_df[long_df$type == "Natura", 
+                                          c(species_traits_and_ecological_traits, "species")])
+rownames(species_expanded_traits) <- species_expanded_traits$species
+species_expanded_traits$species <- NULL
+                                 
+     
+plot(species_expanded_traits)
+boxplot(mass ~ feeding, 
+        data = species_expanded_traits,
+        main = "Mass by Feeding Category",
+        xlab = "Feeding Category",
+        ylab = "Mass",
+        col = "lightblue",
+        border = "darkblue")
+
+
+
+species_expanded_traits$cluster <- rep(0, nrow(species_expanded_traits))
+for (species in rownames(species_expanded_traits)) {
+    species_expanded_traits[species,]$cluster <- species_clusters[species]
+}
+species_expanded_traits$cluster <- ifelse(species_expanded_traits$cluster == 1,
+                                  "corine",
+                                  "natura")
+
+numeric_cols <- sapply(species_expanded_traits, is.numeric)
+numeric_names <- names(numeric_cols)[numeric_cols]
+
+par(mfrow = c(3, 3))  # adjust grid depending on how many traits you have
+for (trait in numeric_names) {
+    print(boxplot(species_expanded_traits[,trait] ~ species_expanded_traits$cluster,
+            main = paste("Trait:", trait),
+            xlab = "Cluster",
+            ylab = trait,
+            col = c("lightblue", "lightgreen")))
+}
+par(mfrow = c(1, 1))  # reset layout
+
+
+cat_cols <- sapply(species_expanded_traits, function(x) is.character(x) || is.factor(x))
+cat_names <- names(cat_cols)[cat_cols]
+
+par(mfrow = c(2, 2))  
+for (trait in cat_names) {
+    tab <- table(species_expanded_traits[,trait], species_expanded_traits$cluster)
+    barplot(tab,
+            beside = TRUE,
+            main = paste("Trait:", trait),
+            xlab = trait,
+            ylab = "Count",
+            legend.text = TRUE,
+            args.legend = list(title = "Cluster", x = "topright"))
+}
+par(mfrow = c(1, 1))
+
 
 
 
@@ -681,36 +1052,48 @@ plot_performance(long_df, "migration", NULL)
 # Random effect: species
 
 # First transform data to wide format for t-test
-metrics_dataframes <- list()
-for (metric_name in metrics) {
+metric_dataframe <- data.frame()
+for (metric_name in metric_order[no_averages]) {
     # Transform data to wide format
     metric_values_natura <- long_df[long_df$metric == metric_name & long_df$type == "Natura", c("value")]
     metric_values_corine <- long_df[long_df$metric == metric_name & long_df$type == "Corine", c("value")]
     species <- long_df[long_df$metric == metric_name & long_df$type == "Natura", c("species")]
-    metric_dataframe <- data.frame(values_natura = metric_values_natura,
-                                   values_corine = metric_values_corine)
-    rownames(metric_dataframe) <- species
-    metrics_dataframes[[metric_name]] <- metric_dataframe
+    metric_dataframe <- rbind(metric_dataframe, data.frame(values_natura = metric_values_natura,
+                                                           values_corine = metric_values_corine,
+                                                           species = species,
+                                                           metric = rep(metric_name, length(species))))
 }
 
 # Check for skew in the differences
-for (metric_name in names(metrics_dataframes)) {
-    data <- metrics_dataframes[[metric_name]]
-    difference_between_corine_and_natura <- data$values_natura - data$values_corine
-    hist(difference_between_corine_and_natura,
-         main = metric_name)
-}
+difference_between_corine_and_natura <- metric_dataframe$values_natura - metric_dataframe$values_corine
+hist(difference_between_corine_and_natura)
 
 
 # Perform t-test
-test_results <- list()
-for (metric_name in names(metrics_dataframes)[1:10]) {
-    data <- metrics_dataframes[[metric_name]]
-    result <- t.test(data$values_natura, data$values_corine, paired = TRUE)
-    test_results[[metric_name]] <- result
-}
+result_total <- t.test(metric_dataframe$values_natura, metric_dataframe$values_corine, paired = TRUE)
+print(result_total)
 
-test_results
+# Test waic
+result_waic <- t.test(metric_dataframe[metric_dataframe$metric == "scaled_waic", ]$values_natura, 
+                       metric_dataframe[metric_dataframe$metric == "scaled_waic", ]$values_corine, 
+                       paired = TRUE)
+print(result_waic)
+
+# Test predictive power transect
+transect_metrics <- c("scaled_pred_pw_transect_RMSE", "pred_pw_transect_AUC", "pred_pw_transect_TjurR2")
+result_transect <- t.test(metric_dataframe[metric_dataframe$metric %in% transect_metrics, ]$values_natura, 
+                          metric_dataframe[metric_dataframe$metric %in% transect_metrics, ]$values_corine, 
+                          paired = TRUE)
+print(result_transect)
+
+
+# Test predictive power year
+year_metrics <- c("scaled_pred_pw_year_RMSE", "pred_pw_year_AUC", "pred_pw_year_TjurR2")
+result_year <- t.test(metric_dataframe[metric_dataframe$metric %in% year_metrics, ]$values_natura, 
+                          metric_dataframe[metric_dataframe$metric %in% year_metrics, ]$values_corine, 
+                          paired = TRUE)
+print(result_year)
+
 
 
 
@@ -802,7 +1185,9 @@ calculate_within_model_correlations(long_df, "year_prevalence", metric_order[no_
 
 
 
-# COMPARE PREDICTIONS BETWEEN CORINE AND NATURA
+# COMPARE PREDICTIONS TO MODEL FIT
+
+# 
 
 
 

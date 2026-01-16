@@ -21,6 +21,8 @@ natura_classification <- read_excel(file.path(dir_data, "Ylalappi_luokitus.xls")
 corine_classification <- read_excel(file.path(dir_data, "CorineMaanpeite2018Luokat.xls"))
 
 
+
+
 # NAME MAPPING FOR HABITAT
 names_natura <- data.frame(value = natura_classification$Value, name = natura_classification$NaturaTyyppi)
 names_corine <- data.frame(value = corine_classification$Value, name = corine_classification$Level4Suo)
@@ -176,20 +178,31 @@ corine_fractions_long <- data.frame(
     fraction = as.vector(as.matrix(fractions_corine))
 )
 
+corine_habitat_variables <- c("Havumetsät.kivennäismaalla",
+                              "Sekametsät.kivennäismaalla",
+                              "Sekametsät.turvemaalla",
+                              "Lehtimetsät.kivennäismaalla",
+                              "Havumetsät.kalliomaalla",
+                              "CorinePatchDensity")
+natura_habitat_variables <- c("Luonnonmetsät",
+                              "Tunturikoivikot",
+                              "Lehdot",
+                              "Tulvametsät",
+                              "NaturaPatchDensity")
 
-natura_ridgeline <- ggplot(natura_fractions_long, 
+natura_ridgeline <- ggplot(natura_fractions_long[natura_fractions_long$variable %in% natura_habitat_variables,], 
                            aes(x = fraction, y = variable, fill = variable)) +
                     geom_density_ridges(scale = 1.2, alpha = 0.7) +
-                    labs(title = "2A Natura transect fractions", 
+                    labs(title = "Distribution of Natura type fractions", 
                          x = "Fraction", 
                          y = "Habitat type") + 
                     theme_minimal() + 
                     theme(legend.position = "none")
 
-corine_ridgeline <- ggplot(corine_fractions_long, 
+corine_ridgeline <- ggplot(corine_fractions_long[corine_fractions_long$variable %in% corine_habitat_variables,], 
                            aes(x = fraction, y = variable, fill = variable)) + 
                     geom_density_ridges(scale = 1.2, alpha = 0.7) +
-                    labs(title = "2B Corine transect fractions", 
+                    labs(title = "Distribution of Corine type fractions", 
                          x = "Fraction", 
                          y = "Land cover type") + 
                     theme_minimal() +
@@ -198,8 +211,6 @@ corine_ridgeline <- ggplot(corine_fractions_long,
 
 # Arrange all plots to grid
 grid.arrange(
-    natura_barplot,
-    corine_barplot,
     natura_ridgeline,
     corine_ridgeline,
     ncol = 2
@@ -237,26 +248,51 @@ plot_histogram(env_data_natura$Effort,
 
 
 
+# SPECIES TRAITS PLOTS
+par(mfrow = c(1, 3))
+barplot(table(trait_data$Feeding), 
+        main = "Feeding")
+barplot(table(trait_data$Mig), 
+        main = "Migration")
+hist(trait_data$Mass,
+     main = "Histogram of mass", 
+     xlab = "Mass")
+
+
+
+
+
+
+
 
 
 
 # WITHIN DATASET CORRELATIONS
-natura_correlation_columns <- c(colnames(fractions_natura),
+env_data_natura$NaturaPatchDensity <- env_data_natura$PatchDensity
+env_data_corine$CorinePatchDensity <- env_data_corine$PatchDensity
+natura_correlation_columns <- c(natura_habitat_variables,
                                 "Temperature",
-                                "Rainfall",
-                                "PatchDensity")
-corine_correlation_columns <- c(colnames(fractions_corine),
+                                "Rainfall")
+corine_correlation_columns <- c(corine_habitat_variables,
                                 "Temperature",
-                                "Rainfall",
-                                "PatchDensity")
+                                "Rainfall")
 pheatmap(cor(env_data_natura[,natura_correlation_columns]), 
          display_numbers = TRUE,
          cluster_rows = FALSE,
-         cluster_cols = FALSE)
+         cluster_cols = FALSE,
+         main = "Natura variable correlations")
 pheatmap(cor(env_data_corine[,corine_correlation_columns]), 
          display_numbers = TRUE,
          cluster_rows = FALSE,
-         cluster_cols = FALSE)
+         cluster_cols = FALSE,
+         main = "Corine variable correlations")
+
+par(mfrow = c(1, 2))
+hist(as.vector(cor(env_data_natura[,natura_correlation_columns])),
+     main = "Histogram of Natura correlations")
+hist(as.vector(cor(env_data_corine[,corine_correlation_columns])),
+     main = "Histogram of Corine correlations")
+          
 
 # CALCULATE ENVIRONMENTAL DATA
 
@@ -629,106 +665,27 @@ legend("topleft",
 
 
 
-# SPECIES VS ENVIRONMENT TRANSECT SCATTERPLOTS
-
-par(mfrow = c(2, 2))
-
-plot(abundance_transect_averages$Abundance, 
-     natura_transect_averages[,natura_forest_types[1]],
-     col = colors[1],
-     xlab = "Average transect abundance",
-     ylab = "Fraction of type",
-     main = "Abundance vs. Natura type fraction")
-for (type_number in 2:length(natura_forest_types)) {
-    points(abundance_transect_averages$Abundance,
-           natura_transect_averages[, natura_forest_types[type_number]],
-           col = colors[type_number])
-}
-legend("topleft",
-       legend = natura_forest_types,
-       col = colors,
-       cex = 0.7,
-       pch = 21,
-       bty = "n")
-
-plot(transect_species_richness$richness, 
-     natura_transect_averages[,natura_forest_types[1]],
-     col = colors[1],
-     xlab = "Transect species richness",
-     ylab = "Fraction of type",
-     main = "Richness vs. Natura type fraction")
-for (type_number in 2:length(natura_forest_types)) {
-    points(transect_species_richness$richness,
-           natura_transect_averages[, natura_forest_types[type_number]],
-           col = colors[type_number])
-}
-legend("topleft",
-       legend = natura_forest_types,
-       col = colors,
-       cex = 0.7,
-       pch = 21,
-       bty = "n")
-
-
-colors <- rainbow(length(corine_forest_types))
-
-plot(abundance_transect_averages$Abundance, 
-     corine_transect_averages[,corine_forest_types[1]],
-     col = colors[1],
-     xlab = "Average transect abundance",
-     ylab = "Fraction of type",
-     main = "Abundance vs. Corine type fraction")
-for (type_number in 2:length(corine_forest_types)) {
-    points(abundance_transect_averages$Abundance,
-           corine_transect_averages[, corine_forest_types[type_number]],
-           col = colors[type_number])
-}
-legend("topleft",
-       legend = corine_forest_types,
-       col = colors,
-       cex = 0.7,
-       pch = 21,
-       bty = "n")
-plot(transect_species_richness$richness, 
-     corine_transect_averages[,corine_forest_types[1]],
-     col = colors[1],
-     xlab = "Transect species richness",
-     ylab = "Fraction of type",
-     main = "Richness vs. Corine type fraction")
-for (type_number in 2:length(corine_forest_types)) {
-    points(transect_species_richness$richness,
-           corine_transect_averages[, corine_forest_types[type_number]],
-           col = colors[type_number])
-}
-legend("topleft",
-       legend = corine_forest_types,
-       col = colors,
-       cex = 0.7,
-       pch = 21,
-       bty = "n")
-
+# SPECIES VS ENVIRONMENT CORRELATION
 
 variables_to_plot <- c("Temperature", 
                        "Rainfall", 
-                       "PatchDensity", 
                        "Effort")
 
-for (covariate in variables_to_plot) {
-    plot(abundance_transect_averages$Abundance, 
-         corine_transect_averages[,covariate],
-         xlab = "Average transect abundance",
-         ylab = sprintf("%s", covariate),
-         main = sprintf("Abundance vs. %s", covariate))
-    plot(transect_species_richness$richness, 
-         corine_transect_averages[,covariate],
-         xlab = "Transect species richness",
-         ylab = sprintf("%s", covariate),
-         main = sprintf("Richness vs. %s", covariate))
-}
+par(mfrow = c(1, 2))
+old_par <- par(no.readonly = TRUE) 
+par(mar = c(old_par$mar[1], 13, old_par$mar[3], old_par$mar[4]))
+barplot(cor(transect_species_richness$richness, cbind(natura_transect_averages[,natura_habitat_variables],
+                                                      corine_transect_averages[,corine_habitat_variables],
+                                                      corine_transect_averages[,variables_to_plot])),
+        horiz = TRUE,
+        las = 2,
+        xlab = "Pearson correlation",
+        main = "Correlation between \ntransect average species richness \nand environmental data")
 
-
-
-
+pheatmap(cor(natura_transect_averages[,natura_habitat_variables], 
+             corine_transect_averages[,corine_habitat_variables],),
+         display_numbers = TRUE)
+par <- (old_par)
 
 
 
@@ -854,6 +811,8 @@ text(species_prevalences,
      pos = 3)
 par(old_par)
 
+plot(trait_data[names(species_site_fidelities),]$Mass, species_site_fidelities, )
+
 
 # EXPLORE TRANSECT EFFORT AGAINST TYPES
 selected_transects <- unique(spatiotemporal_context$Transect)
@@ -881,6 +840,31 @@ for (type in natura_forest_types) {
          col = colors,
          main = sprintf("%s", type))
 }
+
+
+# TRAIT CORRELATIONS
+
+
+
+chisq.test(table(trait_data$Feeding, trait_data$Mig),
+           sim = TRUE,
+           B = 100000)
+
+
+boxplot_data <- cbind(trait_data[,c("Feeding", "Mig", "Mass")], 
+                      sample_prevalence,
+                      transect_prevalence,
+                      year_prevalence)
+
+boxplot(Mass ~ Feeding, data = boxplot_data)
+boxplot(sample_prevalence ~ Feeding, data = boxplot_data)
+boxplot(transect_prevalence ~ Feeding, data = boxplot_data)
+boxplot(year_prevalence ~ Feeding, data = boxplot_data)
+
+boxplot(Mass ~ Mig, data = boxplot_data)
+boxplot(sample_prevalence ~ Mig, data = boxplot_data)
+boxplot(transect_prevalence ~ Mig, data = boxplot_data)
+boxplot(year_prevalence ~ Mig, data = boxplot_data)
 
 
 

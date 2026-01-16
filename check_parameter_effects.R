@@ -468,14 +468,14 @@ for (i in 2:ncol(comparable_variances_corine)) {
 }
 
 correlations <- c()
-for (species in colnames(comparable_values_corine)) {
+for (species in colnames(comparable_variances_corine)) {
     correlations <- c(correlations,
                       cor(comparable_variances_corine[,species],
                           comparable_variances_natura[,species]))
 }
 
 correlation_data <- data.frame(correlation = correlations,
-                               species = colnames(comparable_values_corine))
+                               species = colnames(comparable_variances_corine))
 
 ggplot(correlation_data, aes(x = reorder(species, correlation), y = correlation)) +
     geom_bar(stat = "identity", fill = "dodgerblue") +
@@ -521,6 +521,9 @@ natura_values <- data.frame(col = dimnames(natura_transect_associations)[[2]][na
                             row = dimnames(natura_transect_associations)[[1]][natura_upper_triangle_indices[,1]],
                             value = natura_transect_associations[natura_upper_triangle_indices])
 rownames(natura_values) <- paste(natura_values$row, natura_values$col, sep = " ")
+
+
+colSums(comparable_variances_natura) > colSums(comparable_variances_corine)
 
 
 
