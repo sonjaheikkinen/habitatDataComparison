@@ -16,7 +16,7 @@ for (model_number in 1:length(model_list)) {
     print(sprintf("Fitting started %s", date()))
     
     
-for (thinning_value_number in 1:length(thinning_values)) {
+    for (thinning_value_number in 1:length(thinning_values)) {
         
         thinning_value <- thinning_values[thinning_value_number]
         

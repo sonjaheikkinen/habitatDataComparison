@@ -46,7 +46,7 @@ spatial_coordinates <- unique(spatiotemporal_context[, c("Transect", "x", "y")])
 rownames(spatial_coordinates) <- spatial_coordinates$Transect
 spatial_coordinates$Transect <- NULL
 randomlevel_spatial <- HmscRandomLevel(sData = spatial_coordinates)
-randomlevel_spatial$nfMax <- 3
+#randomlevel_spatial$nfMax <- 3
 
 
 # Create year-level temporal random effect 
@@ -54,7 +54,7 @@ randomlevel_spatial$nfMax <- 3
 temporal_coordinates <- data.frame(Year = unique(spatiotemporal_context$Year))
 rownames(temporal_coordinates) <- temporal_coordinates$Year
 randomlevel_temporal <- HmscRandomLevel(sData = temporal_coordinates)
-randomlevel_temporal$nfMax <- 3
+#randomlevel_temporal$nfMax <- 3
 
 
 # Create non-spatial random effects for transect and year
@@ -249,13 +249,13 @@ lognormal_corine <- Hmsc(Y = abundance,
 
 #If needed, test that model works properly:
 #print(sprintf("Fitting started %s", date()))
-#fitted <- sampleMcmc(probit_natura_forest_phyl, samples = 3, nChains = 4)
+fitted <- sampleMcmc(probit_natura_forest, samples = 3, nChains = 4)
 #print(sprintf("Fitting ended %s", date()))
 
 
 # SAVE MODELS
-model_list <- list(forest_natura_no_effort)
-names(model_list) <- c("forest_natura_no_effort")
+model_list <- list(probit_natura_forest, probit_corine_forest)
+names(model_list) <- c("probit_natura_forest", "probit_corine_forest")
 save(model_list, file = file.path(dir_models, "models_unfitted.RData"))
 
 

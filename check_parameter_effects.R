@@ -14,6 +14,8 @@ raw_variance_partitionings <- list()
 
 associations <- list()
 
+parameter_effects <- list()
+
 
 # LOOP TROUGH MODELS
 for (model_number in 1:length(fitted_models)) {
@@ -27,6 +29,9 @@ for (model_number in 1:length(fitted_models)) {
     number_of_species <- model$ns
     number_of_covariates <- model$nc # Includes intercept, and breakdowns for categorical variables
     number_of_traits <- model$nt
+    
+    print("")
+    print(sprintf("loaded model %s", model_name))
     
     
     # OPEN PDF FOR GRAPHS
@@ -51,6 +56,8 @@ for (model_number in 1:length(fitted_models)) {
     # GET VARIANCE PARTITIONING ONLY IF THERE IS ENOUGH VARIABLES
     if ((number_of_random_levels + number_of_environmental_variables) > 1 
         & number_of_species > 1) {
+        
+        print("plotting variance partitioning")
         
         # CALCULATE VARIANCE PARTITIONING
         variance_partitioning <- computeVariancePartitioning(model)
@@ -181,6 +188,8 @@ for (model_number in 1:length(fitted_models)) {
     # IF THERE ARE OTHER COVARIATES BESIDES INTERCEPT
     if (number_of_covariates > 1) {
         
+        print("Creating beta plot")
+        
         # GET POSTERIOR ESTIMATES FOR ENVIRONMENTAL VARIABLE EFFECTS
         posterior_estimates_beta <- getPostEstimate(model, parName = "Beta")
         file_beta_estimates <- file.path(dir_results, sprintf("parameter_estimates_Beta_%s.xlsx", model_name))
@@ -250,6 +259,9 @@ for (model_number in 1:length(fitted_models)) {
             colorRampPalette(c("blue", "lightblue"))(number_of_negative_breaks - 1),  # zero was removed  
             colorRampPalette(c("pink", "red"))(number_of_positive_breaks)  
         )
+        
+        parameter_effects[[model_name]] <- beta_posterior_means_for_heatmap
+        
         pheatmap(beta_posterior_means_for_heatmap,
                  color = colors,
                  breaks = color_palette_breaks,
@@ -269,6 +281,8 @@ for (model_number in 1:length(fitted_models)) {
     # GAMMA PLOT (EFFECTS OF TRAITS ON SPECIES RESPONSES TO COVARIATES)
     # IF TRAITS AND COVARIATES INCLUDE OTHER THINGS BESIDES INTERCEPT
     if (number_of_traits > 1 & number_of_covariates > 1) {
+        
+        print("Creating gamma plot")
         
         # GET POSTERIOR ESTIMATES FOR GAMMA
         posterior_estimates_gamma <- getPostEstimate(model, parName = "Gamma")
@@ -327,6 +341,8 @@ for (model_number in 1:length(fitted_models)) {
     # RANDOM LEVEL ASSOCIATIONS
     # IF THERE ARE RANDOM LEVELS AND MORE THAN 1 SPECIES
     if (number_of_random_levels > 0 & number_of_species > 1) {
+        
+        print("Creating random level plot")
         
         # CREATE ASSOCIATION MATRICES
         omega_matrices <- computeAssociations(model)
@@ -426,8 +442,8 @@ for (model_number in 1:length(fitted_models)) {
 # VARIANCE PLOTS AND CORRELATIONS
 
 
-plot(colSums(raw_variance_partitionings[[1]]$vals),
-     colSums(raw_variance_partitionings[[2]]$vals))
+
+
 
 cor(colSums(raw_variance_partitionings[[1]]$vals),
      colSums(raw_variance_partitionings[[2]]$vals))
@@ -477,6 +493,43 @@ for (species in colnames(comparable_variances_corine)) {
 correlation_data <- data.frame(correlation = correlations,
                                species = colnames(comparable_variances_corine))
 
+plot(ecdf(correlation_data$correlation))
+
+
+median(correlation_data$correlation)
+
+
+values <- na.omit(unlist(parameter_effects$`3_probit_natura_forest_thin_100_samples_500_fitted`))
+sum(values < 0) / length(values)
+
+
+values <- na.omit(unlist(parameter_effects$`3_probit_corine_forest_thin_100_samples_500_fitted`))
+sum(values < 0) / length(values)
+
+
+
+
+
+plot(ecdf(unlist(parameter_effects$`3_probit_natura_forest_thin_100_samples_500_fitted`)),
+     do.points = FALSE,
+     verticals = TRUE,
+     col = "blue",
+     lwd = 3,
+     yaxt = "n",
+     main = "ECDF of all supported covariate effects \nhabitat type model (95 % support level)",
+     xlab = "parameter value",
+     ylab = "cumulative probability")
+axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
+      labels = c(0, 0.25, 0.5, 0.75, 1),
+      las = 2)
+abline(0.5, 0, col = alpha("black", 0.25))
+abline(0.25, 0, col = alpha("black", 0.25))
+abline(0.75, 0, col = alpha("black", 0.25))
+abline(v = 0, col = alpha("black", 0.25))
+
+
+
+
 ggplot(correlation_data, aes(x = reorder(species, correlation), y = correlation)) +
     geom_bar(stat = "identity", fill = "dodgerblue") +
     labs(title = "Explained variance correlation between models", x = "Species", y = "Correlation") +
@@ -498,6 +551,35 @@ ggplot(rowmeans_long_df, aes(x = variable, y = mean, fill = type)) +
     geom_bar(stat = "identity", position = "dodge") +
     labs(title = "Mean explained variance by each variable", x = "Variable", y = "Mean explained variance") +
     theme_minimal()
+
+
+
+
+par(mfrow = c(1,2))
+
+plot(colSums(raw_variance_partitionings[[1]]$vals),
+     colSums(raw_variance_partitionings[[2]]$vals),
+     main = "Proportion of raw variance \nexplained by each model \nfor each species",
+     pch = 19,
+     xlab = "Land cover model",
+     ylab = "Habitat type model")
+
+
+plot(ecdf(correlation_data$correlation),
+     do.points = FALSE,
+     verticals = TRUE,
+     col = "blue",
+     lwd = 3,
+     yaxt = "n",
+     main = "ECDF of correlation between models \nfor variance partitioning of each species",
+     xlab = "correlation",
+     ylab = "cumulative probability")
+axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
+      labels = c(0, 0.25, 0.5, 0.75, 1),
+      las = 2)
+abline(0.5, 0, col = alpha("black", 0.25))
+abline(0.25, 0, col = alpha("black", 0.25))
+abline(0.75, 0, col = alpha("black", 0.25))
 
 
 

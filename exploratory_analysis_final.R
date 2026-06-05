@@ -609,10 +609,15 @@ for (type in setdiff(colnames(fractions_corine), corine_forest_types)) {
 
 par(mfrow = c(1, 2))
 
-colors <- rainbow(length(natura_forest_types))
+colors <- c("forestgreen", "skyblue", "lightgreen", "blue")
 plot(natura_transect_averages$x,
      natura_transect_averages$y,
-     col = "black")
+     col = "white",
+     axes = FALSE,
+     xlab = "",
+     ylab = "",
+     main = "Most common habitat type of each transect")
+dominant_types <- c()
 for (transect_number in 1:nrow(natura_transect_averages)) {
     transect_values <- natura_transect_averages[transect_number,]
     biggest_fraction <- 0
@@ -627,19 +632,32 @@ for (transect_number in 1:nrow(natura_transect_averages)) {
     }
     points(transect_values$x,
            transect_values$y,
+           pch = 20,
+           cex = 2,
            col = colors[biggest_type])
+    if (! biggest_type %in% dominant_types) {
+        dominant_types <- c(dominant_types, biggest_type)
+    }
+    
 }
 legend("topleft",
-       legend = natura_forest_types,
-       col = colors,
-       cex = 0.5,
-       pch = 21,
+       legend = natura_forest_types[dominant_types],
+       col = colors[dominant_types],
+       cex = 0.8,
+       pch = 20,
        bty = "n")
 
-colors <- rainbow(length(corine_forest_types))
+
+
+colors <- c("purple", "black", "yellow", "grey", "orange" )
 plot(corine_transect_averages$x,
      corine_transect_averages$y,
-     col = "black")
+     col = "white",
+     axes = FALSE,
+     xlab = "",
+     ylab = "",
+     main = "Most common land cover type of each transect")
+dominant_types <- c()
 for (transect_number in 1:nrow(corine_transect_averages)) {
     transect_values <- corine_transect_averages[transect_number,]
     biggest_fraction <- 0
@@ -654,13 +672,18 @@ for (transect_number in 1:nrow(corine_transect_averages)) {
     }
     points(transect_values$x,
            transect_values$y,
+           pch = 20,
+           cex = 2,
            col = colors[biggest_type])
+    if (! biggest_type %in% dominant_types) {
+        dominant_types <- c(dominant_types, biggest_type)
+    }
 }
 legend("topleft",
-       legend = corine_forest_types,
-       col = colors,
-       cex = 0.5,
-       pch = 21,
+       legend = corine_forest_types[dominant_types],
+       col = colors[dominant_types],
+       cex = 0.8,
+       pch = 20,
        bty = "n")
 
 

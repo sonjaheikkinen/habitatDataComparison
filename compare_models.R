@@ -84,28 +84,52 @@ plot_metric <- function(data) {
 # FUNCTION FOR PLOTTING SCALED PERFORMANCE VALUES 
 
 plot_difference_line <- function(data,
-                                 aggregation_column,
-                                 colors) {
-    natura <- subset(data, type == "Natura")
-    corine <- subset(data, type == "Corine")
-    difference <- natura 
-    difference$value <- natura$value - corine$value
-    aggregated_difference <- aggregate(reformulate(c(aggregation_column, "metric"), response = "value"),
-                                       data = difference,
-                                       FUN = mean)
+                                 aggregation_columns) {
     
-    data <- aggregated_difference
+    par(mfrow = c(length(aggregation_columns),2))
     
-    ggplot(data, aes(x = .data[[aggregation_column]], y = value, group = metric, color = metric)) +
-        geom_line() +
-        scale_colour_manual(values = colors) +
-        theme_minimal() +
-        geom_hline(yintercept = 0, col = "black") +
-        labs(
-            title = sprintf("Difference averaged over %s", aggregation_column),
-            x = aggregation_column,
-            y = "Average metric difference"
-        )
+    for (column in aggregation_columns) {
+        natura <- subset(data, type == "Natura")
+        corine <- subset(data, type == "Corine")
+        difference <- natura 
+        difference$value <- natura$value - corine$value
+        aggregated_difference <- aggregate(reformulate(c(column, "metric"), response = "value"),
+                                           data = difference,
+                                           FUN = function(x) {
+                                               quantile(x, 0.5, na.rm = TRUE)})
+        aggregated_difference_25 <- aggregate(reformulate(c(column, "metric"), response = "value"),
+                                           data = difference,
+                                           FUN = function(x) {
+                                               quantile(x, 0.25, na.rm = TRUE)})
+        aggregated_difference_75 <- aggregate(reformulate(c(column, "metric"), response = "value"),
+                                           data = difference,
+                                           FUN = function(x) {
+                                               quantile(x, 0.75, na.rm = TRUE)})
+        plot(natura[,column],
+             natura$value,
+             col = "red",
+             xlab = "Prevalence",
+             ylab = "WAIC",
+             main = column)
+        points(corine[,column],
+               corine$value,
+               col = "blue")
+        plot(aggregated_difference[,column],
+             aggregated_difference$value,
+             type = "l",
+             xlab = "Prevalence",
+             ylab = "WAIC difference",
+             main = column)
+        lines(aggregated_difference_25[,column],
+              aggregated_difference_25$value,
+              col = "grey")
+        lines(aggregated_difference_75[,column],
+              aggregated_difference_75$value,
+              col = "grey")
+        abline(0, 0)
+    }
+    
+
     
 }
 
@@ -405,6 +429,25 @@ waic_results <- data.frame(model = c(rep("Natura", number_of_rows),
                                      modelfit_results$Corine$waic_by_column))
 
 
+par(mfrow = c(1, 1))
+plot(ecdf(waic_results[waic_results$model == "Natura",]$value - waic_results[waic_results$model == "Corine",]$value),
+     do.points = FALSE,
+     verticals = TRUE,
+     col = "blue",
+     lwd = 3,
+     yaxt = "n",
+     main = "CDF of specieswise WAIC difference",
+     xlab = "difference",
+     ylab = "cumulative probability")
+axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
+      labels = c(0, 0.25, 0.5, 0.75, 1),
+      las = 2)
+abline(0.5, 0, col = alpha("black", 0.25))
+abline(0.25, 0, col = alpha("black", 0.25))
+abline(0.75, 0, col = alpha("black", 0.25))
+abline(v = 0, col = alpha("black", 0.25))
+
+
 
 
 
@@ -453,13 +496,48 @@ overall_waic_comparison_plot <- ggplot(waic_results,
 
 
 
-grid.arrange(overall_tjurr2_comparison_plot,
-             overall_auc_comparison_plot,
-             overall_rmse_comparison_plot,
-             overall_waic_comparison_plot,
-             heights = c(3, 3, 3, 1.7),
-             ncol = 1)
+#grid.arrange(overall_tjurr2_comparison_plot,
+#             overall_auc_comparison_plot,
+#             overall_rmse_comparison_plot,
+#             overall_waic_comparison_plot,
+#             heights = c(3, 3, 3, 1.7),
+#             ncol = 1)
 
+
+grid.arrange(overall_auc_comparison_plot, 
+             overall_rmse_comparison_plot)
+
+print(overall_waic_comparison_plot)
+
+
+hist(waic_results[waic_results$model == "Natura",]$value)
+hist(waic_results[waic_results$model == "Corine",]$value)
+qqnorm(waic_results[waic_results$model == "Natura",]$value)
+qqline(waic_results[waic_results$model == "Natura",]$value)
+qqnorm(waic_results[waic_results$model == "Corine",]$value)
+qqline(waic_results[waic_results$model == "Corine",]$value)
+
+mean(waic_results[waic_results$model == "Natura",]$value)
+median(waic_results[waic_results$model == "Natura",]$value)
+mean(waic_results[waic_results$model == "Corine",]$value)
+median(waic_results[waic_results$model == "Corine",]$value)
+
+sd(waic_results[waic_results$model == "Natura",]$value)
+sd(waic_results[waic_results$model == "Corine",]$value)
+
+quantile(waic_results[waic_results$model == "Natura",]$value, 
+         c(0.25, 0.75), 
+         na.rm = TRUE)
+quantile(waic_results[waic_results$model == "Corine",]$value, 
+         c(0.25, 0.75), 
+         na.rm = TRUE)
+
+
+sd(waic_results[waic_results$model == "Natura",]$value) / mean(waic_results[waic_results$model == "Natura",]$value)
+sd(waic_results[waic_results$model == "Corine",]$value) / mean(waic_results[waic_results$model == "Corine",]$value)
+
+sum(waic_results[waic_results$model == "Natura",]$value < waic_results[waic_results$model == "Corine",]$value)
+length(waic_results[waic_results$model == "Corine",]$value)
 
 
 # UNSCALED PAIRED T-TEST
@@ -480,8 +558,8 @@ metric_order <- c("average",
                   "scaled_pred_pw_transect_RMSE",
                   "scaled_pred_pw_year_RMSE",
                   "scaled_waic")
-all_true <- rep(TRUE, times = length(metrics))
-all_false <- rep(FALSE, times = length(metrics))
+all_true <- rep(TRUE, times = length(metric_order))
+all_false <- rep(FALSE, times = length(metric_order))
 only_averages <- all_false
 only_averages[1:7] <- TRUE
 no_averages <- all_true
@@ -609,11 +687,45 @@ metric_dataframe_long$mig <- trait_data[metric_dataframe_long$species,]$Mig
 metric_dataframe_long$transect_prevalence <- species_prevalences[metric_dataframe_long$species,]$transects
 metric_dataframe_long$year_prevalence <- species_prevalences[metric_dataframe_long$species,]$years
 metric_dataframe_long$sample_prevalence <- species_prevalences[metric_dataframe_long$species,]$samples
-par(mfrow = c(2, 3))
-grid.arrange(plot_difference_line(metric_dataframe_long, "logmass", colors),
-             plot_difference_line(metric_dataframe_long, "feeding", colors),
-             plot_difference_line(metric_dataframe_long, "mig", colors),
-             plot_difference_line(metric_dataframe_long, "transect_prevalence", colors))
+
+plot_data <- metric_dataframe_long[metric_dataframe_long$metric == "WAIC",]
+
+
+
+plot(plot_data$transect_prevalence, plot_data$value,
+     xlab = "Prevalence", 
+     ylab = "WAIC",
+     main = "Transect prevalence")
+plot(plot_data$year_prevalence, plot_data$value,
+     xlab = "Prevalence", 
+     ylab = "WAIC",
+     main = "Year prevalence")
+plot(plot_data$sample_prevalence, plot_data$value,
+     xlab = "Prevalence", 
+     ylab = "WAIC",
+     main = "Sample prevalence")
+
+
+plot_difference_line(plot_data, c("transect_prevalence",
+                                  "year_prevalence",
+                                  "sample_prevalence"))
+
+difference_data <- plot_data[plot_data$type == "Natura",]
+difference_data$value <- difference_data$value - plot_data[plot_data$type == "Corine",]$value
+
+
+par(mfrow = c(1, 3))
+boxplot(value ~ feeding,
+        data = plot_data[plot_data$type == "Natura",],
+        main = "Natura WAIC")
+boxplot(value ~ feeding,
+        data = plot_data[plot_data$type == "Corine",],
+        main = "Corine WAIC")
+boxplot(value ~ feeding,
+        data = difference_data,
+        main = "Difference Natura - Corine")
+abline(0, 0)
+
 
 
 pheatmap(cor(metric_dataframe_wide_difference, cbind(transect_prevalence = species_prevalences[rownames(metric_dataframe_wide_difference), c("transects")], 
