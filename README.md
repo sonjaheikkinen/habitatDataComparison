@@ -4,6 +4,12 @@ A script for my thesis to see how well EU habitats directive habitat types predi
 Script was built with the help of the example pipeline available at [https://www.helsinki.fi/en/researchgroups/statistical-ecology/software/past-hmsc-workshops](https://www.helsinki.fi/en/researchgroups/statistical-ecology/software/past-hmsc-workshops) 
 
 
+Code is only tested using Hmsc (version 3.3-6). [https://github.com/cran/Hmsc](https://github.com/cran/Hmsc). Install with 
+
+```
+install_github("hmsc-r/HMSC", ref = "v3.3-6")
+```
+
 ## Running the scripts
 
 1. Select your root directory in filepath_config.txt. Under this directory, create folders: "Data", "Models", "Results". Under models create folder "Fitted". Under results create folder "Modelfits". 
