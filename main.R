@@ -90,7 +90,7 @@ if (run_format_data) {
 
 # EXPLORATORY ANALYSIS
 if (run_exploratory_analysis) {
-    source("exploratory_analysis.R")
+    source("exploratory_analysis_final.R")
 }
 
 # SELECT DATA
