@@ -159,69 +159,6 @@ length(waic_results[waic_results$model == "Corine",]$value)
 
 
 
-# UNSCALED PAIRED T-TEST
-metric_order <- c("average", 
-                  "average_rmse",
-                  "average_tjurr2",
-                  "average_auc",
-                  "average_explanatory_power",
-                  "average_predictive_power_transect",
-                  "average_predictive_power_year",
-                  "exp_pw_TjurR2",
-                  "pred_pw_transect_TjurR2",
-                  "pred_pw_year_TjurR2",
-                  "exp_pw_AUC",
-                  "pred_pw_transect_AUC",
-                  "pred_pw_year_AUC",
-                  "scaled_exp_pw_RMSE",
-                  "scaled_pred_pw_transect_RMSE",
-                  "scaled_pred_pw_year_RMSE",
-                  "scaled_waic")
-all_true <- rep(TRUE, times = length(metric_order))
-all_false <- rep(FALSE, times = length(metric_order))
-only_averages <- all_false
-only_averages[1:7] <- TRUE
-no_averages <- all_true
-no_averages[1:7] <- FALSE
-
-
-
-# COMPARE MODEL PERFORMANCE USING LINEAR MODELS
-
-# Response variable: fit metrics
-# Fixed effect: model
-# Random effect: species
-
-# First transform data to wide format for t-test
-metric_dataframe <- data.frame()
-for (metric_name in metric_order[no_averages]) {
-    # Transform data to wide format
-    metric_values_natura <- long_df[long_df$metric == metric_name & long_df$type == "Natura", c("value")]
-    metric_values_corine <- long_df[long_df$metric == metric_name & long_df$type == "Corine", c("value")]
-    species <- long_df[long_df$metric == metric_name & long_df$type == "Natura", c("species")]
-    metric_dataframe <- rbind(metric_dataframe, data.frame(values_natura = metric_values_natura,
-                                                           values_corine = metric_values_corine,
-                                                           species = species,
-                                                           metric = rep(metric_name, length(species))))
-}
-
-# Check for skew in the differences
-difference_between_corine_and_natura <- metric_dataframe$values_natura - metric_dataframe$values_corine
-hist(difference_between_corine_and_natura)
-
-
-# Perform t-test
-result_total <- t.test(metric_dataframe$values_natura, metric_dataframe$values_corine, paired = TRUE)
-print(result_total)
-
-# Test waic
-result_waic <- t.test(metric_dataframe[metric_dataframe$metric == "scaled_waic", ]$values_natura, 
-                       metric_dataframe[metric_dataframe$metric == "scaled_waic", ]$values_corine, 
-                       paired = TRUE)
-print(result_waic)
-
-
-
 
 
 
