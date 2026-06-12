@@ -177,6 +177,7 @@ load(file.path(dir_results, "variable_scales"))
 
 
 
+
 expected_values_list <- list()
 expected_values_over_variables <- list()
 expected_values_over_variables_non_marginal <- list()
@@ -399,7 +400,6 @@ plot(overall_long_df[overall_long_df$metric == "natura_uncertainty",]$value,
      main = "Uncertainty UC (hab vs. lc)")
 
 
-
 plot(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value,
      overall_long_df[overall_long_df$metric == "natura_error",]$value,
      xlab = "Occurrence probability",
@@ -593,22 +593,6 @@ abline(v = 0, col = alpha("black", 0.25))
 
 
 
-
-
-
-par(mfrow=c(1, 3))
-hist(overall_long_df[overall_long_df$metric == "occurrence_prob_relative_difference",]$value,
-     main = "E difference scaled with E",
-     xlab = "Value",
-     col = "forestgreen")
-hist(overall_long_df[overall_long_df$metric == "error_relative_difference",]$value,
-     main = "MAE difference scaled with E",
-     xlab = "Value",
-     col = "red")
-hist(overall_long_df[overall_long_df$metric == "uncertainty_relative_difference",]$value,
-     main = "UC difference scaled with E",
-     xlab = "Value",
-     col = "blue")
 
 
 # TRANSECTWISE ANALYSIS
@@ -827,55 +811,7 @@ abline(v = 0, col = alpha("black", 0.25))
 
 
 
-par(mfrow = c(1, 2))
 
-plot(ecdf(transect_long_df[transect_long_df$metric == "corine_occurrence_prob",]$value),
-     col = "forestgreen",
-     do.points = FALSE,
-     verticals = TRUE,
-     lwd = 3,
-     xlim = c(0, 1),
-     yaxt = "n",
-     main = "CDF of E, MAE and UC for both models")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value),
-      col = "lightgreen",
-      lwd = 3,
-      do.points = FALSE,
-      verticals = TRUE)
-lines(ecdf(transect_long_df[transect_long_df$metric == "corine_error",]$value),
-      col = "red",
-      lwd = 3,
-      do.points = FALSE,
-      verticals = TRUE)
-lines(ecdf(transect_long_df[transect_long_df$metric == "natura_error",]$value),
-      col = "pink",
-      lwd = 3,
-      do.points = FALSE,
-      verticals = TRUE)
-lines(ecdf(transect_long_df[transect_long_df$metric == "corine_uncertainty",]$value),
-      col = "blue",
-      lwd = 3,
-      do.points = FALSE,
-      verticals = TRUE)
-lines(ecdf(transect_long_df[transect_long_df$metric == "natura_uncertainty",]$value),
-      col = "lightblue",
-      lwd = 3,
-      do.points = FALSE,
-      verticals = TRUE)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("E (hab)", "E (lc)",
-                  "MAE (hab)", "MAE (lc)",
-                  "UC (hab)", "UC (lc"),
-       col = c("lightgreen", "forestgreen",
-               "pink", "red",
-               "lightblue", "blue"),
-       lty = 1)
 
 
 
@@ -1368,23 +1304,6 @@ p_values_long <- data.frame(metric = rep(colnames(p_values_df), each = length(va
                             value = c(p_values_df[,1], p_values_df[,2], p_values_df[,3]))
 
 
-ggplot(p_values_long, aes(x = metric, y = value, fill = variable)) +
-    geom_bar(stat = "identity", position = "dodge") +
-    ylim(0, 1) +
-    coord_flip() + 
-    #geom_text(aes(label = round(value, 3)), 
-    #          hjust = -0.2,
-    #          size = 3,
-    #          group = metric, 
-    #          position = position_dodge(width = .9)) +
-    geom_hline(yintercept = 0.05) +
-    labs(title = "P-values",
-         x = "",
-         y = "",
-         fill = "Variable"
-    ) +
-    guides(fill = guide_legend(reverse = TRUE)) +
-    theme_minimal()
 
 
 
@@ -2050,237 +1969,10 @@ plotcp(error_decision_tree)
 
 
 
-# INTERESTING SPECIES AND TRANSECTS
-
-natura_species <- c()
-corine_species <- c()
-
-for (species in species_list) {
-    
-    data <- species_long_df[species_long_df$species == species,]
-    overall_data <- overall_long_df[overall_long_df$species == species,]
-    
-    plot(overall_data[overall_data$metric == "occurrence_prob_relative_difference",]$value,
-         main = species)
-    text(overall_data[overall_data$metric == "occurrence_prob_relative_difference",]$value,
-         labels = overall_data[overall_data$metric == "occurrence_prob_relative_difference",]$transect)
-    
-    prob_diff <- data[data$metric == "occurrence_prob_relative_difference",]$value
-    error_diff <- data[data$metric == "error_relative_difference",]$value
-    uc_diff <- data[data$metric == "uncertainty_relative_difference",]$value
-    
-    if (prob_diff > 0 & (error_diff < 0 | uc_diff < 0)) {
-        natura_species <- c(natura_species, species)
-    }
-    if (prob_diff < 0 & (error_diff > 0 | uc_diff > 0)) {
-        corine_species <- c(corine_species, species)
-    }
-}
-
-
-load(file = file.path(dir_data, "trait_data.RData"))
-View(trait_data[natura_species,])
-View(trait_data[corine_species,])
-
-
-
-
-natura_transects <- c()
-corine_transects <- c()
-
-for (transect in unique(prediction_dataframe$transect)) {
-    
-    data <- transect_long_df[transect_long_df$transect == transect,]
-    
-    prob_diff <- data[data$metric == "occurrence_prob_relative_difference",]$value
-    error_diff <- data[data$metric == "error_relative_difference",]$value
-    uc_diff <- data[data$metric == "uncertainty_relative_difference",]$value
-    
-    if (prob_diff > 0 & (error_diff < 0 | uc_diff < 0)) {
-        natura_transects <- c(natura_transects, transect)
-    }
-    if (prob_diff < 0 & (error_diff > 0 | uc_diff > 0)) {
-        corine_transects <- c(corine_transects, transect)
-    }
-}
-
-View(unit_data[unit_data$Transect == natura_transects,])
-View(unit_data[unit_data$Transect == corine_transects,])
-
-
-plot(unit_data$x,
-     unit_data$y)
-points(unit_data[unit_data$Transect == natura_transects,]$x,
-     unit_data[unit_data$Transect == natura_transects,]$y,
-     col = "red",
-     pch = 20,
-     cex = 4)
-points(unit_data[unit_data$Transect == corine_transects,]$x,
-       unit_data[unit_data$Transect == corine_transects,]$y,
-       col = "blue",
-       pch = 20,
-       cex = 4)
-text(unit_data$x,
-     unit_data$y,
-     labels = unit_data$Transect)
-
-
-
-
-
-
 
 
 # ANALYSE DISTRIBUTION OF PREDICTIONS
 
-
-
-
-
-plot(ecdf(prediction_dataframe$posterior_mean_relative_difference),
-     xlab = "Difference between predicted values",
-     ylab = "Probability",
-     main = "CDF of value difference")
-lines(ecdf(prediction_dataframe$posterior_mean_relative_difference))
-
-
-plot(prediction_dataframe$natura_posterior_mean, 
-     prediction_dataframe$natura_uncertainty)
-
-plot(prediction_dataframe$corine_posterior_mean,
-     (prediction_dataframe$corine_error - prediction_dataframe$corine_posterior_mean) / prediction_dataframe$corine_posterior_mean)
-
-plot(prediction_dataframe$natura_error,
-     prediction_dataframe$natura_uncertainty)
-
-
-par(mfrow = c(3, 3))
-
-boxplot(prediction_dataframe[,c("corine_posterior_mean", 
-                                "natura_posterior_mean")],
-        main = sprintf("Posterior means from both models, \n medians: corine %s, natura %s",
-                       round(median(prediction_dataframe$corine_posterior_mean), digits = 3),
-                       round(median(prediction_dataframe$natura_posterior_mean), digits = 3)))
-boxplot(prediction_dataframe$posterior_mean_difference,
-        main = sprintf("Difference as natura - corine, \n median %s",
-                       round(median(prediction_dataframe$posterior_mean_difference), digits = 3)))  
-boxplot(prediction_dataframe$posterior_mean_relative_difference,
-        main = sprintf("Relative difference of natura compared to corine, \n median %s",
-                       round(median(prediction_dataframe$posterior_mean_relative_difference), digits = 3))) 
-
-boxplot(prediction_dataframe[,c("corine_uncertainty", 
-                                "natura_uncertainty")],
-        main = sprintf("Posterior uncertainty from both models, \n medians: corine %s, natura %s",
-                       round(median(prediction_dataframe$corine_uncertainty), digits = 3),
-                       round(median(prediction_dataframe$natura_uncertainty), digits = 3)))
-boxplot(prediction_dataframe$uncertainty_difference,
-        main = sprintf("Difference as natura - corine, \n median %s",
-                       round(median(prediction_dataframe$uncertainty_difference), digits = 3)))  
-boxplot(prediction_dataframe$uncertainty_relative_difference,
-        main = sprintf("Relative difference of natura compared to corine, \n median %s",
-                       round(median(prediction_dataframe$uncertainty_relative_difference), digits = 3))) 
-
-
-boxplot(prediction_dataframe[,c("corine_error", 
-                                "natura_error")],
-        main = sprintf("Posterior error from both models, \n medians: corine %s, natura %s",
-                       round(median(prediction_dataframe$corine_error), digits = 3),
-                       round(median(prediction_dataframe$natura_error), digits = 3)))
-boxplot(prediction_dataframe$error_difference,
-        main = sprintf("Difference as natura - corine, \n median %s",
-                       round(median(prediction_dataframe$error_difference), digits = 3)))  
-boxplot(prediction_dataframe$error_relative_difference,
-        main = sprintf("Relative difference of natura compared to corine, \n median %s",
-                       round(median(prediction_dataframe$error_relative_difference), digits = 3))) 
- 
-
-species_list <- unique(prediction_dataframe$species)
-species_postdis_dataframe <- data.frame(corine_median = rep(0, length(species_list)),
-                                        natura_median = rep(0, length(species_list)),
-                                        corine_iqr =rep(0, length(species_list)),
-                                        natura_iqr = rep(0, length(species_list)),
-                                        corine_iqr_median = rep(0, length(species_list)),
-                                        natura_iqr_median = rep(0, length(species_list)),
-                                        corine_uncertainty = rep(0, length(species_list)),
-                                        natura_uncertainty = rep(0, length(species_list)),
-                                        corine_error = rep(0, length(species_list)),
-                                        natura_error = rep(0, length(species_list)),
-                                        median_diff = rep(0, length(species_list)),
-                                        iqr_diff = rep(0, length(species_list)),
-                                        iqr_median_diff = rep(0, length(species_list)),
-                                        uncertainty_diff = rep(0, length(species_list)),
-                                        error_diff = rep(0, length(species_list)),
-                                        median_relative_diff = rep(0, length(species_list)),
-                                        iqr_relative_diff = rep(0, length(species_list)),
-                                        iqr_median_relative_diff = rep(0, length(species_list)),
-                                        uncertainty_relative_diff = rep(0, length(species_list)),
-                                        error_relative_diff = rep(0, length(species_list)))
-rownames(species_postdis_dataframe) <- species_list
-
-for (species in unique(prediction_dataframe$species)) {
-    data <- prediction_dataframe[prediction_dataframe$species == species,]
-    corine_median <- median(data$corine_posterior_mean)
-    natura_median <- median(data$natura_posterior_mean)
-    corine_iqr <- quantile(data$corine_posterior_mean, 0.75) - quantile(data$corine_posterior_mean, 0.25)
-    natura_iqr <- quantile(data$natura_posterior_mean, 0.75) - quantile(data$natura_posterior_mean, 0.25)
-    corine_iqr_median <- corine_iqr / corine_median
-    natura_iqr_median <- natura_iqr / natura_median
-    corine_uncertainty <- median(data$corine_uncertainty)
-    natura_uncertainty <- median(data$natura_uncertainty)
-    corine_error <- median(data$corine_error)
-    natura_error <- median(data$natura_error)
-    median_diff <- natura_median - corine_median
-    iqr_diff <- natura_iqr - corine_iqr
-    iqr_median_diff <- natura_iqr_median - corine_iqr_median
-    uncertainty_diff <- natura_uncertainty - corine_uncertainty
-    error_diff <- natura_error - corine_error
-    median_relative_diff <- (natura_median - corine_median) / corine_median
-    iqr_relative_diff <- (natura_iqr - corine_iqr) / corine_iqr
-    iqr_median_relative_diff <- (natura_iqr_median - corine_iqr_median) / corine_iqr_median
-    uncertainty_relative_diff <- (natura_uncertainty - corine_uncertainty) / corine_uncertainty
-    error_relative_diff <- (natura_error - corine_error) / corine_error
-    species_postdis_dataframe[species,] <- c(corine_median, natura_median,
-                                             corine_iqr, natura_iqr,
-                                             corine_iqr_median, natura_iqr_median,
-                                             corine_uncertainty, natura_uncertainty,
-                                             corine_error, natura_error,
-                                             median_diff, iqr_diff, iqr_median_diff, uncertainty_diff, error_diff,
-                                             median_relative_diff, iqr_relative_diff, iqr_median_relative_diff, uncertainty_relative_diff, error_relative_diff)
-}
-
-species_postdis_dataframe$species <- rownames(species_postdis_dataframe)
-
-plot(species_prevalences[species_list[1],]$transects,
-     species_postdis_dataframe[species_list[1],]$natura_error,
-     ylim = c(0, 1),
-     xlim = c(0, 50))
-for (species in species_list[2:length(species_list)]) {
-    points(species_prevalences[species,]$transects,
-           species_postdis_dataframe[species,]$natura_error)
-}
-
-
-
-true_data_rare <- c(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-true_data_medium <- c(1, 1, 1, 0, 0, 0, 0, 0, 0, 0)
-true_data_common <- c(1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
-prob_rare <- c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
-prob_medium <- c(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
-prob_common <- c(0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9)
-
-res <- list()
-res[["rare_rare"]] <- abs(true_data_rare - prob_rare)
-res[["rare_medium"]] <- abs(true_data_rare - prob_medium)
-res[["rare_common"]] <- abs(true_data_rare - prob_common)
-res[["medium_rare"]] <- abs(true_data_medium - prob_rare)
-res[["medium_medium"]] <- abs(true_data_medium- prob_medium)
-res[["medium_common"]] <- abs(true_data_medium - prob_common)
-res[["common_rare"]] <- abs(true_data_common - prob_rare)
-res[["common_medium"]] <- abs(true_data_common - prob_medium)
-res[["common_common"]] <- abs(true_data_common - prob_common)
-
-res_avg <- lapply(res, FUN = mean)
-res_median <- lapply(res, FUN = median)
 
 
 
