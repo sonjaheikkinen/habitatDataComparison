@@ -1,4 +1,7 @@
 
+# FUNCTIONS | PREDICTION
+
+
 # THIS FUNCTION GENERATES A PREDICTION FOR GIVEN SPATIAL AND TEMPORAL COORDINATES
 make_prediction <- function(prediction_units, variable_names) {
         
@@ -37,6 +40,47 @@ make_prediction <- function(prediction_units, variable_names) {
 
 
 
+# FUNCTIONS | MODEL COMPARISON
+
+
+plot_model_evaluation_ecdf <- function(data, metrics, title, limit, difference = FALSE) {
+    
+    plot(ecdf(data[data$metric == metrics[1],]$value),
+         verticals = TRUE,
+         do.points = FALSE,
+         col = "blue",
+         lwd = 3,
+         yaxt = "n",
+         main = title,
+         xlab = "value",
+         ylab = "cumulative probability",
+         xlim = limit)
+    axis(2, at = c(0, 0.25, 0.5, 0.75, 1), 
+         labels = c(0, 0.25, 0.5, 0.75, 1),
+         las = 2)
+    if (length(metrics) > 1) {
+        lines(ecdf(data[data$metric == metrics[2],]$value),
+              verticals = TRUE,
+              do.points = FALSE,
+              col = "lightblue",
+              lwd = 3)
+    }
+    abline(0.5, 0, col = alpha("black", 0.25))
+    abline(0.25, 0, col = alpha("black", 0.25))
+    abline(0.75, 0, col = alpha("black", 0.25))
+    if (length(metrics) > 1) {
+        legend("bottomright",
+               legend = c("E (hab)", "E (lc)"),
+               col = c("lightblue", "blue"),
+               lty = 1)
+    }
+    if (difference) {
+        abline(v = 0, col = alpha("black", 0.25))
+    }
+}
+
+
+
 # SCRIPT STARTS
 
 
@@ -51,7 +95,10 @@ model_names <- c(strsplit(basename(fitted_models[1]), "\\.")[[1]][1],
                  strsplit(basename(fitted_models[2]), "\\.")[[1]][1])
 
 
-# Make predictions for both models
+
+
+# MAKE PREDICTIONS
+
 for (model_number in 1:length(fitted_models)) {
         
     # Load fitted model and extract its name
@@ -71,15 +118,13 @@ for (model_number in 1:length(fitted_models)) {
     unit_data$Transect <- coords$Transect
     
     
-    # MAKE A PREDICTION OVER THE SAME COORDINATES AS ORIGINAL DATA
+    # Make a prediction over the same coordinates as original data
     prediction <- make_prediction(unit_data, colnames(env_vars))
     save(prediction, file = file.path(dir_results, sprintf("prediction_%s.RData", model_name)))
     save(unit_data, file = file.path(dir_results, sprintf("unit_data_%s.RData", model_name)))
     
     
-    
-    # PREDICT VARIABLE EFFECTS
-    
+    # Predict variable effects
     variable_prediction_transect <- "000"
     variable_prediction_x <- mean(unit_data$x)
     variable_prediction_y <- mean(unit_data$y)
@@ -123,6 +168,7 @@ for (model_number in 1:length(fitted_models)) {
         predicted_variable_effects[[focal_variable]] <- prediction
     }
     save(predicted_variable_effects, file = file.path(dir_results, sprintf("predicted_variable_effects_%s.RData", model_name)))
+    
     
     # All else in their most likely value given the value of focal
     predicted_variable_effects_non_marginal <- list()
@@ -172,10 +218,10 @@ for (model_number in 1:length(fitted_models)) {
 
 
 
+# CALCULATE EXPECTED VALUES
+
 # Load variable_scales
 load(file.path(dir_results, "variable_scales"))
-
-
 
 
 expected_values_list <- list()
@@ -232,9 +278,20 @@ for (model_number in 1:length(fitted_models)) {
 }
 
 
-# Load original occurrence data
+# FORMAT PREDICTION INFORMATION FOR COMPARISON
+
+
+# Load data
 load(fitted_models[[1]])
 occurrence <- fitted_model$Y
+load(file = file.path(dir_data, "spatiotemporal_context.RData"))
+load(file.path(dir_data, "species_prevalences.RData"))
+load(file.path(dir_results, sprintf("unit_data_%s.RData", model_names[[1]])))
+corine_units <- unit_data
+load(file.path(dir_results, sprintf("unit_data_%s.RData", model_names[[2]])))
+natura_units <- unit_data
+
+
 
 # Names for environmental variables
 natura_habitat_variables <- c("Luonnonmetsät",
@@ -252,22 +309,9 @@ other_variables <- c("Temperature", "Rainfall")
 
 
 
-# Load spatiotemporal context
-load(file = file.path(dir_data, "spatiotemporal_context.RData"))
 
 
-# Load trait data
-load(file.path(dir_data, "species_prevalences.RData"))
-
-
-# PREDICTIONS 
-
-# Load unit_data for predictions
-load(file.path(dir_results, sprintf("unit_data_%s.RData", model_names[[1]])))
-corine_units <- unit_data
-load(file.path(dir_results, sprintf("unit_data_%s.RData", model_names[[2]])))
-natura_units <- unit_data
-
+# Format one common unit data combined from the unit data of both models
 unit_data <- natura_units
 unit_data$NaturaPatchDensity <- natura_units$PatchDensity
 unit_data$CorinePatchDensity <- corine_units$PatchDensity
@@ -276,7 +320,10 @@ for (variable in setdiff(corine_habitat_variables, "CorinePatchDensity")) {
     unit_data[,variable] <- corine_units[,variable]
 }
 
-# MAKE ONE BIG DATAFRAME FOR ALL PREDICTION INFORMATION
+
+
+
+# Make one big dataframe for all prediction information
 number_of_species <- ncol(occurrence)
 number_of_samples <- nrow(spatiotemporal_context)
 prediction_dataframe <- data.frame(transect = rep(spatiotemporal_context$Transect, number_of_species),
@@ -296,10 +343,8 @@ prediction_dataframe$occurrence_prob_relative_difference <- prediction_dataframe
 
 
 
-# ANALYSE UNCERTAINTY AND CORRECTNESS OF PREDICTIONS TO THE DATAFRAME
-
+# Add model uncertainty to the dataframe
 uncertainties <- list()
-
 for (model_number in 1:length(predictions)) {
     model_predictions <- predictions[[model_number]]
     model_predictions_array <- simplify2array(model_predictions)
@@ -314,13 +359,9 @@ for (model_number in 1:length(predictions)) {
     uncertainty <- credible_interval_upper_bound - credible_interval_lower_bound
     uncertainties[[model_number]] <- uncertainty
 }
-
-
 names(uncertainties) <- c("corine", "natura")
-
 prediction_dataframe$corine_uncertainty <- rep(0, nrow(prediction_dataframe))
 prediction_dataframe$natura_uncertainty <- rep(0, nrow(prediction_dataframe))
-
 for (row in 1:nrow(prediction_dataframe)) {
     row_species <- prediction_dataframe[row,]$species
     row_sample <- prediction_dataframe[row,]$sample_number
@@ -332,6 +373,7 @@ prediction_dataframe$uncertainty_relative_difference <- prediction_dataframe$unc
 prediction_dataframe$average_uncertainty <- rowMeans(prediction_dataframe[,c("natura_uncertainty", "corine_uncertainty")])
 
 
+# Add  model error to the dataframe
 prediction_dataframe$corine_error <- abs(prediction_dataframe$true_value - prediction_dataframe$corine_occurrence_prob)
 prediction_dataframe$natura_error <- abs(prediction_dataframe$true_value - prediction_dataframe$natura_occurrence_prob)
 prediction_dataframe$error_difference <- prediction_dataframe$natura_error - prediction_dataframe$corine_error
@@ -340,8 +382,7 @@ prediction_dataframe$average_error <- rowMeans(prediction_dataframe[,c("natura_e
 
 
 
-# AVERAGE OVER YEARS
-
+# Average dataframe data over years to get rid of temporal replicates
 averaged <- aggregate(prediction_dataframe,
                       cbind(x,
                             y, 
@@ -363,6 +404,7 @@ averaged <- aggregate(prediction_dataframe,
                             FUN = mean)
 
 
+# Reshape data to long format
 overall_long_df <- reshape(averaged,
                            varying = setdiff(names(averaged), c("species", 
                                                                 "transect", 
@@ -379,7 +421,16 @@ overall_long_df <- reshape(averaged,
 
 
 
+
+
+# OVERALL MODEL COMPARISON
+
+
+
+# Value correlations
+
 par(mfrow = c(1, 3))
+
 
 plot(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value,
      overall_long_df[overall_long_df$metric == "corine_occurrence_prob",]$value,
@@ -400,497 +451,126 @@ plot(overall_long_df[overall_long_df$metric == "natura_uncertainty",]$value,
      main = "Uncertainty UC (hab vs. lc)")
 
 
-plot(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value,
-     overall_long_df[overall_long_df$metric == "natura_error",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Mean absolute error",
-     main = "E (hab) vs. MAE (hab)")
 
-plot(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value,
-     overall_long_df[overall_long_df$metric == "natura_uncertainty",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Uncertainty",
-     main = "E (hab) vs. UC (hab)")
-
-
-plot(overall_long_df[overall_long_df$metric == "natura_uncertainty",]$value,
-     overall_long_df[overall_long_df$metric == "natura_error",]$value,
-     xlab = "Uncertainty",
-     ylab = "Mean absolute error",
-     main = "UC (hab) vs. MAE (hab)")
-
-
-plot(overall_long_df[overall_long_df$metric == "corine_occurrence_prob",]$value,
-     overall_long_df[overall_long_df$metric == "occurrence_prob_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Occurrence probability difference",
-     main = "E (hab) vs. E diff")
-
-
-plot(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value,
-     overall_long_df[overall_long_df$metric == "error_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Mean absolute error difference",
-     main = "E (hab) vs. MAE diff")
-
-plot(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value,
-     overall_long_df[overall_long_df$metric == "uncertainty_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Uncertainty difference",
-     main = "E (hab) vs. UC diff")
-
-plot(overall_long_df[overall_long_df$metric == "uncertainty_difference",]$value,
-     overall_long_df[overall_long_df$metric == "error_difference",]$value,
-     xlab = "Uncertainty difference",
-     ylab = "Mean absolute error difference",
-     main = "UC diff vs. MAE diff")
 
 
 cor(overall_long_df[overall_long_df$metric == "uncertainty_difference",]$value,
     overall_long_df[overall_long_df$metric == "error_difference",]$value)
 
 
+
+
+
+# Value distributions
+
+
+
+
+
 par(mfrow = c(2, 3))
 
 
-plot(ecdf(overall_long_df[overall_long_df$metric == "corine_occurrence_prob",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of expected occurrence probability E",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(overall_long_df[overall_long_df$metric == "natura_occurrence_prob",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-     lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("E (hab)", "E (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
+plot_model_evaluation_ecdf(overall_long_df, 
+                           c("corine_occurrence_prob", "natura_occurrence_prob"), 
+                                  "CDF of expected occurrence probability E",
+                           c(0, 1))
 
+plot_model_evaluation_ecdf(overall_long_df,
+                           c("corine_error", "natura_error"), 
+                           "CDF of mean absolute error MAE",
+                           c(0, 1))
 
-plot(ecdf(overall_long_df[overall_long_df$metric == "corine_error",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of mean absolute error MAE",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(overall_long_df[overall_long_df$metric == "natura_error",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("MAE (hab)", "MAE (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
-
-plot(ecdf(overall_long_df[overall_long_df$metric == "corine_uncertainty",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of uncertainty UC",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(overall_long_df[overall_long_df$metric == "natura_uncertainty",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("UC (hab)", "UC (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
+plot_model_evaluation_ecdf(overall_long_df, 
+                           c("corine_uncertainty", "natura_uncertainty"),
+                           "CDF of uncertainty UC",
+                           c(0, 1))
 
 
 values <- overall_long_df[overall_long_df$metric == "occurrence_prob_difference",]$value
 limit <- max(abs(values))
-plot(ecdf(values),
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of E difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+plot_model_evaluation_ecdf(overall_long_df,
+                           "occurrence_prob_difference",
+                           "CDF of E difference",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 
 values <- overall_long_df[overall_long_df$metric == "error_difference",]$value
 limit <- max(abs(values))
-plot(ecdf(values),
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of MAE difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
+plot_model_evaluation_ecdf(overall_long_df,
+                           "error_difference",
+                           "CDF of MAE difference",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 values <- overall_long_df[overall_long_df$metric == "uncertainty_difference",]$value
 limit <- max(abs(values))
-plot(ecdf(values),
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of UC difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
-
-
-
-
-
-
-
+plot_model_evaluation_ecdf(overall_long_df,
+                           "uncertainty_difference",
+                           "CDF of UC difference",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 
 
 # TRANSECTWISE ANALYSIS
+
+
 
 transect_long_df <- aggregate(overall_long_df,
                               cbind(value, x, y) ~ transect + metric,
                               FUN = median)
 
 
-par(mfrow = c(2, 4))
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "corine_occurrence_prob",]$value,
-     xlab = "Occurrence probability (hab)",
-     ylab = "Occurrence probability (lc)",
-     main = "E (hab) vs. E (lc)")
-
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "natura_error",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Mean absolute error",
-     main = "E (hab) vs. MAE (hab)")
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "natura_uncertainty",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Uncertainty",
-     main = "E (hab) vs. UC (hab)")
-
-
-plot(transect_long_df[transect_long_df$metric == "natura_uncertainty",]$value,
-     transect_long_df[transect_long_df$metric == "natura_error",]$value,
-     xlab = "Uncertainty",
-     ylab = "Mean absolute error",
-     main = "UC (hab) vs. MAE (hab)")
-
-
-plot(transect_long_df[transect_long_df$metric == "corine_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "occurrence_prob_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Occurrence probability difference",
-     main = "E (hab) vs. E diff")
-
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "error_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Mean absolute error difference",
-     main = "E (hab) vs. MAE diff")
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "uncertainty_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Uncertainty difference",
-     main = "E (hab) vs. UC diff")
-
-plot(transect_long_df[transect_long_df$metric == "uncertainty_difference",]$value,
-     transect_long_df[transect_long_df$metric == "error_difference",]$value,
-     xlab = "Uncertainty difference",
-     ylab = "Mean absolute error difference",
-     main = "UC diff vs. MAE diff")
-
-
-
-
-
-
-par(mfrow = c(2, 3))
-
-
-plot(ecdf(transect_long_df[transect_long_df$metric == "corine_occurrence_prob",]$value),
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     verticals = TRUE,
-     do.points = FALSE,
-     main = "CDF of expected occurrence probability E",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("E (hab)", "E (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
-
-plot(ecdf(transect_long_df[transect_long_df$metric == "corine_error",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of mean absolute error MAE",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(transect_long_df[transect_long_df$metric == "natura_error",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("MAE (hab)", "MAE (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
-
-plot(ecdf(transect_long_df[transect_long_df$metric == "corine_uncertainty",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of uncertainty UC",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(transect_long_df[transect_long_df$metric == "natura_uncertainty",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("UC (hab)", "UC (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
-
-
-values <- transect_long_df[transect_long_df$metric == "occurrence_prob_difference",]$value
-limit <- max(abs(values))
-plot(ecdf(values),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of E difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
-
-values <- transect_long_df[transect_long_df$metric == "error_difference",]$value
-limit <- max(abs(values))
-plot(ecdf(values),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of MAE difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
-
-values <- transect_long_df[transect_long_df$metric == "uncertainty_difference",]$value
-limit <- max(abs(values))
-plot(ecdf(values),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of UC difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 par(mfrow = c(1, 3))
 
 
-plot(ecdf(transect_long_df[transect_long_df$metric == "occurrence_prob_difference",]$value),
-     col = "blue",
-     lwd = 3,
-     do.points = FALSE,
-     verticals = TRUE,
-     yaxt = "n",
-     main = "CDF of expected occurrence probablity difference \nfor transect medians",
-     xlab = "Difference",
-     ylab = "Cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+plot_model_evaluation_ecdf(transect_long_df, 
+                           c("corine_occurrence_prob", "natura_occurrence_prob"), 
+                           "CDF of expected occurrence probability E",
+                           c(0, 1))
 
-plot(ecdf(transect_long_df[transect_long_df$metric == "error_difference",]$value),
-     col = "blue",
-     lwd = 3,
-     do.points = FALSE,
-     verticals = TRUE,
-     yaxt = "n",
-     main = "CDF of mean absolute error difference \nfor transect medians",
-     xlab = "Difference",
-     ylab = "Cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+plot_model_evaluation_ecdf(transect_long_df,
+                           c("corine_error", "natura_error"), 
+                           "CDF of mean absolute error MAE",
+                           c(0, 1))
+
+plot_model_evaluation_ecdf(transect_long_df, 
+                           c("corine_uncertainty", "natura_uncertainty"),
+                           "CDF of uncertainty UC",
+                           c(0, 1))
 
 
-plot(ecdf(transect_long_df[transect_long_df$metric == "uncertainty_difference",]$value),
-     col = "blue",
-     lwd = 3,
-     do.points = FALSE,
-     verticals = TRUE,
-     yaxt = "n",
-     main = "CDF of uncertainty difference \nfor transect medians",
-     xlab = "Difference",
-     ylab = "Cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+values <- transect_long_df[transect_long_df$metric == "occurrence_prob_difference",]$value
+limit <- max(abs(values))
+plot_model_evaluation_ecdf(transect_long_df,
+                           "occurrence_prob_difference",
+                           "CDF of expected occurrence probablity difference \nfor transect medians",
+                           c(-limit, limit),
+                           difference = TRUE)
+
+
+values <- transect_long_df[transect_long_df$metric == "error_difference",]$value
+limit <- max(abs(values))
+plot_model_evaluation_ecdf(transect_long_df,
+                           "error_difference",
+                           "CDF of mean absolute error difference \nfor transect medians",
+                           c(-limit, limit),
+                           difference = TRUE)
+
+values <- transect_long_df[transect_long_df$metric == "uncertainty_difference",]$value
+limit <- max(abs(values))
+plot_model_evaluation_ecdf(transect_long_df,
+                           "uncertainty_difference",
+                           "CDF of uncertainty difference \nfor transect medians",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 
 
 
 
-
-
-
-
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "natura_error",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Error",
-     main = "E (hab) vs. MAE (hab)")
-
-
-plot(transect_long_df[transect_long_df$metric == "natura_occurrence_prob",]$value,
-     transect_long_df[transect_long_df$metric == "error_difference",]$value,
-     xlab = "Occurrence probability",
-     ylab = "Error difference",
-     main = "E (hab) vs. MAE diff")
 
 
 
@@ -1433,217 +1113,52 @@ species_long_df <- aggregate(overall_long_df,
 
 
 
-
-
-
-
-
 par(mfrow = c(2, 3))
 
 
-plot(ecdf(species_long_df[species_long_df$metric == "corine_occurrence_prob",]$value),
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     verticals = TRUE,
-     do.points = FALSE,
-     main = "CDF of expected occurrence probability E",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(species_long_df[species_long_df$metric == "natura_occurrence_prob",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("E (hab)", "E (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
+plot_model_evaluation_ecdf(species_long_df, 
+                           c("corine_occurrence_prob", "natura_occurrence_prob"), 
+                           "CDF of expected occurrence probability E",
+                           c(0, 1))
 
+plot_model_evaluation_ecdf(species_long_df,
+                           c("corine_error", "natura_error"), 
+                           "CDF of mean absolute error MAE",
+                           c(0, 1))
 
-plot(ecdf(species_long_df[species_long_df$metric == "corine_error",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of mean absolute error MAE",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(species_long_df[species_long_df$metric == "natura_error",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("MAE (hab)", "MAE (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
-
-plot(ecdf(species_long_df[species_long_df$metric == "corine_uncertainty",]$value),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of uncertainty UC",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-lines(ecdf(species_long_df[species_long_df$metric == "natura_uncertainty",]$value),
-      verticals = TRUE,
-      do.points = FALSE,
-      col = "lightblue",
-      lwd = 3)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-legend("bottomright",
-       legend = c("UC (hab)", "UC (lc)"),
-       col = c("lightblue", "blue"),
-       lty = 1)
-
+plot_model_evaluation_ecdf(species_long_df, 
+                           c("corine_uncertainty", "natura_uncertainty"),
+                           "CDF of uncertainty UC",
+                           c(0, 1))
 
 
 values <- species_long_df[species_long_df$metric == "occurrence_prob_difference",]$value
 limit <- max(abs(values))
-plot(ecdf(values),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of E difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+plot_model_evaluation_ecdf(species_long_df,
+                           "occurrence_prob_difference",
+                           "CDF of expected occurrence probablity difference \nfor species medians",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 
 values <- species_long_df[species_long_df$metric == "error_difference",]$value
 limit <- max(abs(values))
-plot(ecdf(values),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of MAE difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
+plot_model_evaluation_ecdf(species_long_df,
+                           "error_difference",
+                           "CDF of mean absolute error difference \nfor species medians",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 values <- species_long_df[species_long_df$metric == "uncertainty_difference",]$value
 limit <- max(abs(values))
-plot(ecdf(values),
-     verticals = TRUE,
-     do.points = FALSE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of UC difference",
-     xlab = "value",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+plot_model_evaluation_ecdf(species_long_df,
+                           "uncertainty_difference",
+                           "CDF of uncertainty difference \nfor species medians",
+                           c(-limit, limit),
+                           difference = TRUE)
 
 
 
-
-
-
-
-
-
-
-
-par(mfrow = c(1, 3))
-
-
-
-plot(ecdf(species_long_df[species_long_df$metric == "occurrence_prob_difference",]$value),
-     col = "blue",
-     lwd = 3,
-     do.points = FALSE,
-     verticals = TRUE,
-     yaxt = "n",
-     main = "CDF of expected occurrence probablity difference \nfor species medians",
-     xlab = "Difference",
-     ylab = "Cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
-plot(ecdf(species_long_df[species_long_df$metric == "error_difference",]$value),
-     col = "blue",
-     lwd = 3,
-     do.points = FALSE,
-     verticals = TRUE,
-     yaxt = "n",
-     main = "CDF of mean absolute error difference \nfor species medians",
-     xlab = "Difference",
-     ylab = "Cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
-
-
-plot(ecdf(species_long_df[species_long_df$metric == "uncertainty_difference",]$value),
-     col = "blue",
-     lwd = 3,
-     do.points = FALSE,
-     verticals = TRUE,
-     yaxt = "n",
-     main = "CDF of uncertainty difference \nfor species medians",
-     xlab = "Difference",
-     ylab = "Cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
 
 
 
