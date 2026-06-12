@@ -2,6 +2,7 @@
 
 
 # FUNCTIONS | GENERAL
+
 extract_thinning_value <- function(filename) {
     parts <- strsplit(filename, "_")[[1]] 
     thinning_value <- as.numeric(parts[length(parts) - 1])
@@ -10,34 +11,58 @@ extract_thinning_value <- function(filename) {
 }
 
 
+# FUNCTIONS | MODEL QUALITY
 
+create_modelfit_dataframe <- function(base_df, category, modelfit_results) {
+    modelfit_dataframe <- base_df
+    modelfit_dataframe$value <- c(modelfit_results$Natura$explanatory_power[,category],
+                                  modelfit_results$Natura$predictive_power_transect[,category],
+                                  modelfit_results$Natura$predictive_power_year[,category],
+                                  modelfit_results$Corine$explanatory_power[,category],
+                                  modelfit_results$Corine$predictive_power_transect[,category],
+                                  modelfit_results$Corine$predictive_power_year[,category])
+    return(modelfit_dataframe)
+}
+
+
+create_modelfit_comparison_plot <- function(modelfit_results, category_title, average_performance = NULL) {
+    plot <- ggplot(modelfit_results,
+                   aes(x = metric, y = value, fill = model)) +
+        geom_boxplot(position = position_dodge()) +
+        labs(x = "Metric", y = category_title) +
+        scale_fill_manual(values = c("Natura" = "lightblue",
+                                     "Corine" = "dodgerblue")) +
+        theme_minimal() +
+        geom_hline(yintercept = average_performance, linetype = "dashed", color = "red") + 
+        coord_flip()
+    return(plot)
+}
     
 
 
 # SCRIPT STARTS
 
-# LOAD IN MODELFITS AND DATA FOR COMPARISONS
+
+
+
+
+# MODEL QUALITY EVALUATION
+
+# Load in modelfits
 modelfit_files <- list.files(dir_modelfits, pattern="*.RData", full.names=TRUE)
-
-
-
-# QUALITY OF MODELS
-
-
-
 modelfit_results <- list()
 model_names <- c("Corine", "Natura")
 
 for (modelfit_file_number in 1:length(modelfit_files)) {
     
-    # GET MODEL INFORMATION
+    # Get model information
     load(modelfit_files[modelfit_file_number])
     model_name <- model_names[modelfit_file_number]
     thinning_value <- extract_thinning_value(model_name)
     modelfit_file <- file.path(dir_modelfits, sprintf("modelfit_%s.RData", model_name))
     
     
-    # LOAD MODELFIT RESULTS
+    # Load fit results for model
     modelfit_results[[model_name]] <- list(explanatory_power = explanatory_power,
                                            predictive_power_transect = predictive_power_transect,
                                            predictive_power_year = predictive_power_year,
@@ -47,9 +72,12 @@ for (modelfit_file_number in 1:length(modelfit_files)) {
     
 }
 
+
+# Format fit results as dataframe
+categories <- c("TjurR2", "AUC", "RMSE")
 number_of_rows <- nrow(modelfit_results$Natura$explanatory_power)
-number_of_categories <- 3
-number_of_models <- 2
+number_of_categories <- length(categories)
+number_of_models <- length(modelfit_files)
 species_list <- rownames(modelfit_results$Natura$explanatory_power)
 
 results_dataframe_base <- data.frame(model = c(rep("Natura", number_of_rows * number_of_categories),
@@ -57,105 +85,29 @@ results_dataframe_base <- data.frame(model = c(rep("Natura", number_of_rows * nu
                                      metric = rep(c(rep("Explanatory_power", number_of_rows),
                                                     rep("Predictive_power_transect", number_of_rows),
                                                     rep("Predictive_power_year", number_of_rows)),
-                                                  number_of_models))
-tjurr2_results <- results_dataframe_base
-tjurr2_results$value <- c(modelfit_results$Natura$explanatory_power$TjurR2,
-                          modelfit_results$Natura$predictive_power_transect$TjurR2,
-                          modelfit_results$Natura$predictive_power_year$TjurR2,
-                          modelfit_results$Corine$explanatory_power$TjurR2,
-                          modelfit_results$Corine$predictive_power_transect$TjurR2,
-                          modelfit_results$Corine$predictive_power_year$TjurR2)
-tjurr2_results$species <- rep(species_list, number_of_models * number_of_categories)
-
-auc_results <- results_dataframe_base
-auc_results$value <- c(modelfit_results$Natura$explanatory_power$AUC,
-                          modelfit_results$Natura$predictive_power_transect$AUC,
-                          modelfit_results$Natura$predictive_power_year$AUC,
-                          modelfit_results$Corine$explanatory_power$AUC,
-                          modelfit_results$Corine$predictive_power_transect$AUC,
-                          modelfit_results$Corine$predictive_power_year$AUC)
-auc_results$species <- rep(species_list, number_of_models * number_of_categories)
+                                                  number_of_models),
+                                     species = rep(species_list, number_of_models * number_of_categories))
 
 
-rmse_results <- results_dataframe_base
-rmse_results$value <- c(modelfit_results$Natura$explanatory_power$RMSE,
-                          modelfit_results$Natura$predictive_power_transect$RMSE,
-                          modelfit_results$Natura$predictive_power_year$RMSE,
-                          modelfit_results$Corine$explanatory_power$RMSE,
-                          modelfit_results$Corine$predictive_power_transect$RMSE,
-                          modelfit_results$Corine$predictive_power_year$RMSE)
-rmse_results$species <- rep(species_list, number_of_models * number_of_categories)
-
+tjurr2_results <- create_modelfit_dataframe(results_dataframe_base, categories[1], modelfit_results)
+auc_results <- create_modelfit_dataframe(results_dataframe_base, categories[2], modelfit_results)
+rmse_results <- create_modelfit_dataframe(results_dataframe_base, categories[3], modelfit_results)
 waic_results <- data.frame(model = c(rep("Natura", number_of_rows),
                                      rep("Corine", number_of_rows)),
                            value = c(modelfit_results$Natura$waic_by_column,
-                                     modelfit_results$Corine$waic_by_column))
-
-
-par(mfrow = c(1, 1))
-plot(ecdf(waic_results[waic_results$model == "Natura",]$value - waic_results[waic_results$model == "Corine",]$value),
-     do.points = FALSE,
-     verticals = TRUE,
-     col = "blue",
-     lwd = 3,
-     yaxt = "n",
-     main = "CDF of specieswise WAIC difference",
-     xlab = "difference",
-     ylab = "cumulative probability")
-axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
-      labels = c(0, 0.25, 0.5, 0.75, 1),
-      las = 2)
-abline(0.5, 0, col = alpha("black", 0.25))
-abline(0.25, 0, col = alpha("black", 0.25))
-abline(0.75, 0, col = alpha("black", 0.25))
-abline(v = 0, col = alpha("black", 0.25))
+                                     modelfit_results$Corine$waic_by_column),
+                           metric = "WAIC")
 
 
 
 
 
-# PLOT AVERAGE COMPARISONS
 
-overall_tjurr2_comparison_plot <- ggplot(tjurr2_results, 
-                                         aes(x = metric, y = value, fill = model)) +
-                                    geom_boxplot(position = position_dodge()) +
-                                    labs(x = "Metric", y = "Tjur R²") +
-                                    scale_fill_manual(values = c("Natura" = "lightblue",
-                                                                 "Corine" = "dodgerblue")) +
-                                    theme_minimal() +
-                                    geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-                                    coord_flip()
-
-overall_auc_comparison_plot <- ggplot(auc_results, 
-                                         aes(x = metric, y = value, fill = model)) +
-                                    geom_boxplot(position = position_dodge()) +
-                                    labs(x = "Metric", y = "AUC") +
-                                    scale_fill_manual(values = c("Natura" = "lightblue",
-                                                                 "Corine" = "dodgerblue")) +
-                                    theme_minimal() +
-                                    geom_hline(yintercept = 0.5, linetype = "dashed", color = "red") +
-                                    coord_flip() 
-
-
-overall_rmse_comparison_plot <- ggplot(rmse_results, 
-                                         aes(x = metric, y = value, fill = model)) +
-                                    geom_boxplot(position = position_dodge()) +
-                                    labs(x = "Metric", y = "RMSE") +
-                                    scale_fill_manual(values = c("Natura" = "lightblue",
-                                                                 "Corine" = "dodgerblue")) +
-                                    theme_minimal() +
-                                    coord_flip()
-
-overall_waic_comparison_plot <- ggplot(waic_results, 
-                                       aes(x = model, y= value, fill = model)) +
-                                    geom_boxplot() +
-                                    labs(x = "Model", y = "WAIC") +
-                                    scale_fill_manual(values = c("Natura" = "lightblue",
-                                                                 "Corine" = "dodgerblue")) +
-                                    theme_minimal() +
-                                    coord_flip()
-
-
+# Plot modelfit comparisons
+overall_tjurr2_comparison_plot <- create_modelfit_comparison_plot(tjurr2_results, "Tjur R²", 0)
+overall_auc_comparison_plot <- create_modelfit_comparison_plot(auc_results, "AUC", 0.5)
+overall_rmse_comparison_plot <- create_modelfit_comparison_plot(rmse_results, "RMSE")
+overall_waic_comparison_plot <- create_modelfit_comparison_plot(waic_results, "WAIC")
 
 
 
@@ -267,6 +219,34 @@ result_waic <- t.test(metric_dataframe[metric_dataframe$metric == "scaled_waic",
                        metric_dataframe[metric_dataframe$metric == "scaled_waic", ]$values_corine, 
                        paired = TRUE)
 print(result_waic)
+
+
+
+
+
+
+
+# MODEL COMPARISON
+
+
+par(mfrow = c(1, 1))
+plot(ecdf(waic_results[waic_results$model == "Natura",]$value - waic_results[waic_results$model == "Corine",]$value),
+     do.points = FALSE,
+     verticals = TRUE,
+     col = "blue",
+     lwd = 3,
+     yaxt = "n",
+     main = "CDF of specieswise WAIC difference",
+     xlab = "difference",
+     ylab = "cumulative probability")
+axis (2, at = c(0, 0.25, 0.5, 0.75, 1), 
+      labels = c(0, 0.25, 0.5, 0.75, 1),
+      las = 2)
+abline(0.5, 0, col = alpha("black", 0.25))
+abline(0.25, 0, col = alpha("black", 0.25))
+abline(0.75, 0, col = alpha("black", 0.25))
+abline(v = 0, col = alpha("black", 0.25))
+
 
 
 
