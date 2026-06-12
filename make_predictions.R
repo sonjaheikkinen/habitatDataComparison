@@ -605,7 +605,7 @@ transect_habitat_variables$transect_name <- NULL
 
 
 long_data_error <- transect_long_df[transect_long_df$metric == "error_difference",]
-decision_tree_data_error <- transect_habitat_variables[,setdiff(colnames(transect_habitat_variables), non_habitat_variables)]
+decision_tree_data_error <- transect_habitat_variables
 decision_tree_data_error$value <- rep(0, nrow(decision_tree_data_error))
 for (transect in rownames(decision_tree_data_error)) {
     decision_tree_data_error[transect,]$value <- long_data_error[long_data_error$transect == transect,"value"]
@@ -616,7 +616,7 @@ plotcp(error_decision_tree)
 
 
 long_data_error <- transect_long_df[transect_long_df$metric == "uncertainty_difference",]
-decision_tree_data_error <- transect_habitat_variables[,setdiff(colnames(transect_habitat_variables), non_habitat_variables)]
+decision_tree_data_error <- transect_habitat_variables
 decision_tree_data_error$value <- rep(0, nrow(decision_tree_data_error))
 for (transect in rownames(decision_tree_data_error)) {
     decision_tree_data_error[transect,]$value <- long_data_error[long_data_error$transect == transect,"value"]
