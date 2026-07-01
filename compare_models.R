@@ -504,6 +504,61 @@ plotcp(uncertainty_decision_tree)
 
 
 
+# Differences between groups
+
+# Divide transects into groups based on which model has lower error for them
+
+transects_natura <- c()
+transects_corine <- c()
+transects_no_difference <- c()
+limit <- c(-0.005, 0.005)
+for (transect in unique(transect_long_df$transect)) {
+    data_for_transect <- transect_long_df[transect_long_df$transect == transect,]
+    error_difference <- data_for_transect[data_for_transect$metric == "error_difference",]$value
+    if (error_difference < limit[1]) {
+        transects_natura <- c(transects_natura, transect)
+    } 
+    if (error_difference > limit[2]) {
+        transects_corine <- c(transects_corine, transect)
+    }
+    if (error_difference >= limit[1] & error_difference <= limit[2]) {
+        transects_no_difference <- c(transects_no_difference, transect)
+    }
+}
+
+
+# Compare environmental variables between groups
+
+par(mfrow = c(1, 3))
+for (variable in colnames(transect_habitat_variables)) {
+    plot(ecdf(transect_habitat_variables[transects_natura,][,variable]),
+         main = "natura",
+         xlab = variable,
+         verticals = TRUE,
+         do.points = FALSE)
+    abline(h = 0.5, col = "grey")
+    plot(ecdf(transect_habitat_variables[transects_corine,][,variable]),
+         main = "corine",
+         xlab = variable,
+         verticals = TRUE,
+         do.points = FALSE)
+    abline(h = 0.5, col = "grey")
+    plot(ecdf(transect_habitat_variables[transects_no_difference,][,variable]),
+         main = "no difference",
+         xlab = variable,
+         verticals = TRUE,
+         do.points = FALSE)
+    abline(h = 0.5, col = "grey")
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -585,7 +640,8 @@ species_list <- species_long_df[species_long_df$metric == "error_difference",]$s
 species_traits <- data.frame(species = species_list,
                              feeding = trait_data[species_list,]$Feeding,
                              mass = trait_data[species_list,]$Mass,
-                             transect_prevalence = species_prevalences[species_list,]$transects)
+                             transect_prevalence = species_prevalences[species_list,]$transects,
+                             mig = trait_data[species_list,]$Mig) 
 
 rownames(species_traits) <- species_traits$species
 
@@ -660,6 +716,70 @@ rpart.plot(error_decision_tree)
 plotcp(error_decision_tree)
 
 
+
+
+
+# Differences between groups
+
+# Divide species into groups based on which model has lower error for them
+
+species_natura <- c()
+species_corine <- c()
+species_no_difference <- c()
+limit <- c(-0.005, 0.005)
+for (species in unique(species_long_df$species)) {
+    data_for_species <- species_long_df[species_long_df$species == species,]
+    error_difference <- data_for_species[data_for_species$metric == "error_difference",]$value
+    if (error_difference < limit[1]) {
+        species_natura <- c(species_natura, species)
+    } 
+    if (error_difference > limit[2]) {
+        species_corine <- c(species_corine, species)
+    }
+    if (error_difference >= limit[1] & error_difference <= limit[2]) {
+        species_no_difference <- c(species_no_difference, )
+    }
+}
+
+
+# Compare environmental variables between groups
+
+par(mfrow = c(1, 3))
+
+plot(ecdf(species_traits[species_natura,][,"transect_prevalence"]),
+     main = "natura",
+     xlab = "transect prevalence",
+     verticals = TRUE,
+     do.points = FALSE)
+abline(h = 0.5, col = "grey")
+plot(ecdf(species_traits[species_corine,][,"transect_prevalence"]),
+     main = "corine",
+     xlab = "transcet prevalence",
+     verticals = TRUE,
+     do.points = FALSE)
+abline(h = 0.5, col = "grey")
+plot(ecdf(species_traits[species_no_difference,][,"transect_prevalence"]),
+     main = "no difference",
+     xlab = "transect prevalence",
+     verticals = TRUE,
+     do.points = FALSE)
+abline(h = 0.5, col = "grey")
+
+
+barplot(table(species_traits[species_natura,][,"feeding"]),
+        main = "natura")
+barplot(table(species_traits[species_corine,][,"feeding"]),
+        main = "corine")
+barplot(table(species_traits[species_no_difference,][,"feeding"]),
+        main = "no difference")
+
+
+barplot(table(species_traits[species_natura,][,"mig"]),
+        main = "natura")
+barplot(table(species_traits[species_corine,][,"mig"]),
+        main = "corine")
+barplot(table(species_traits[species_no_difference,][,"mig"]),
+        main = "no difference")
 
 
 
