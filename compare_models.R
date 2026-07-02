@@ -529,8 +529,17 @@ for (transect in unique(transect_long_df$transect)) {
 
 # Compare environmental variables between groups
 
-par(mfrow = c(1, 3))
+par(mfrow = c(2, 3))
 for (variable in colnames(transect_habitat_variables)) {
+    plot(density(transect_habitat_variables[transects_natura,][,variable]),
+         main = "natura",
+         xlab = variable)
+    plot(density(transect_habitat_variables[transects_corine,][,variable]),
+         main = "corine",
+         xlab = variable)
+    plot(density(transect_habitat_variables[transects_no_difference,][,variable]),
+         main = "no_difference",
+         xlab = variable)
     plot(ecdf(transect_habitat_variables[transects_natura,][,variable]),
          main = "natura",
          xlab = variable,
@@ -550,10 +559,6 @@ for (variable in colnames(transect_habitat_variables)) {
          do.points = FALSE)
     abline(h = 0.5, col = "grey")
 }
-
-
-
-
 
 
 
@@ -737,15 +742,25 @@ for (species in unique(species_long_df$species)) {
         species_corine <- c(species_corine, species)
     }
     if (error_difference >= limit[1] & error_difference <= limit[2]) {
-        species_no_difference <- c(species_no_difference, )
+        species_no_difference <- c(species_no_difference, species)
     }
 }
 
 
 # Compare environmental variables between groups
 
-par(mfrow = c(1, 3))
+par(mfrow = c(2, 3))
 
+
+plot(density(species_traits[species_natura,][,"transect_prevalence"]),
+     main = "natura",
+     xlab = "transect prevalence")
+plot(density(species_traits[species_corine,][,"transect_prevalence"]),
+     main = "corine",
+     xlab = "transect prevalence")
+plot(density(species_traits[species_no_difference,][,"transect_prevalence"]),
+     main = "no difference",
+     xlab = "transect prevalence")
 plot(ecdf(species_traits[species_natura,][,"transect_prevalence"]),
      main = "natura",
      xlab = "transect prevalence",
@@ -766,6 +781,8 @@ plot(ecdf(species_traits[species_no_difference,][,"transect_prevalence"]),
 abline(h = 0.5, col = "grey")
 
 
+par(mfrow = c(1, 3))
+
 barplot(table(species_traits[species_natura,][,"feeding"]),
         main = "natura")
 barplot(table(species_traits[species_corine,][,"feeding"]),
@@ -780,6 +797,11 @@ barplot(table(species_traits[species_corine,][,"mig"]),
         main = "corine")
 barplot(table(species_traits[species_no_difference,][,"mig"]),
         main = "no difference")
+
+
+
+
+
 
 
 
