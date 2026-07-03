@@ -562,6 +562,37 @@ for (variable in colnames(transect_habitat_variables)) {
 
 
 
+# Plot environmental variable comparison
+variable_data <- data.frame(variable = rep(colnames(transect_habitat_variables), each = 3),
+                            group = rep(times = length(colnames(transect_habitat_variables)), 
+                                        c("Natura smaller error", "Corine smaller error", "Error difference < 0.005")),
+                            value = 0)
+values <- c()
+for (variable in colnames(transect_habitat_variables)) {
+    natura_group_median <- median(transect_habitat_variables[transects_natura,][,variable])
+    corine_group_median <- median(transect_habitat_variables[transects_corine,][,variable])
+    no_difference_group_median <- median(transect_habitat_variables[transects_no_difference,][,variable])
+    values <- c(values, natura_group_median, corine_group_median, no_difference_group_median)
+}
+
+variable_data$value <- values
+
+ggplot(data = variable_data[variable_data$variable %in% setdiff(unique(variable_data$variable), 
+                                                                c("Temperature",
+                                                                "Rainfall",
+                                                                "NaturaPatchDensity",
+                                                                "CorinePatchDensity")),], 
+       aes(x = value, 
+           y = variable)) +
+    geom_col(aes(fill = group),
+             position = "dodge") +
+    xlim(0, 0.6) +
+    ggtitle("Median values for habitat variables in each group") +
+    theme_minimal()
+
+
+
+
 
 
 
@@ -735,6 +766,11 @@ limit <- c(-0.005, 0.005)
 for (species in unique(species_long_df$species)) {
     data_for_species <- species_long_df[species_long_df$species == species,]
     error_difference <- data_for_species[data_for_species$metric == "error_difference",]$value
+    print("")
+    print(species)
+    print(sprintf("Error difference: %s", error_difference))
+    print(sprintf("Natura uncertainty: %s", data_for_species[data_for_species$metric == "natura_uncertainty",]$value))
+    print(sprintf("Corine uncertainty: %s", data_for_species[data_for_species$metric == "corine_uncertainty",]$value))
     if (error_difference < limit[1]) {
         species_natura <- c(species_natura, species)
     } 
@@ -742,6 +778,7 @@ for (species in unique(species_long_df$species)) {
         species_corine <- c(species_corine, species)
     }
     if (error_difference >= limit[1] & error_difference <= limit[2]) {
+        print("SMALL")
         species_no_difference <- c(species_no_difference, species)
     }
 }
@@ -801,8 +838,54 @@ barplot(table(species_traits[species_no_difference,][,"mig"]),
 
 
 
+# Plot trait comparison
+trait_names <- c("feeding I", "feeding H", "feeding C", "feeding O", "feeding M",
+                 "mig L", "mig S", "mig R",
+                 "Transect prevalence")
+variable_data <- data.frame(variable = rep(trait_names, each = 3),
+                            group = rep(times = length(trait_names), 
+                                        c("Natura smaller error", "Corine smaller error", "Error difference < 0.005")),
+                            value = 0)
+values <- c()
+for (variable in trait_names) {
+    if (variable == "Transect prevalence") {
+        natura_group_value <- median(species_traits[species_natura,][,"transect_prevalence"])
+        corine_group_value <- median(species_traits[species_corine,][,"transect_prevalence"])
+        no_difference_group_value <- median(species_traits[species_no_difference,][,"transect_prevalence"])
+    } else {
+        variable_name <- strsplit(variable, " ")[[1]][1]
+        variable_value <- strsplit(variable, " ")[[1]][2]
+        data_for_variable <- species_traits[species_traits[,variable_name] == variable_value,]
+        natura_group_value <- sum(species_natura %in% rownames(data_for_variable))
+        corine_group_value <- sum(species_corine %in% rownames(data_for_variable))
+        no_difference_group_value <- sum(species_no_difference %in% rownames(data_for_variable))
+    }
+    values <- c(values, natura_group_value, corine_group_value, no_difference_group_value)
+}
+
+variable_data$value <- values
+
+ggplot(data = variable_data[variable_data$variable %in% setdiff(unique(variable_data$variable), 
+                                                                c("Transect prevalence")),], 
+       aes(x = value, 
+           y = variable)) +
+    geom_col(aes(fill = group),
+             position = "dodge") +
+    ggtitle("Number of species having specific traits in each group") +
+    labs(x = "Number of species") +
+    theme_minimal()
 
 
+
+
+ggplot(data = variable_data[variable_data$variable == "Transect prevalence",], 
+       aes(x = value, 
+           y = variable)) +
+    geom_col(aes(fill = group),
+             position = "dodge") +
+    ggtitle("Median transect prevalence in each group") +
+    labs(x = "Transect prevalence") +
+    theme_minimal()
 
 
 
